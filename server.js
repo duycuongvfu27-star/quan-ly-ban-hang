@@ -8,14 +8,12 @@ app.use(express.static(__dirname));
 
 const DATA_FILE = path.join(__dirname, 'data.json');
 
-// Khởi tạo 16 bàn mặc định
 const tablesCount = 16;
 let defaultTables = {};
 for (let i = 1; i <= tablesCount; i++) {
-    defaultTables[`Bàn ${i < 10 ? '0' + i : i}`] = [];
+    defaultTables[`Bàn ${i < 10 ? '0' + i : i}`] = { order: [], status: 'empty' }; // empty, pending, confirmed
 }
 
-// Menu mặc định
 let defaultMenu = [
     { category: "CÁC COMBO NƯỚNG", items: [
         { name: "Combo 1 (Dành cho 2-3 người)", price: 319000 },
@@ -75,7 +73,20 @@ function loadDatabase() {
     if (fs.existsSync(DATA_FILE)) {
         try {
             const raw = fs.readFileSync(DATA_FILE, 'utf8');
-            return JSON.parse(raw);
+            let data = JSON.parse(raw);
+            // Chuẩn hóa cấu trúc bàn nếu dữ liệu cũ chưa có status
+            if (data.tablesData) {
+                Object.keys(data.tablesData).forEach(k => {
+                    if (Array.isArray(data.tablesData[k])) {
+                        let oldOrder = data.tablesData[k];
+                        data.tablesData[k] = {
+                            order: oldOrder,
+                            status: oldOrder.length > 0 ? 'confirmed' : 'empty'
+                        };
+                    }
+                });
+            }
+            return data;
         } catch (e) {
             console.error("Lỗi đọc file data.json");
         }
@@ -98,10 +109,23 @@ app.get('/api/data', (req, res) => {
 });
 
 app.post('/api/update-order', (req, res) => {
-    const { tableName, order } = req.body;
-    db.tablesData[tableName] = order;
-    saveDatabase(db);
+    const { tableName, order, status } = req.body;
+    if (db.tablesData[tableName]) {
+        db.tablesData[tableName].order = order;
+        if (status) db.tablesData[tableName].status = status;
+        else if (order.length === 0) db.tablesData[tableName].status = 'empty';
+        saveDatabase(db);
+    }
     res.json({ success: true });
+});
+
+app.post('/api/confirm-table', (req, res) => {
+    const { tableName } = req.body;
+    if (db.tablesData[tableName]) {
+        db.tablesData[tableName].status = 'confirmed';
+        saveDatabase(db);
+    }
+    res.json({ success: true, tablesData: db.tablesData });
 });
 
 app.post('/api/update-menu', (req, res) => {
@@ -114,9 +138,12 @@ app.post('/api/update-menu', (req, res) => {
 
 app.post('/api/transfer-table', (req, res) => {
     const { fromTable, toTable } = req.body;
-    if (db.tablesData[fromTable]) {
-        db.tablesData[toTable] = db.tablesData[toTable].concat(db.tablesData[fromTable]);
-        db.tablesData[fromTable] = [];
+    if (db.tablesData[fromTable] && db.tablesData[toTable]) {
+        db.tablesData[toTable].order = db.tablesData[toTable].order.concat(db.tablesData[fromTable].order);
+        db.tablesData[toTable].status = 'confirmed';
+        
+        db.tablesData[fromTable].order = [];
+        db.tablesData[fromTable].status = 'empty';
         saveDatabase(db);
     }
     res.json({ success: true, tablesData: db.tablesData });
@@ -140,7 +167,8 @@ app.post('/api/checkout', (req, res) => {
 
     if (!db.revenueHistory) db.revenueHistory = [];
     db.revenueHistory.push(newRecord);
-    db.tablesData[tableName] = [];
+    
+    db.tablesData[tableName] = { order: [], status: 'empty' };
 
     saveDatabase(db);
     res.json({ success: true, record: newRecord });

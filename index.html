@@ -24,11 +24,21 @@
         .btn-hdr-qr { background: #8e44ad; }
 
         .table-grid-section { background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
-        .table-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 8px; margin-top: 8px; }
+        .table-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-top: 8px; }
         .table-card { padding: 8px 4px; text-align: center; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; border: 2px solid transparent; transition: 0.15s; }
-        .table-empty { background-color: #2ecc71; color: white; }
-        .table-occupied { background-color: #e74c3c; color: white; }
-        .table-card.active { border-color: #2c3e50; transform: scale(1.03); box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
+        
+        /* 3 MÀU TRẠNG THÁI SƠ ĐỒ BÀN */
+        .table-empty { background-color: #2ecc71; color: white; }      /* Xanh lá: Bàn trống */
+        .table-pending { background-color: #e67e22; color: white; animation: pulse 1.5s infinite; }  /* Màu Cam: Khách vừa đặt chờ xác nhận */
+        .table-confirmed { background-color: #e74c3c; color: white; }  /* Màu Đỏ: Đã xác nhận phục vụ */
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+
+        .table-card.active { border-color: #2c3e50; box-shadow: 0 3px 6px rgba(0,0,0,0.25); }
 
         .layout { display: flex; gap: 12px; flex-wrap: wrap; }
         .menu-section { flex: 2; min-width: 300px; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
@@ -65,10 +75,12 @@
         .order-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; margin-top: 8px; }
         .order-table th, .order-table td { padding: 6px 3px; border-bottom: 1px solid #eee; text-align: left; font-size: 12px; }
         .qty-btn { width: 24px; height: 24px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-weight: bold; border-radius: 4px; }
+        .qty-btn:disabled { background: #e0e0e0; color: #aaa; border-color: #ddd; cursor: not-allowed; }
         
         .total-box { font-size: 17px; font-weight: bold; text-align: right; color: #c0392b; margin: 12px 0; padding-top: 8px; border-top: 2px dashed #ccc; }
         
         .btn-group { display: flex; gap: 8px; flex-direction: column; }
+        .btn-confirm-order { padding: 12px; background: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; display: none; }
         .btn-transfer { padding: 11px; background: #d35400; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
         .btn-print { padding: 11px; background: #2980b9; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
         .btn-checkout { padding: 12px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
@@ -79,6 +91,8 @@
         .modal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 15px 0; max-height: 200px; overflow-y: auto; }
         .modal-table-btn { padding: 10px 5px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; }
         .modal-table-btn.occupied { background: #e74c3c; }
+
+        .badge-locked { display: inline-block; background: #7f8c8d; color: white; font-size: 9px; padding: 2px 4px; border-radius: 3px; font-weight: normal; margin-left: 3px; }
 
         #printArea { display: none; }
         @media print {
@@ -179,7 +193,6 @@
     </div>
 </div>
 
-<!-- KHU VỰC TẠO MÃ QR ĐỂ IN DÁN LÊN BÀN -->
 <div class="qr-panel" id="qrPanel">
     <h3 style="margin-top:0; color:#6c3483; font-size:15px;">📱 Mã QR Gọi Món Cho Khách (In Dán Lên Bàn)</h3>
     <p style="font-size:12px; color:#555; margin: 4px 0;">Khách quét mã QR tại bàn sẽ tự động mở Menu chọn món và gửi thẳng đơn về quầy thu ngân.</p>
@@ -187,7 +200,13 @@
 </div>
 
 <div class="table-grid-section" id="adminTableSection">
-    <h3 style="margin:0 0 8px 0; font-size:14px;">📍 Sơ Đồ Bàn (Chọn Bàn Để Gọi Món)</h3>
+    <h3 style="margin:0 0 8px 0; font-size:14px;">📍 Sơ Đồ Bàn: 
+        <span style="font-size:11px; font-weight:normal; margin-left:10px;">
+            <span style="color:#2ecc71;">■ Trống</span> | 
+            <span style="color:#e67e22; font-weight:bold;">■ Đơn mới (Chờ xác nhận)</span> | 
+            <span style="color:#e74c3c;">■ Đã xác nhận</span>
+        </span>
+    </h3>
     <div class="table-grid" id="tableGrid"></div>
 </div>
 
@@ -217,6 +236,7 @@
         </div>
 
         <div class="btn-group" id="adminBtnGroup">
+            <button class="btn-confirm-order" id="btnConfirmOrder" onclick="adminConfirmOrder()">🔔 XÁC NHẬN BÀN (CHUYỂN SANG MÀU ĐỎ)</button>
             <button class="btn-transfer" onclick="openTransferModal()">🔄 Đổi Bàn / Chuyển Bàn</button>
             <button class="btn-print" id="btnPrintLabel" onclick="printReceipt()">🖨️ In Hóa Đơn (Khổ 58mm)</button>
             <button class="btn-checkout" onclick="checkout()">✅ Thanh Toán & Trả Bàn</button>
@@ -247,7 +267,6 @@
     let currentPaperSize = localStorage.getItem('paperSize') || '58mm';
     let isCustomerMode = false;
 
-    // KIỂM TRA XEM CÓ PHẢI KHÁCH QUÉT MÃ QR KHÔNG (link ví dụ: ?table=03)
     const urlParams = new URLSearchParams(window.location.search);
     const paramTable = urlParams.get('table');
 
@@ -313,11 +332,16 @@
         }
     }
 
-    async function saveOrder(tableName) {
+    async function saveOrder(tableName, newStatus = null) {
+        let currentStatus = newStatus || (tablesData[tableName] ? tablesData[tableName].status : 'confirmed');
         await fetch('/api/update-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tableName, order: tablesData[tableName] })
+            body: JSON.stringify({ 
+                tableName, 
+                order: tablesData[tableName].order,
+                status: currentStatus
+            })
         });
     }
 
@@ -426,14 +450,26 @@
         grid.innerHTML = '';
 
         Object.keys(tablesData).forEach(tableName => {
-            const hasOrder = tablesData[tableName] && tablesData[tableName].length > 0;
-            const statusClass = hasOrder ? 'table-occupied' : 'table-empty';
+            const tableObj = tablesData[tableName] || { order: [], status: 'empty' };
+            const status = tableObj.status || (tableObj.order.length > 0 ? 'confirmed' : 'empty');
+            
+            let statusClass = 'table-empty';
+            let statusText = 'Trống';
+
+            if (status === 'pending') {
+                statusClass = 'table-pending';
+                statusText = '🔥 Đơn mới';
+            } else if (status === 'confirmed') {
+                statusClass = 'table-confirmed';
+                statusText = 'Có khách';
+            }
+
             const activeClass = selectedTable === tableName ? 'active' : '';
 
             grid.innerHTML += `
                 <div class="table-card ${statusClass} ${activeClass}" onclick="selectTable('${tableName}')">
                     ${tableName}<br>
-                    <small>${hasOrder ? 'Có khách' : 'Trống'}</small>
+                    <small>${statusText}</small>
                 </div>
             `;
         });
@@ -447,10 +483,25 @@
         renderOrder();
     }
 
+    async function adminConfirmOrder() {
+        if (!selectedTable || !tablesData[selectedTable]) return;
+        
+        await fetch('/api/confirm-table', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tableName: selectedTable })
+        });
+
+        tablesData[selectedTable].status = 'confirmed';
+        renderTables();
+        renderOrder();
+        alert(`Đã xác nhận đơn của ${selectedTable}! Sơ đồ đã chuyển sang MÀU ĐỎ.`);
+    }
+
     function openTransferModal() {
         if (!selectedTable) return alert('Vui lòng chọn bàn hiện tại!');
-        const currentOrder = tablesData[selectedTable];
-        if (!currentOrder || currentOrder.length === 0) return alert('Bàn này đang trống, không có món để đổi!');
+        const currentTableObj = tablesData[selectedTable];
+        if (!currentTableObj || !currentTableObj.order || currentTableObj.order.length === 0) return alert('Bàn này đang trống, không có món để đổi!');
 
         document.getElementById('modalFromTable').innerText = selectedTable;
         const modalGrid = document.getElementById('modalTableGrid');
@@ -458,7 +509,7 @@
 
         Object.keys(tablesData).forEach(tName => {
             if (tName !== selectedTable) {
-                const hasOrder = tablesData[tName] && tablesData[tName].length > 0;
+                const hasOrder = tablesData[tName] && tablesData[tName].order && tablesData[tName].order.length > 0;
                 modalGrid.innerHTML += `
                     <button class="modal-table-btn ${hasOrder ? 'occupied' : ''}" onclick="executeTransfer('${tName}')">
                         ${tName}<br><small>${hasOrder ? 'Có món' : 'Trống'}</small>
@@ -573,36 +624,57 @@
     async function addToOrder(name, price) {
         if (!selectedTable) return alert('Vui lòng chọn Bàn trước!');
 
-        const currentOrder = tablesData[selectedTable];
-        const existing = currentOrder.find(i => i.name === name);
+        const currentTableObj = tablesData[selectedTable];
+        if (!currentTableObj.order) currentTableObj.order = [];
+
+        const existing = currentTableObj.order.find(i => i.name === name);
         if (existing) {
             existing.qty += 1;
         } else {
-            currentOrder.push({ name, price, qty: 1 });
+            currentTableObj.order.push({ name, price, qty: 1, locked: false });
         }
         
-        await saveOrder(selectedTable);
+        // Nếu thu ngân tự thêm món thì đặt status là confirmed (màu đỏ)
+        let targetStatus = isCustomerMode ? 'pending' : (currentTableObj.status === 'pending' ? 'pending' : 'confirmed');
+        await saveOrder(selectedTable, targetStatus);
         renderTables();
         renderOrder();
     }
 
     async function changeQty(index, amount) {
         if (!selectedTable) return;
-        const currentOrder = tablesData[selectedTable];
+        const currentTableObj = tablesData[selectedTable];
+        const currentOrder = currentTableObj.order;
+
+        if (isCustomerMode && currentOrder[index].locked && amount < 0) {
+            return alert('Món này đã được gửi bếp chế biến, không thể bớt hoặc xóa! Vui lòng báo nhân viên nếu cần hủy món.');
+        }
+
         currentOrder[index].qty += amount;
         if (currentOrder[index].qty <= 0) {
             currentOrder.splice(index, 1);
         }
-        await saveOrder(selectedTable);
+        
+        let targetStatus = currentOrder.length === 0 ? 'empty' : currentTableObj.status;
+        await saveOrder(selectedTable, targetStatus);
         renderTables();
         renderOrder();
     }
 
-    function customerSendOrder() {
-        const currentOrder = tablesData[selectedTable];
-        if (!currentOrder || currentOrder.length === 0) {
+    async function customerSendOrder() {
+        const currentTableObj = tablesData[selectedTable];
+        if (!currentTableObj || !currentTableObj.order || currentTableObj.order.length === 0) {
             return alert('Bạn chưa chọn món nào!');
         }
+
+        currentTableObj.order.forEach(item => {
+            item.locked = true;
+        });
+
+        // Đặt trạng thái bàn thành MÀU CAM (pending) khi khách bấm gửi
+        await saveOrder(selectedTable, 'pending');
+        renderOrder();
+
         alert(`✅ ĐÃ GỬI YÊU CẦU THÀNH CÔNG!\n\nNhân viên Quán Nướng Tuổi Trẻ sẽ mang món lên ngay cho ${selectedTable}. Chúc bạn ngon miệng!`);
     }
 
@@ -611,13 +683,24 @@
         tbody.innerHTML = '';
         let total = 0;
 
+        const btnConfirm = document.getElementById('btnConfirmOrder');
+
         if (!selectedTable) {
             tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#999; padding:15px;">Vui lòng chọn Bàn trước</td></tr>';
             document.getElementById('totalAmount').innerText = '0';
+            if (btnConfirm) btnConfirm.style.display = 'none';
             return;
         }
 
-        const currentOrder = tablesData[selectedTable] || [];
+        const currentTableObj = tablesData[selectedTable] || { order: [], status: 'empty' };
+        const currentOrder = currentTableObj.order || [];
+
+        // Nếu bàn đang ở trạng thái Pending (Màu Cam) thì hiện nút XÁC NHẬN BÀN cho thu ngân
+        if (!isCustomerMode && currentTableObj.status === 'pending') {
+            if (btnConfirm) btnConfirm.style.display = 'block';
+        } else {
+            if (btnConfirm) btnConfirm.style.display = 'none';
+        }
 
         if (currentOrder.length === 0) {
             tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#999; padding:15px;">Bàn đang trống (Chưa chọn món)</td></tr>';
@@ -628,11 +711,16 @@
         currentOrder.forEach((item, index) => {
             const itemTotal = item.price * item.qty;
             total += itemTotal;
+            const isLocked = isCustomerMode && item.locked;
+
             tbody.innerHTML += `
                 <tr>
-                    <td><b>${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
                     <td>
-                        <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
+                        <b>${item.name}</b> ${isLocked ? '<span class="badge-locked">Đã gửi</span>' : ''}<br>
+                        <small>${item.price.toLocaleString()}đ</small>
+                    </td>
+                    <td>
+                        <button class="qty-btn" ${isLocked ? 'disabled' : ''} onclick="changeQty(${index}, -1)">-</button>
                         <span style="margin:0 2px;"><b>${item.qty}</b></span>
                         <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
                     </td>
@@ -645,11 +733,11 @@
     }
 
     function printReceipt() {
-        if (!selectedTable || !tablesData[selectedTable] || tablesData[selectedTable].length === 0) {
+        if (!selectedTable || !tablesData[selectedTable] || !tablesData[selectedTable].order || tablesData[selectedTable].order.length === 0) {
             return alert('Bàn chưa có món!');
         }
 
-        const currentOrder = tablesData[selectedTable];
+        const currentOrder = tablesData[selectedTable].order;
         const dateStr = new Date().toLocaleString('vi-VN');
         let total = 0;
 
@@ -712,11 +800,11 @@
 
     async function checkout() {
         if (!selectedTable) return;
-        const currentOrder = tablesData[selectedTable];
-        if (!currentOrder || currentOrder.length === 0) return;
+        const currentTableObj = tablesData[selectedTable];
+        if (!currentTableObj || !currentTableObj.order || currentTableObj.order.length === 0) return;
 
         let totalNum = 0;
-        currentOrder.forEach(i => totalNum += i.price * i.qty);
+        currentTableObj.order.forEach(i => totalNum += i.price * i.qty);
 
         if (confirm(`THANH TOÁN ${selectedTable}\n\nTổng tiền: ${totalNum.toLocaleString()} VNĐ`)) {
             printReceipt();
@@ -726,7 +814,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     tableName: selectedTable,
-                    items: currentOrder,
+                    items: currentTableObj.order,
                     total: totalNum
                 })
             });
