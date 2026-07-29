@@ -2,81 +2,96 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-// Middleware đọc dữ liệu JSON từ request
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Cho phép truy cập các file tĩnh (HTML, CSS, JS frontend) trong thư mục
 app.use(express.static(__dirname));
 
-// Dữ liệu mẫu danh sách sản phẩm
-let products = [
-    { id: 1, name: 'Sản phẩm A', price: 100000, quantity: 10 },
-    { id: 2, name: 'Sản phẩm B', price: 200000, quantity: 5 },
-    { id: 3, name: 'Sản phẩm C', price: 150000, quantity: 20 }
+// Khởi tạo 16 bàn
+const tablesCount = 16;
+let tablesData = {};
+for (let i = 1; i <= tablesCount; i++) {
+    tablesData[`Bàn ${i < 10 ? '0' + i : i}`] = [];
+}
+
+// Menu chuẩn mặc định của QUÁN NƯỚNG TUỔI TRẺ (Đã bổ sung danh mục Combo)
+let defaultMenu = [
+    { category: "CÁC COMBO NƯỚNG", items: [
+        { name: "Combo 1 (Dành cho 2-3 người)", price: 319000 },
+        { name: "Combo 2 (Dành cho 3-4 người)", price: 459000 },
+        { name: "Combo 3 (Dành cho 4-6 người)", price: 619000 },
+        { name: "Combo 4 (Dành cho nhiều người)", price: 1199000 }
+    ]},
+    { category: "ĐỒ ĂN NHẸ", items: [
+        { name: "Hoa quả thập cẩm", price: 29000 },
+        { name: "Ngô chiên", price: 35000 },
+        { name: "Bánh mỳ nướng bơ", price: 19000 },
+        { name: "Khoai tây chiên", price: 35000 },
+        { name: "Salad rau tổng hợp", price: 29000 },
+        { name: "Salad hoa quả", price: 39000 },
+        { name: "Kim chi Hàn Quốc", price: 29000 }
+    ]},
+    { category: "CÁC MÓN NƯỚNG", items: [
+        { name: "Ba chỉ", price: 65000 },
+        { name: "Sụn non ướp ngũ vị", price: 69000 },
+        { name: "Nầm tươi ứa sữa", price: 75000 },
+        { name: "Bò cuộn nấm kim", price: 59000 },
+        { name: "Thịt dải heo", price: 69000 },
+        { name: "Má đào heo", price: 79000 },
+        { name: "Nọng má tươi", price: 79000 },
+        { name: "Chân gà rút xương (Lớn)", price: 99000 },
+        { name: "Chân gà rút xương (Đĩa nhỏ)", price: 59000 },
+        { name: "Lòng non", price: 59000 },
+        { name: "Khấu đuôi giòn sần sật", price: 69000 },
+        { name: "Lòng già mềm mềm", price: 59000 },
+        { name: "Dạ dày nướng xa tế", price: 69000 },
+        { name: "Tôm tươi", price: 89000 },
+        { name: "Mực rụng trứng", price: 89000 },
+        { name: "Bạch tuộc nướng xa tế", price: 79000 },
+        { name: "Xúc xích ướp ngũ vị", price: 59000 },
+        { name: "Dồi sụn ướp ngũ vị", price: 59000 },
+        { name: "Lạp xưởng nướng thượng hạng", price: 59000 },
+        { name: "Dải thăn bò nướng tảng", price: 79000 },
+        { name: "Nạc vai nướng tảng", price: 69000 },
+        { name: "Bò ăn dồi lăn", price: 79000 },
+        { name: "U bò nướng", price: 89000 },
+        { name: "Dẻ sườn nướng xa tế", price: 69000 },
+        { name: "Bắp bò ướp ngũ vị", price: 79000 }
+    ]},
+    { category: "ĐỒ UỐNG", items: [
+        { name: "Rượu ngô, táo mèo, mơ, men lá", price: 40000 },
+        { name: "Bia Sài Gòn / Bia 333", price: 15000 },
+        { name: "Bia Tiger", price: 22000 },
+        { name: "Bò húc", price: 17000 },
+        { name: "Nước lọc", price: 7000 },
+        { name: "Trà đá (ca) / Thuốc lá", price: 20000 },
+        { name: "Rượu dừa", price: 65000 },
+        { name: "Nước ngọt các loại", price: 13000 }
+    ]}
 ];
 
-// 1. Route Trang Chủ (Hiển thị khi truy cập đường link Render)
+let menuData = defaultMenu;
+
 app.get('/', (req, res) => {
-    // Nếu có file index.html trong thư mục thì gửi file đó
-    if (require('fs').existsSync(path.join(__dirname, 'index.html'))) {
-        res.sendFile(path.join(__dirname, 'index.html'));
-    } else {
-        // Nếu chưa có file index.html, hiển thị giao diện thông báo đẹp mắt
-        res.send(`
-            <!DOCTYPE html>
-            <html lang="vi">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Phần Mềm Quản Lý Bán Hàng</title>
-                <style>
-                    body { font-family: Arial, sans-serif; text-align: center; background: #f4f6f9; padding: 50px; }
-                    .card { background: white; padding: 30px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-                    h1 { color: #2c3e50; }
-                    p { color: #27ae60; font-size: 18px; font-weight: bold; }
-                    .btn { display: inline-block; margin-top: 15px; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 5px; }
-                    .btn:hover { background: #2980b9; }
-                </style>
-            </head>
-            <body>
-                <div class="card">
-                    <h1>🚀 Server Quản Lý Bán Hàng</h1>
-                    <p>✅ Ứng dụng đã hoạt động thành công trên Render!</p>
-                    <a href="/api/products" class="btn">Xem API Danh Sách Sản Phẩm</a>
-                </div>
-            </body>
-            </html>
-        `);
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/api/data', (req, res) => {
+    res.json({ tablesData, menuData });
+});
+
+app.post('/api/update-order', (req, res) => {
+    const { tableName, order } = req.body;
+    tablesData[tableName] = order;
+    res.json({ success: true });
+});
+
+app.post('/api/update-menu', (req, res) => {
+    if (req.body.menuData && req.body.menuData.length > 0) {
+        menuData = req.body.menuData;
     }
+    res.json({ success: true });
 });
 
-// 2. API Lấy danh sách sản phẩm
-app.get('/api/products', (req, res) => {
-    res.json({
-        success: true,
-        data: products
-    });
-});
-
-// 3. API Thêm sản phẩm mới
-app.post('/api/products', (req, res) => {
-    const { name, price, quantity } = req.body;
-    if (!name || !price) {
-        return res.status(400).json({ success: false, message: 'Thừa thông tin tên hoặc giá sản phẩm!' });
-    }
-    const newProduct = {
-        id: products.length + 1,
-        name,
-        price: Number(price),
-        quantity: Number(quantity) || 0
-    };
-    products.push(newProduct);
-    res.json({ success: true, message: 'Thêm sản phẩm thành công!', data: newProduct });
-});
-
-// Khởi chạy Server (sử dụng cổng động của Render hoặc cổng 3000 ở local)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`Server Quan Nuong Tuoi Tre running on port ${PORT}`);
 });
