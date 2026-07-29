@@ -411,6 +411,7 @@
     let currentStaffName = localStorage.getItem('currentStaffName') || '';
     let currentPayType = 'TIỀN MẶT';
     let knownPendingTables = new Set();
+    let isInitialLoaded = false;
 
     const urlParams = new URLSearchParams(window.location.search);
     const paramTable = urlParams.get('table');
@@ -661,10 +662,37 @@
     const todayStr = new Date(new Date().getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0];
     document.getElementById('revenueDatePicker').value = todayStr;
 
+    // HÀM GỘP CÁC DÒNG MÓN TRÙNG NHAU TRONG MẢNG ORDER
+    function consolidateOrderList(orderList) {
+        if (!orderList || !Array.isArray(orderList)) return [];
+        let map = {};
+        orderList.forEach(item => {
+            if (map[item.name]) {
+                map[item.name].qty += item.qty;
+            } else {
+                map[item.name] = { ...item };
+            }
+        });
+        return Object.values(map);
+    }
+
     async function loadData() {
         try {
             const res = await fetch('/api/data');
             const data = await res.json();
+            
+            // TỰ ĐỘNG GỘP CÁC DÒNG MÓN TRÙNG TÊN TẠI TẤT CẢ CÁC BÀN
+            if (data.tablesData) {
+                Object.keys(data.tablesData).forEach(tName => {
+                    if (data.tablesData[tName] && data.tablesData[tName].order) {
+                        data.tablesData[tName].order = consolidateOrderList(data.tablesData[tName].order);
+                    }
+                });
+            }
+
+            let dataStringNew = JSON.stringify(data.tablesData);
+            let dataStringOld = JSON.stringify(tablesData);
+            
             tablesData = data.tablesData;
             menuData = data.menuData;
             usersPinList = data.usersPin || [];
@@ -692,11 +720,15 @@
 
             applyRolePermissions();
             setupViewMode();
-            renderTables();
-            renderMenu();
-            renderOrder();
-            renderManageMenu();
-            renderUsersPinTable();
+
+            if (!isInitialLoaded || dataStringNew !== dataStringOld) {
+                renderTables();
+                renderMenu();
+                renderOrder();
+                renderManageMenu();
+                renderUsersPinTable();
+                isInitialLoaded = true;
+            }
         } catch(e) {
             console.error("Lỗi kết nối server:", e);
         }
@@ -742,6 +774,9 @@
 
     async function saveOrder(tableName, newStatus = null) {
         let currentStatus = newStatus || (tablesData[tableName] ? tablesData[tableName].status : 'confirmed');
+        if (tablesData[tableName] && tablesData[tableName].order) {
+            tablesData[tableName].order = consolidateOrderList(tablesData[tableName].order);
+        }
         await fetch('/api/update-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -902,15 +937,11 @@
         renderOrder();
     }
 
-    // KHI BẤM XÁC NHẬN MÓN MỚI -> TỰ ĐỘNG GỘP LƯỢT 2 VÀO LƯỢT 1
     async function adminConfirmOrder() {
         if (!selectedTable || !tablesData[selectedTable]) return;
         
         const currentTableObj = tablesData[selectedTable];
-        currentTableObj.order.forEach(item => {
-            item.turnStatus = 'confirmed';
-            item.sentQty = item.qty; // Chốt số lượng đã làm cho Bếp
-        });
+        currentTableObj.order = consolidateOrderList(currentTableObj.order);
 
         await fetch('/api/confirm-table', {
             method: 'POST',
@@ -923,7 +954,7 @@
         renderTables();
         renderMenu();
         renderOrder();
-        alert(`Đã xác nhận món mới của ${selectedTable}! Đơn lượt 2 đã được gộp xuống lượt 1.`);
+        alert(`Đã xác nhận món cho ${selectedTable}!`);
     }
 
     function openTransferModal() {
@@ -1063,24 +1094,21 @@
         }
     }
 
-    // THÊM MÓN: GÁN TRẠNG THÁI 'turnStatus = new' ĐỂ NẰM Ở LƯỢT BẢNG MỚI PHÍA TRÊN
+    // THÊM MÓN: CỘNG DỒN SỐ LƯỢNG NẾU MÓN ĐÃ TỒN TẠI
     async function addToOrder(name, price) {
         if (!selectedTable) return alert('Vui lòng chọn Bàn trước!');
 
         const currentTableObj = tablesData[selectedTable];
         if (!currentTableObj.order) currentTableObj.order = [];
 
-        // Tìm món chưa xác nhận (đang nằm ở lượt mới)
-        const existing = currentTableObj.order.find(i => i.name === name && i.turnStatus === 'new');
+        const existing = currentTableObj.order.find(i => i.name === name);
         if (existing) {
             existing.qty += 1;
         } else {
             currentTableObj.order.push({ 
                 name, 
                 price, 
-                qty: 1, 
-                sentQty: 0,
-                turnStatus: 'new' // Đánh dấu món mới ở lượt hiện tại
+                qty: 1
             });
         }
         
@@ -1099,12 +1127,6 @@
         const currentTableObj = tablesData[selectedTable];
         const currentOrder = currentTableObj.order;
         const item = currentOrder[index];
-
-        let limitQty = item.sentQty || 0;
-
-        if (isCustomerMode && amount < 0 && item.qty + amount < limitQty) {
-            return alert(`Món này đã gửi bếp ${limitQty} phần ở lượt trước, không thể giảm thêm! Vui lòng báo nhân viên.`);
-        }
 
         item.qty += amount;
         if (item.qty <= 0) {
@@ -1125,23 +1147,8 @@
         if (!selectedTable) return;
         const currentTableObj = tablesData[selectedTable];
         const currentOrder = currentTableObj.order;
-        const item = currentOrder[index];
 
-        let limitQty = item.sentQty || 0;
-
-        if (isCustomerMode) {
-            if (limitQty > 0) {
-                if (item.qty > limitQty) {
-                    item.qty = limitQty; 
-                } else {
-                    return alert(`Món này đã gửi bếp ${limitQty} phần ở lượt trước! Vui lòng báo nhân viên nếu muốn hủy.`);
-                }
-            } else {
-                currentOrder.splice(index, 1); 
-            }
-        } else {
-            currentOrder.splice(index, 1); 
-        }
+        currentOrder.splice(index, 1);
 
         if (!isCustomerMode) {
             let targetStatus = currentOrder.length === 0 ? 'empty' : currentTableObj.status;
@@ -1174,7 +1181,6 @@
     }
 
     async function processSendOrder() {
-        const currentTableObj = tablesData[selectedTable];
         await saveOrder(selectedTable, 'pending');
         renderOrder();
         alert(`✅ ĐÃ GỬI YÊU CẦU THÀNH CÔNG!\n\nNhân viên sẽ mang món lên ngay cho ${selectedTable}. Chúc bạn ngon miệng!`);
@@ -1193,7 +1199,7 @@
         return finalTotal > 0 ? finalTotal : 0;
     }
 
-    // HIỂN THỊ LƯỢT 2 Ở TRÊN (KHUNG VÀNG) - LƯỢT 1 Ở DƯỚI (KHUNG XÁM)
+    // HIỂN THỊ DANH SÁCH MÓN ĐÃ ĐƯỢC CỘNG DỒN GỌN GÀNG
     function renderOrder() {
         const container = document.getElementById('orderContentArea');
         container.innerHTML = '';
@@ -1208,7 +1214,10 @@
         }
 
         const currentTableObj = tablesData[selectedTable] || { order: [], status: 'empty' };
-        const currentOrder = currentTableObj.order || [];
+        
+        // Tự động gộp dòng trùng món trước khi hiển thị
+        currentTableObj.order = consolidateOrderList(currentTableObj.order);
+        const currentOrder = currentTableObj.order;
 
         if (!isCustomerMode && currentTableObj.status === 'pending') {
             if (btnConfirm) btnConfirm.style.display = 'block';
@@ -1222,96 +1231,40 @@
             return;
         }
 
-        // PHÂN LOẠI MÓN LƯỢT MỚI (LƯỢT 2) VÀ LƯỢT ĐÃ XÁC NHẬN (LƯỢT 1)
-        let newTurnItems = [];
-        let oldTurnItems = [];
+        let html = `
+            <div style="background:#f8f9fa; border:1px solid #ccc; border-radius:8px; padding:8px;">
+                <b style="color:#2c3e50; font-size:12px; display:block; margin-bottom:4px;">📋 Các món đã gọi:</b>
+                <table class="order-table" style="background:white; border-radius:4px;">
+                    <thead>
+                        <tr>
+                            <th>Tên món</th>
+                            <th style="width:65px;">SL</th>
+                            <th style="text-align:right;">Thành tiền</th>
+                            <th style="text-align:center; width:35px;">Xóa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
 
         currentOrder.forEach((item, index) => {
-            if (item.turnStatus === 'new' || (!item.turnStatus && currentTableObj.status === 'pending')) {
-                newTurnItems.push({ item, index });
-            } else {
-                oldTurnItems.push({ item, index });
-            }
+            const itemTotal = item.price * item.qty;
+            html += `
+                <tr>
+                    <td><b>${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
+                    <td>
+                        <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
+                        <span style="margin:0 2px;"><b>${item.qty}</b></span>
+                        <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+                    </td>
+                    <td style="text-align:right;"><b>${itemTotal.toLocaleString()}</b></td>
+                    <td style="text-align:center;">
+                        <button class="btn-delete-item" onclick="deleteOrderItem(${index})">🗑️</button>
+                    </td>
+                </tr>
+            `;
         });
 
-        let html = '';
-
-        // BẢNG 1: HIỂN THỊ LƯỢT MỚI (LƯỢT 2) NẰM Ở TRÊN
-        if (newTurnItems.length > 0) {
-            html += `
-                <div style="background:#fff3cd; border:2px solid #f1c40f; border-radius:8px; padding:8px; margin-bottom:12px;">
-                    <b style="color:#d35400; font-size:13px; display:block; margin-bottom:4px;">🔥 ĐƠN GỌI THÊM CẦN BẾP CHẾ BIẾN (LƯỢT 2):</b>
-                    <table class="order-table" style="background:white; border-radius:4px;">
-                        <thead>
-                            <tr style="background:#fdebd0;">
-                                <th>Tên món mới</th>
-                                <th style="width:65px;">SL</th>
-                                <th style="text-align:right;">Thành tiền</th>
-                                <th style="text-align:center; width:35px;">Xóa</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-
-            newTurnItems.forEach(({ item, index }) => {
-                const itemTotal = item.price * item.qty;
-                html += `
-                    <tr>
-                        <td><b style="color:#d35400;">${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
-                        <td>
-                            <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
-                            <span style="margin:0 2px;"><b>${item.qty}</b></span>
-                            <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
-                        </td>
-                        <td style="text-align:right; color:#d35400;"><b>${itemTotal.toLocaleString()}</b></td>
-                        <td style="text-align:center;">
-                            <button class="btn-delete-item" onclick="deleteOrderItem(${index})">🗑️</button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            html += `</tbody></table></div>`;
-        }
-
-        // BẢNG 2: HIỂN THỊ LƯỢT ĐÃ PHỤC VỤ (LƯỢT 1) NẰM Ở DƯỚI
-        if (oldTurnItems.length > 0) {
-            html += `
-                <div style="background:#f8f9fa; border:1px solid #ccc; border-radius:8px; padding:8px;">
-                    <b style="color:#2c3e50; font-size:12px; display:block; margin-bottom:4px;">📋 Các món đã báo bếp phục vụ (Lượt 1):</b>
-                    <table class="order-table" style="background:white; border-radius:4px;">
-                        <thead>
-                            <tr>
-                                <th>Tên món</th>
-                                <th style="width:65px;">SL</th>
-                                <th style="text-align:right;">Thành tiền</th>
-                                <th style="text-align:center; width:35px;">Xóa</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-
-            oldTurnItems.forEach(({ item, index }) => {
-                const itemTotal = item.price * item.qty;
-                html += `
-                    <tr>
-                        <td><b>${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
-                        <td>
-                            <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
-                            <span style="margin:0 2px;"><b>${item.qty}</b></span>
-                            <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
-                        </td>
-                        <td style="text-align:right;"><b>${itemTotal.toLocaleString()}</b></td>
-                        <td style="text-align:center;">
-                            <button class="btn-delete-item" onclick="deleteOrderItem(${index})">🗑️</button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            html += `</tbody></table></div>`;
-        }
-
+        html += `</tbody></table></div>`;
         container.innerHTML = html;
         document.getElementById('totalAmount').innerText = calculateFinalTotal().toLocaleString();
     }
