@@ -16,7 +16,7 @@
         body { background: #f0f2f5; margin: 0; padding: 12px; -webkit-tap-highlight-color: transparent; }
         
         .header { text-align: center; background: #c0392b; color: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; position: relative; }
-        .header h1 { margin: 0; font-size: 20px; }
+        .header h1 { margin: 0; font-size: 18px; }
         .header p { margin: 3px 0 0; font-size: 12px; opacity: 0.9; }
         .header-btns { position: absolute; right: 10px; top: 10px; display: flex; gap: 6px; }
         .btn-hdr { background: #2c3e50; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 11px; }
@@ -122,10 +122,6 @@
         .modal-table-btn { padding: 10px 5px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; }
         .modal-table-btn.occupied { background: #e74c3c; }
 
-        .thankyou-screen { display: none; background: white; border-radius: 12px; padding: 20px 15px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 10px; }
-        .thankyou-heart { font-size: 45px; animation: bounce 1.2s infinite; }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-
         .login-overlay { display: flex; position: fixed; top:0; left:0; right:0; bottom:0; background: #2c3e50; z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
         .login-box { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 340px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         .login-box h2 { margin-top:0; color:#c0392b; font-size:18px; }
@@ -145,20 +141,15 @@
 <div class="login-overlay" id="loginScreen">
     <div class="login-box">
         <h2>🔥 NHẬP MÃ PIN QUẢN LÝ 🔥</h2>
-        <p style="font-size:12px; color:#666; margin: 5px 0;">Nhập mã PIN thiết bị để đăng nhập</p>
+        <p style="font-size:12px; color:#666; margin: 5px 0;">Nhập mã PIN riêng của bạn để đăng nhập</p>
         <input type="password" id="pinInput" class="pin-input" placeholder="••••" maxlength="6">
         <button class="btn-login" onclick="checkPinLogin()">ĐĂNG NHẬP THIẾT BỊ</button>
-        <div style="margin-top:15px; text-align:left; background:#f8f9fa; padding:8px; border-radius:6px; font-size:11px; color:#555;">
-            <b>💡 Mã PIN mặc định:</b><br>
-            • Máy Quản Lý / Thu Ngân: <b>1234</b><br>
-            • Máy Nhân Viên: <b>5555</b>
-        </div>
     </div>
 </div>
 
 <div class="header">
     <h1>🔥 QUÁN NƯỚNG TUỔI TRẺ <span class="role-badge" id="roleBadge">ADMIN</span>🔥</h1>
-    <p>Hotline: 0842.163.333</p>
+    <p style="font-size:12px; opacity:0.9; margin-top:2px;">NV Đang Đăng Nhập: <b id="currentStaffNameDisplay" style="color:#f1c40f;">--</b></p>
     <div class="header-btns" id="adminHeaderBtns">
         <button class="btn-hdr btn-hdr-qr" id="btnHeaderQr" onclick="toggleQR()">📱 Mã QR</button>
         <button class="btn-hdr btn-hdr-rev" id="btnHeaderRev" onclick="toggleRevenue()">📊 Doanh Thu</button>
@@ -172,12 +163,40 @@
 </div>
 
 <div class="settings-panel" id="settingsPanel">
-    <h3 style="margin-top:0; color:#856404; font-size:15px;">⚙️ Cấu Hình Ngân Hàng VietQR & Máy In</h3>
-    
+    <h3 style="margin-top:0; color:#856404; font-size:15px;">⚙️ Cấu Hình Máy Chủ Quản Lý</h3>
+
+    <!-- QUẢN LÝ DANH SÁCH TÊN NHÂN VIÊN VÀ MÃ PIN TRÊN MÁY CHỦ -->
+    <div class="setting-row" style="background:#fef9e7; border:1px solid #f9e79f;">
+        <b style="font-size:13px; color:#b7950b;">👤 Quản Lý Danh Sách Tên Nhân Viên & Mã PIN Máy Chủ:</b>
+        <p style="font-size:11px; color:#7f8c8d; margin:3px 0 8px 0;">Cài đặt Tên người dùng và Mã PIN riêng cho từng máy (Chủ quán chọn role Admin, Nhân viên chọn role Staff)</p>
+        
+        <div style="display:flex; gap:6px; margin-bottom:8px;">
+            <input type="text" id="addStaffName" placeholder="Tên NV (VD: Hoàn, Loan...)" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:2;">
+            <input type="text" id="addStaffPin" placeholder="Mã PIN" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:1;">
+            <select id="addStaffRole" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
+                <option value="staff">Nhân viên (Staff)</option>
+                <option value="admin">Máy chủ (Admin)</option>
+            </select>
+            <button class="btn-sm-save" style="padding:6px 10px;" onclick="addNewUserPin()">+ Thêm</button>
+        </div>
+
+        <table class="manage-table" style="background:white;">
+            <thead>
+                <tr style="background:#f2f3f4;">
+                    <th>Tên Nhân Viên</th>
+                    <th>Mã PIN</th>
+                    <th>Chức Vụ</th>
+                    <th style="width:50px;">Xóa</th>
+                </tr>
+            </thead>
+            <tbody id="usersPinTableBody"></tbody>
+        </table>
+    </div>
+
     <div class="setting-row">
-        <b style="font-size:13px; color:#2c3e50;">💳 Cài Đặt Tài Khoản Ngân Hàng (Tạo mã VietQR tự động):</b>
+        <b style="font-size:13px; color:#2c3e50;">💳 Cài Đặt Tài Khoản Ngân Hàng VietQR:</b>
         <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
-            <input type="text" id="bankIdInput" placeholder="Mã Ngân hàng (VD: MB, VCB, TCB, ACB)" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:1;">
+            <input type="text" id="bankIdInput" placeholder="Mã Ngân hàng (MB, VCB, TCB...)" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:1;">
             <input type="text" id="bankAccInput" placeholder="Số tài khoản nhận tiền" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:1;">
             <button class="btn-sm-save" style="padding:6px 10px; background:#27ae60;" onclick="saveBankConfig()">Lưu Tài Khoản</button>
         </div>
@@ -195,10 +214,10 @@
 
     <div class="setting-row">
         <b style="font-size:13px; color:#2c3e50;">🖨️ Chọn Khổ Giấy Máy In Hóa Đơn:</b>
-        <div style="margin-top:6px; display:flex; gap:12px; align-items:center;">
+        <div style="margin-top:6px;">
             <select id="paperSizeSelect" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-weight:bold;" onchange="changePaperSize()">
-                <option value="58mm">Khổ 58mm (K58 / 5x8 cm - Eyoyo, Bluetooth mini)</option>
-                <option value="80mm">Khổ 80mm (K80 / 8cm - Máy in thu ngân cỡ lớn)</option>
+                <option value="58mm">Khổ 58mm (K58 / 5x8 cm - Bluetooth mini)</option>
+                <option value="80mm">Khổ 80mm (K80 / 8cm - Máy in thu ngân lớn)</option>
             </select>
         </div>
     </div>
@@ -257,14 +276,15 @@
                 <tr style="background:#f1f1f1;">
                     <th>Giờ</th>
                     <th>Bàn</th>
+                    <th>Người Thanh Toán</th>
                     <th>Chi Tiết Món Mua</th>
                     <th>P.Thức</th>
                     <th style="text-align:right;">Tổng Tiền</th>
-                    <th style="text-align:center; width:65px;">Thao Tác</th>
+                    <th style="text-align:center; width:55px;">Xóa</th>
                 </tr>
             </thead>
             <tbody id="revenueTableBody">
-                <tr><td colspan="6" style="text-align:center; color:#999;">Chưa có hóa đơn nào</td></tr>
+                <tr><td colspan="7" style="text-align:center; color:#999;">Chưa có hóa đơn nào</td></tr>
             </tbody>
         </table>
     </div>
@@ -380,6 +400,7 @@
     let tablesData = {};
     let menuData = [];
     let revenueHistory = [];
+    let usersPinList = [];
     let selectedTable = null;
     let currentPaperSize = localStorage.getItem('paperSize') || '58mm';
     let targetLat = parseFloat(localStorage.getItem('gpsLat')) || 0;
@@ -388,6 +409,7 @@
     let bankAcc = localStorage.getItem('bankAcc') || '';
     let isCustomerMode = false;
     let userRole = localStorage.getItem('userRole') || ''; // admin | staff
+    let currentStaffName = localStorage.getItem('currentStaffName') || '';
     let currentPayType = 'TIỀN MẶT';
     let knownPendingTables = new Set();
 
@@ -400,46 +422,62 @@
         selectedTable = `Bàn ${num < 10 ? '0' + num : num}`;
     }
 
-    function checkPinLogin() {
+    // ĐĂNG NHẬP BẰNG API KIỂM TRA MÃ PIN TỪ SERVER
+    async function checkPinLogin() {
         let pin = document.getElementById('pinInput').value.trim();
-        if (pin === '1234') {
-            userRole = 'admin';
-            localStorage.setItem('userRole', 'admin');
-            document.getElementById('loginScreen').style.display = 'none';
-            applyRolePermissions();
-        } else if (pin === '5555') {
-            userRole = 'staff';
-            localStorage.setItem('userRole', 'staff');
-            document.getElementById('loginScreen').style.display = 'none';
-            applyRolePermissions();
-        } else {
-            alert('Mã PIN không đúng!');
+        if (!pin) return alert('Vui lòng nhập mã PIN!');
+
+        try {
+            const res = await fetch('/api/login-pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                userRole = data.user.role;
+                currentStaffName = data.user.name;
+                localStorage.setItem('userRole', data.user.role);
+                localStorage.setItem('currentStaffName', data.user.name);
+
+                document.getElementById('loginScreen').style.display = 'none';
+                applyRolePermissions();
+            } else {
+                alert(data.message);
+            }
+        } catch(e) {
+            alert('Lỗi kết nối máy chủ!');
         }
     }
 
     function logoutRole() {
         localStorage.removeItem('userRole');
+        localStorage.removeItem('currentStaffName');
         location.reload();
     }
 
-    // PHÂN QUYỀN: ẨN DOANH THU & CÀI ĐẶT CỦA NHÂN VIÊN, NHƯNG CHO PHÉP GIẢM GIÁ & THANH TOÁN
     function applyRolePermissions() {
         const roleBadge = document.getElementById('roleBadge');
+        const nameDisplay = document.getElementById('currentStaffNameDisplay');
+
         if (isCustomerMode) {
             roleBadge.innerText = "KHÁCH HÀNG";
+            nameDisplay.innerText = "Khách Gọi Món";
             document.getElementById('loginScreen').style.display = 'none';
             return;
         }
 
-        if (!userRole) {
+        if (!userRole || !currentStaffName) {
             document.getElementById('loginScreen').style.display = 'flex';
             return;
         }
 
         document.getElementById('loginScreen').style.display = 'none';
+        nameDisplay.innerText = currentStaffName;
 
         if (userRole === 'admin') {
-            roleBadge.innerText = "ADMIN (CHỦ QUÁN)";
+            roleBadge.innerText = "MÁY CHỦ";
             roleBadge.style.background = "#e74c3c";
             document.getElementById('btnHeaderRev').style.display = 'inline-block';
             document.getElementById('btnHeaderSet').style.display = 'inline-block';
@@ -451,11 +489,10 @@
             roleBadge.innerText = "NHÂN VIÊN";
             roleBadge.style.background = "#3498db";
             
-            // NHÂN VIÊN BỊ ẨN DOANH THU VÀ CÀI ĐẶT (KHÔNG SỬA ĐƯỢC GIÁ MÓN)
+            // NHÂN VIÊN BỊ ẨN DOANH THU & CÀI ĐẶT
             document.getElementById('btnHeaderRev').style.display = 'none';
             document.getElementById('btnHeaderSet').style.display = 'none';
             
-            // GIỮ LẠI NÚT GIẢM GIÁ, IN HÓA ĐƠN VÀ THANH TOÁN CHO NHÂN VIÊN
             document.getElementById('adminDiscountArea').style.display = 'block';
             document.getElementById('btnPrintLabel').style.display = 'block';
             document.getElementById('btnCheckout').style.display = 'block';
@@ -506,6 +543,55 @@
         window.speechSynthesis.onvoiceschanged = function() {
             window.speechSynthesis.getVoices();
         };
+    }
+
+    function renderUsersPinTable() {
+        const tbody = document.getElementById('usersPinTableBody');
+        tbody.innerHTML = '';
+        usersPinList.forEach((user, idx) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${user.name}</b></td>
+                    <td><code>${user.pin}</code></td>
+                    <td><small><b>${user.role === 'admin' ? 'MÁY CHỦ' : 'NHÂN VIÊN'}</b></small></td>
+                    <td>
+                        <button class="btn-sm-danger" onclick="deleteUserPin(${idx})">Xóa</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    async function addNewUserPin() {
+        let name = document.getElementById('addStaffName').value.trim();
+        let pin = document.getElementById('addStaffPin').value.trim();
+        let role = document.getElementById('addStaffRole').value;
+
+        if (!name || !pin) return alert('Nhập đủ Tên nhân viên và Mã PIN!');
+
+        usersPinList.push({ name, pin, role });
+        await fetch('/api/update-users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usersPin: usersPinList })
+        });
+
+        document.getElementById('addStaffName').value = '';
+        document.getElementById('addStaffPin').value = '';
+        renderUsersPinTable();
+        alert(`Đã thêm nhân viên ${name} thành công!`);
+    }
+
+    async function deleteUserPin(idx) {
+        if (confirm(`Xóa nhân viên ${usersPinList[idx].name}?`)) {
+            usersPinList.splice(idx, 1);
+            await fetch('/api/update-users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usersPin: usersPinList })
+            });
+            renderUsersPinTable();
+        }
     }
 
     function saveBankConfig() {
@@ -584,6 +670,7 @@
             const data = await res.json();
             tablesData = data.tablesData;
             menuData = data.menuData;
+            usersPinList = data.usersPin || [];
 
             if (!isCustomerMode) {
                 let currentPendingSet = new Set();
@@ -612,6 +699,7 @@
             renderMenu();
             renderOrder();
             renderManageMenu();
+            renderUsersPinTable();
         } catch(e) {
             console.error("Lỗi kết nối server:", e);
         }
@@ -677,7 +765,7 @@
     }
 
     function toggleSettings() {
-        if (userRole !== 'admin') return alert('Chỉ ADMIN có quyền truy cập Cài đặt sửa giá món!');
+        if (userRole !== 'admin') return alert('Chỉ MÁY CHỦ ADMIN có quyền truy cập Cài đặt!');
         const panel = document.getElementById('settingsPanel');
         document.getElementById('revenuePanel').style.display = 'none';
         document.getElementById('qrPanel').style.display = 'none';
@@ -685,7 +773,7 @@
     }
 
     function toggleRevenue() {
-        if (userRole !== 'admin') return alert('Chỉ ADMIN có quyền xem Doanh thu!');
+        if (userRole !== 'admin') return alert('Chỉ MÁY CHỦ ADMIN có quyền xem Doanh thu!');
         const panel = document.getElementById('revenuePanel');
         document.getElementById('settingsPanel').style.display = 'none';
         document.getElementById('qrPanel').style.display = 'none';
@@ -723,6 +811,7 @@
         });
     }
 
+    // RENDER LỊCH SỬ DOANH THU CÓ TÊN NHÂN VIÊN
     function renderRevenue() {
         const selectedDate = document.getElementById('revenueDatePicker').value;
         const filtered = revenueHistory.filter(item => item.dateStr === selectedDate);
@@ -735,7 +824,7 @@
         tbody.innerHTML = '';
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#999; padding:15px;">Không có hóa đơn nào trong ngày này</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#999; padding:15px;">Không có hóa đơn nào trong ngày này</td></tr>';
             document.getElementById('statTotalRev').innerText = '0 VNĐ';
             document.getElementById('statPayTypes').innerText = 'Mặt: 0 | CK: 0';
             return;
@@ -752,6 +841,7 @@
                 <tr>
                     <td><b>${record.timeStr}</b></td>
                     <td><span style="color:#c0392b; font-weight:bold;">${record.tableName}</span></td>
+                    <td><b style="color:#2980b9;">${record.staffName || 'Khách'}</b></td>
                     <td><small>${itemsDetail}</small></td>
                     <td><small><b>${record.payType || 'TIỀN MẶT'}</b></small></td>
                     <td style="text-align:right; font-weight:bold; color:#27ae60;">${record.total.toLocaleString()} đ</td>
@@ -934,7 +1024,7 @@
     }
 
     async function updateItemPrice(catIdx, itemIdx) {
-        if (userRole !== 'admin') return alert('Chỉ ADMIN có quyền sửa giá món!');
+        if (userRole !== 'admin') return alert('Chỉ MÁY CHỦ ADMIN có quyền sửa giá món!');
         const newPrice = Number(document.getElementById(`price_${catIdx}_${itemIdx}`).value);
         if (!newPrice) return alert('Vui lòng nhập giá!');
         
@@ -946,7 +1036,7 @@
     }
 
     async function addNewMenuItem() {
-        if (userRole !== 'admin') return alert('Chỉ ADMIN có quyền thêm món!');
+        if (userRole !== 'admin') return alert('Chỉ MÁY CHỦ ADMIN có quyền thêm món!');
         const catName = document.getElementById('newCategory').value;
         const name = document.getElementById('newName').value.trim();
         const price = Number(document.getElementById('newPrice').value);
@@ -966,7 +1056,7 @@
     }
 
     async function deleteMenuItem(catIdx, itemIdx) {
-        if (userRole !== 'admin') return alert('Chỉ ADMIN có quyền xóa món!');
+        if (userRole !== 'admin') return alert('Chỉ MÁY CHỦ ADMIN có quyền xóa món!');
         if (confirm(`Xóa món này?`)) {
             menuData[catIdx].items.splice(itemIdx, 1);
             await saveMenu();
@@ -1201,7 +1291,7 @@
                 <div style="text-align: center;">
                     <b style="font-size: 14px;">🔥 PHIẾU BÁO BẾP 🔥</b><br>
                     <b style="font-size: 16px;">${selectedTable}</b><br>
-                    <span style="font-size: 10px;">Giờ: ${dateStr}</span>
+                    <span style="font-size: 10px;">NV: ${currentStaffName || '---'} | ${dateStr}</span>
                 </div>
                 <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
                 <table style="width: 100%; border-collapse: collapse;">
@@ -1256,7 +1346,8 @@
                     <span style="font-size: ${is58 ? '8px' : '10px'};">ĐT: 0842.163.333</span>
                     <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
                     <b style="font-size: ${is58 ? '10px' : '13px'};">HÓA ĐƠN THANH TOÁN</b><br>
-                    <span style="font-size: ${is58 ? '8px' : '10px'};">${selectedTable} | ${dateStr}</span>
+                    <span style="font-size: ${is58 ? '8px' : '10px'};">${selectedTable} | NV: ${currentStaffName}</span><br>
+                    <span style="font-size: ${is58 ? '8px' : '10px'};">${dateStr}</span>
                 </div>
                 <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
                 <table style="width: 100%; border-collapse: collapse; font-size: ${fontSizeBody};">
@@ -1291,7 +1382,7 @@
         if (!currentTableObj || !currentTableObj.order || currentTableObj.order.length === 0) return;
 
         const finalTotal = calculateFinalTotal();
-        document.getElementById('payModalTableTitle').innerText = selectedTable;
+        document.getElementById('payModalTableTitle').innerText = `${selectedTable} (NV: ${currentStaffName})`;
         document.getElementById('payModalTotalAmount').innerText = finalTotal.toLocaleString() + ' VNĐ';
 
         selectPayType('TIỀN MẶT');
@@ -1320,6 +1411,7 @@
         }
     }
 
+    // GỬI THANH TOÁN KÈM THEO TÊN NHÂN VIÊN ĐANG ĐĂNG NHẬP
     async function executeCheckout() {
         const finalTotal = calculateFinalTotal();
         const currentTableObj = tablesData[selectedTable];
@@ -1333,7 +1425,8 @@
                 tableName: selectedTable,
                 items: currentTableObj.order,
                 total: finalTotal,
-                payType: currentPayType
+                payType: currentPayType,
+                staffName: currentStaffName
             })
         });
 
