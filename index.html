@@ -108,7 +108,7 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    // Đăng nhập thành công, chuyển hướng về trang gốc để tải giao diện quản lý
+                    // Đăng nhập thành công, chuyển hướng về trang chủ '/'
                     window.location.href = '/'; 
                 } else {
                     alert(data.message || 'Sai mã PIN!');
