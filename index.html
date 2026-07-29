@@ -76,12 +76,17 @@
         .qty-btn { width: 24px; height: 24px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-weight: bold; border-radius: 4px; }
         .qty-btn:disabled { background: #e0e0e0; color: #aaa; border-color: #ddd; cursor: not-allowed; }
         
-        .total-box { font-size: 17px; font-weight: bold; text-align: right; color: #c0392b; margin: 12px 0; padding-top: 8px; border-top: 2px dashed #ccc; }
+        .discount-box { background: #f8f9fa; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; margin-top: 8px; font-size: 12px; }
+        .discount-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .discount-row input { width: 80px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; text-align: right; font-weight: bold; }
+
+        .total-box { font-size: 17px; font-weight: bold; text-align: right; color: #c0392b; margin: 8px 0; padding-top: 8px; border-top: 2px dashed #ccc; }
         
         .btn-group { display: flex; gap: 8px; flex-direction: column; }
         .btn-confirm-order { padding: 12px; background: #d35400; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; display: none; }
-        .btn-transfer { padding: 11px; background: #e67e22; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
-        .btn-print { padding: 11px; background: #2980b9; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
+        .btn-kitchen { padding: 10px; background: #8e44ad; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; text-align: center; }
+        .btn-transfer { padding: 10px; background: #e67e22; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; text-align: center; }
+        .btn-print { padding: 10px; background: #2980b9; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; text-align: center; }
         .btn-checkout { padding: 12px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
         .btn-customer-send { padding: 14px; background: #e67e22; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; text-align: center; }
 
@@ -91,7 +96,6 @@
         .modal-table-btn { padding: 10px 5px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; }
         .modal-table-btn.occupied { background: #e74c3c; }
 
-        /* PHÂN CHIA BẢNG ĐƠN MỚI CẦN BẾP CHẾ BIẾN */
         .section-new-orders { background: #fef5e7; border: 1px solid #f5b041; border-radius: 6px; padding: 6px; margin-bottom: 10px; }
         .title-new-orders { font-weight: bold; color: #d35400; font-size: 12px; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
         
@@ -119,17 +123,27 @@
 </div>
 
 <div class="settings-panel" id="settingsPanel">
-    <h3 style="margin-top:0; color:#856404; font-size:15px;">⚙️ Cấu Hình Định Vị GPS & Máy In</h3>
+    <h3 style="margin-top:0; color:#856404; font-size:15px;">⚙️ Cấu Hình Ngân Hàng VietQR & Máy In</h3>
     
+    <!-- CẤU HÌNH TÀI KHOẢN NGÂN HÀNG LẤY MÃ VIETQR -->
     <div class="setting-row">
-        <b style="font-size:13px; color:#2c3e50;">📍 Cài Đặt Tọa Độ GPS Quán Nướng (Chặn đặt ngoài bán kính 50m):</b>
+        <b style="font-size:13px; color:#2c3e50;">💳 Cài Đặt Tài Khoản Ngân Hàng (Tạo mã VietQR tự động):</b>
         <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
-            <input type="text" id="gpsLatInput" placeholder="Vĩ độ (VD: 20.4358)" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:1;">
-            <input type="text" id="gpsLngInput" placeholder="Kinh độ (VD: 106.1783)" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:1;">
-            <button class="btn-sm-save" style="padding:6px 10px;" onclick="getCurrentGPS()">📍 Lấy GPS Hiện Tại</button>
+            <input type="text" id="bankIdInput" placeholder="Mã Ngân hàng (VD: MB, VCB, TCB, ACB)" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:1;">
+            <input type="text" id="bankAccInput" placeholder="Số tài khoản nhận tiền" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:1;">
+            <button class="btn-sm-save" style="padding:6px 10px; background:#27ae60;" onclick="saveBankConfig()">Lưu Tài Khoản</button>
+        </div>
+    </div>
+
+    <!-- CÀI ĐẶT ĐỊNH VỊ GPS QUÁN -->
+    <div class="setting-row">
+        <b style="font-size:13px; color:#2c3e50;">📍 Cài Đặt Tọa Độ GPS Quán (Chặn đặt ngoài bán kính 50m):</b>
+        <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+            <input type="text" id="gpsLatInput" placeholder="Vĩ độ" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:1;">
+            <input type="text" id="gpsLngInput" placeholder="Kinh độ" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:1;">
+            <button class="btn-sm-save" style="padding:6px 10px;" onclick="getCurrentGPS()">📍 Lấy GPS</button>
             <button class="btn-sm-save" style="padding:6px 10px; background:#e67e22;" onclick="saveGPSConfig()">Lưu GPS</button>
         </div>
-        <small style="font-size:11px; color:#666; margin-top:4px; display:block;">Mẹo: Bấm 'Lấy GPS Hiện Tại' khi đứng tại quán để lưu vị trí chuẩn.</small>
     </div>
 
     <div class="setting-row">
@@ -184,8 +198,8 @@
             <div style="font-size:18px; font-weight:bold; color:#27ae60; margin-top:2px;" id="statTotalRev">0 VNĐ</div>
         </div>
         <div class="stat-card" style="border-left-color:#2980b9;">
-            <small style="color:#666;">SỐ LƯỢT ĐƠN / BÀN</small>
-            <div style="font-size:18px; font-weight:bold; color:#2980b9; margin-top:2px;" id="statCountBill">0 đơn</div>
+            <small style="color:#666;">TIỀN MẶT / CHUYỂN KHOẢN</small>
+            <div style="font-size:13px; font-weight:bold; color:#2980b9; margin-top:2px;" id="statPayTypes">Mặt: 0 | CK: 0</div>
         </div>
     </div>
 
@@ -197,12 +211,13 @@
                     <th>Giờ</th>
                     <th>Bàn</th>
                     <th>Chi Tiết Món Mua</th>
+                    <th>P.Thức</th>
                     <th style="text-align:right;">Tổng Tiền</th>
                     <th style="text-align:center; width:65px;">Thao Tác</th>
                 </tr>
             </thead>
             <tbody id="revenueTableBody">
-                <tr><td colspan="5" style="text-align:center; color:#999;">Chưa có đơn hàng nào</td></tr>
+                <tr><td colspan="6" style="text-align:center; color:#999;">Chưa có hóa đơn nào</td></tr>
             </tbody>
         </table>
     </div>
@@ -218,8 +233,8 @@
     <h3 style="margin:0 0 8px 0; font-size:14px;">📍 Sơ Đồ Bàn: 
         <span style="font-size:11px; font-weight:normal; margin-left:10px;">
             <span style="color:#2ecc71;">■ Trống</span> | 
-            <span style="color:#e67e22; font-weight:bold;">■ Đơn mới (Chờ bếp làm)</span> | 
-            <span style="color:#e74c3c;">■ Đã xác nhận</span>
+            <span style="color:#e67e22; font-weight:bold;">■ Đơn mới</span> | 
+            <span style="color:#e74c3c;">■ Có khách</span>
         </span>
     </h3>
     <div class="table-grid" id="tableGrid"></div>
@@ -231,12 +246,23 @@
         <div id="menuContainer"></div>
     </div>
 
-    <!-- KHU VỰC PHIẾU GỌI MÓN ĐÃ ĐƯỢC TÁCH RIÊNG ĐƠN MỚI CẦN BẾP LÀM -->
     <div class="order-section">
         <h3 style="margin-top:0; font-size:14px;">🧾 Phiếu Gọi Món: <span id="selectedTableTitle" style="color:#c0392b;">Chưa chọn bàn</span></h3>
         
         <div id="orderContentArea">
             <p style="text-align:center; color:#999; padding:15px;">Vui lòng chọn Bàn trước khi gọi món</p>
+        </div>
+
+        <!-- MỤC TÍNH GIẢM GIÁ VÀ PHỤ THU -->
+        <div class="discount-box" id="adminDiscountArea">
+            <div class="discount-row">
+                <span>Giảm giá (%):</span>
+                <input type="number" id="discountPercent" value="0" min="0" max="100" onchange="renderOrder()">
+            </div>
+            <div class="discount-row">
+                <span>Phụ thu (VNĐ):</span>
+                <input type="number" id="surchargeAmount" value="0" step="1000" onchange="renderOrder()">
+            </div>
         </div>
 
         <div class="total-box">
@@ -245,13 +271,38 @@
 
         <div class="btn-group" id="adminBtnGroup">
             <button class="btn-confirm-order" id="btnConfirmOrder" onclick="adminConfirmOrder()">🔔 XÁC NHẬN MÓN MỚI (ĐÃ BÁO BẾP LÀM)</button>
+            <button class="btn-kitchen" onclick="printKitchenTicket()">🖨️ In Phiếu Báo Bếp Chế Biến</button>
             <button class="btn-transfer" onclick="openTransferModal()">🔄 Đổi Bàn / Chuyển Bàn</button>
-            <button class="btn-print" id="btnPrintLabel" onclick="printReceipt()">🖨️ In Hóa Đơn (Khổ 58mm)</button>
-            <button class="btn-checkout" onclick="checkout()">✅ Thanh Toán & Trả Bàn</button>
+            <button class="btn-print" id="btnPrintLabel" onclick="printReceipt()">🖨️ In Hóa Đơn Thanh Toán</button>
+            <button class="btn-checkout" onclick="openPaymentModal()">✅ Thanh Toán & Trả Bàn</button>
         </div>
 
         <div class="btn-group" id="customerBtnGroup" style="display:none;">
             <button class="btn-customer-send" onclick="customerSendOrder()">🚀 Gửi Yêu Cầu Gọi Món</button>
+        </div>
+    </div>
+</div>
+
+<!-- POPUP THANH TOÁN TIỀN MẶT VÀ CHUYỂN KHOẢN VIETQR -->
+<div class="modal-overlay" id="paymentModal">
+    <div class="modal-box">
+        <h3 style="margin-top:0; color:#27ae60; font-size:16px;">💳 Chọn Hình Thức Thanh Toán</h3>
+        <p style="font-size:13px; color:#333; font-weight:bold; margin: 4px 0;" id="payModalTableTitle">Bàn 01</p>
+        <div style="font-size:18px; font-weight:bold; color:#c0392b; margin-bottom:12px;" id="payModalTotalAmount">0 VNĐ</div>
+
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <button style="flex:1; padding:10px; background:#2980b9; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;" onclick="selectPayType('TIỀN MẶT')">💵 Tiền Mặt</button>
+            <button style="flex:1; padding:10px; background:#8e44ad; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;" onclick="selectPayType('CHUYỂN KHOẢN')">📲 VietQR (Chuyển khoản)</button>
+        </div>
+
+        <div id="vietQrContainer" style="display:none; background:#f4ecf7; padding:10px; border-radius:8px; margin-bottom:10px;">
+            <b style="font-size:12px; color:#8e44ad;">Khách quét mã bên dưới để chuyển khoản:</b><br>
+            <img id="vietQrImg" src="" style="width:160px; height:160px; margin-top:6px; border:1px solid #ddd; border-radius:6px;" alt="VietQR">
+        </div>
+
+        <div style="display:flex; gap:8px;">
+            <button style="flex:1; background:#27ae60; color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer;" onclick="executeCheckout()">✅ Hoàn Tất Thanh Toán</button>
+            <button style="background:#7f8c8d; color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer;" onclick="closePaymentModal()">Hủy</button>
         </div>
     </div>
 </div>
@@ -275,7 +326,11 @@
     let currentPaperSize = localStorage.getItem('paperSize') || '58mm';
     let targetLat = parseFloat(localStorage.getItem('gpsLat')) || 0;
     let targetLng = parseFloat(localStorage.getItem('gpsLng')) || 0;
+    let bankId = localStorage.getItem('bankId') || '';
+    let bankAcc = localStorage.getItem('bankAcc') || '';
     let isCustomerMode = false;
+    let currentPayType = 'TIỀN MẶT';
+    let lastPendingCount = 0;
 
     const urlParams = new URLSearchParams(window.location.search);
     const paramTable = urlParams.get('table');
@@ -289,7 +344,34 @@
     document.getElementById('paperSizeSelect').value = currentPaperSize;
     if (targetLat) document.getElementById('gpsLatInput').value = targetLat;
     if (targetLng) document.getElementById('gpsLngInput').value = targetLng;
+    if (bankId) document.getElementById('bankIdInput').value = bankId;
+    if (bankAcc) document.getElementById('bankAccInput').value = bankAcc;
     updatePrintBtnLabel();
+
+    // HÀM PHÁT TIẾNG CHUÔNG BÁO ĐƠN MỚI
+    function playAudioNotification() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.5);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.5);
+        } catch(e) {}
+    }
+
+    function saveBankConfig() {
+        bankId = document.getElementById('bankIdInput').value.trim().toUpperCase();
+        bankAcc = document.getElementById('bankAccInput').value.trim();
+        localStorage.setItem('bankId', bankId);
+        localStorage.setItem('bankAcc', bankAcc);
+        alert('Đã lưu tài khoản Ngân hàng! VietQR tự động điền tiền đã sẵn sàng.');
+    }
 
     function getCurrentGPS() {
         if (!navigator.geolocation) return alert('Trình duyệt không hỗ trợ GPS!');
@@ -297,7 +379,7 @@
             (pos) => {
                 document.getElementById('gpsLatInput').value = pos.coords.latitude;
                 document.getElementById('gpsLngInput').value = pos.coords.longitude;
-                alert('Đã lấy tọa độ GPS thành công! Bấm "Lưu GPS" để hoàn tất.');
+                alert('Đã lấy tọa độ GPS thành công!');
             },
             (err) => alert('Vui lòng bật Định vị GPS trên điện thoại!'),
             { enableHighAccuracy: true }
@@ -309,7 +391,7 @@
         targetLng = parseFloat(document.getElementById('gpsLngInput').value);
         localStorage.setItem('gpsLat', targetLat);
         localStorage.setItem('gpsLng', targetLng);
-        alert(`Đã lưu tọa độ quán! Hệ thống sẽ chặn người ở cách xa hơn 50 mét.`);
+        alert(`Đã lưu tọa độ quán! Chặn xa hơn 50m.`);
     }
 
     function getDistanceInMeters(lat1, lon1, lat2, lon2) {
@@ -330,6 +412,7 @@
         if (isCustomerMode) {
             document.getElementById('adminHeaderBtns').style.display = 'none';
             document.getElementById('adminTableSection').style.display = 'none';
+            document.getElementById('adminDiscountArea').style.display = 'none';
             document.getElementById('adminBtnGroup').style.display = 'none';
             document.getElementById('customerBtnGroup').style.display = 'flex';
             document.getElementById('selectedTableTitle').innerText = `${selectedTable} (Bạn đang ngồi)`;
@@ -340,12 +423,12 @@
         currentPaperSize = document.getElementById('paperSizeSelect').value;
         localStorage.setItem('paperSize', currentPaperSize);
         updatePrintBtnLabel();
-        alert(`Đã đổi khổ in thành: ${currentPaperSize === '58mm' ? 'Khổ 58mm (K58 / 5x8 cm)' : 'Khổ 80mm (K80 / 8 cm)'}`);
+        alert(`Đã đổi khổ in thành: ${currentPaperSize === '58mm' ? 'Khổ 58mm' : 'Khổ 80mm'}`);
     }
 
     function updatePrintBtnLabel() {
         const btn = document.getElementById('btnPrintLabel');
-        btn.innerText = `🖨️ In Hóa Đơn (Khổ ${currentPaperSize})`;
+        btn.innerText = `🖨️ In Hóa Đơn (${currentPaperSize})`;
     }
 
     const todayStr = new Date(new Date().getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0];
@@ -357,6 +440,17 @@
             const data = await res.json();
             tablesData = data.tablesData;
             menuData = data.menuData;
+
+            // KIỂM TRA ĐƠN MỚI ĐỂ PHÁT ÂM THANH
+            let currentPendingCount = 0;
+            Object.keys(tablesData).forEach(k => {
+                if (tablesData[k] && tablesData[k].status === 'pending') currentPendingCount++;
+            });
+
+            if (!isCustomerMode && currentPendingCount > lastPendingCount) {
+                playAudioNotification();
+            }
+            lastPendingCount = currentPendingCount;
 
             setupViewMode();
             renderTables();
@@ -450,18 +544,24 @@
         const filtered = revenueHistory.filter(item => item.dateStr === selectedDate);
 
         let totalRev = 0;
+        let cashRev = 0;
+        let bankRev = 0;
+
         const tbody = document.getElementById('revenueTableBody');
         tbody.innerHTML = '';
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#999; padding:15px;">Không có hóa đơn nào trong ngày này</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#999; padding:15px;">Không có hóa đơn nào trong ngày này</td></tr>';
             document.getElementById('statTotalRev').innerText = '0 VNĐ';
-            document.getElementById('statCountBill').innerText = '0 đơn';
+            document.getElementById('statPayTypes').innerText = 'Mặt: 0 | CK: 0';
             return;
         }
 
         filtered.forEach(record => {
             totalRev += record.total;
+            if (record.payType === 'CHUYỂN KHOẢN') bankRev += record.total;
+            else cashRev += record.total;
+
             let itemsDetail = record.items.map(i => `${i.name} (x${i.qty})`).join(', ');
 
             tbody.innerHTML += `
@@ -469,6 +569,7 @@
                     <td><b>${record.timeStr}</b></td>
                     <td><span style="color:#c0392b; font-weight:bold;">${record.tableName}</span></td>
                     <td><small>${itemsDetail}</small></td>
+                    <td><small><b>${record.payType || 'TIỀN MẶT'}</b></small></td>
                     <td style="text-align:right; font-weight:bold; color:#27ae60;">${record.total.toLocaleString()} đ</td>
                     <td style="text-align:center;">
                         <button class="btn-sm-danger" onclick="deleteRevenueItem(${record.id}, '${record.tableName}', ${record.total})">Xóa</button>
@@ -478,7 +579,7 @@
         });
 
         document.getElementById('statTotalRev').innerText = totalRev.toLocaleString() + ' VNĐ';
-        document.getElementById('statCountBill').innerText = filtered.length + ' đơn';
+        document.getElementById('statPayTypes').innerText = `Mặt: ${(cashRev/1000).toFixed(0)}k | CK: ${(bankRev/1000).toFixed(0)}k`;
     }
 
     async function deleteRevenueItem(id, tableName, total) {
@@ -679,7 +780,6 @@
         const currentTableObj = tablesData[selectedTable];
         if (!currentTableObj.order) currentTableObj.order = [];
 
-        // Tìm món có cùng tên và cùng trạng thái turnStatus
         const existing = currentTableObj.order.find(i => i.name === name && (i.turnStatus === 'new' || isCustomerMode));
         if (existing) {
             existing.qty += 1;
@@ -730,7 +830,7 @@
                     await processSendOrder();
                 },
                 (err) => {
-                    alert('⚠️ Vui lòng Bật Định Vị GPS trên điện thoại để xác nhận bạn đang ở quán!');
+                    alert('⚠️ Vui lòng Bật Định Vị GPS trên điện thoại!');
                 },
                 { enableHighAccuracy: true }
             );
@@ -750,11 +850,22 @@
         alert(`✅ ĐÃ GỬI YÊU CẦU THÀNH CÔNG!\n\nNhân viên sẽ mang món lên ngay cho ${selectedTable}. Chúc bạn ngon miệng!`);
     }
 
-    // HIỂN THỊ PHIẾU GỌI MÓN PHÂN LOẠI ĐƠN MỚI CẦN BẾP LÀM VÀ MÓN ĐÃ PHỤC VỤ
+    function calculateFinalTotal() {
+        if (!selectedTable || !tablesData[selectedTable]) return 0;
+        const currentOrder = tablesData[selectedTable].order || [];
+        let subTotal = 0;
+        currentOrder.forEach(i => subTotal += i.price * i.qty);
+
+        const discountPct = parseFloat(document.getElementById('discountPercent').value) || 0;
+        const surcharge = parseFloat(document.getElementById('surchargeAmount').value) || 0;
+
+        let finalTotal = subTotal * (1 - discountPct / 100) + surcharge;
+        return finalTotal > 0 ? finalTotal : 0;
+    }
+
     function renderOrder() {
         const container = document.getElementById('orderContentArea');
         container.innerHTML = '';
-        let total = 0;
 
         const btnConfirm = document.getElementById('btnConfirmOrder');
 
@@ -780,12 +891,10 @@
             return;
         }
 
-        // TÁCH MÓN THÀNH 2 BẢNG: ĐƠN MỚI VÀ ĐƠN ĐÃ PHỤC VỤ
         let newItems = [];
         let oldItems = [];
 
         currentOrder.forEach((item, index) => {
-            total += item.price * item.qty;
             if (item.turnStatus === 'new' && currentTableObj.status === 'pending') {
                 newItems.push({ item, index });
             } else {
@@ -795,11 +904,10 @@
 
         let html = '';
 
-        // BẢNG 1: ĐƠN MỚI CẦN BẾP CHẾ BIẾN (DÀNH CHO BÀN MÀU CAM)
         if (newItems.length > 0) {
             html += `
                 <div class="section-new-orders">
-                    <div class="title-new-orders">🔥 ĐƠN MỚI BẮT ĐẦU CẦN BẾP LÀM:</div>
+                    <div class="title-new-orders">🔥 ĐƠN MỚI CẦN BẾP CHẾ BIẾN:</div>
                     <table class="order-table">
                         <thead>
                             <tr style="background:#fdebd0;">
@@ -829,7 +937,6 @@
             html += `</tbody></table></div>`;
         }
 
-        // BẢNG 2: MÓN ĐÃ PHỤC VỤ TỪ CÁC LƯỢT TRƯỚC
         if (oldItems.length > 0) {
             html += `
                 <div class="section-old-orders">
@@ -864,7 +971,53 @@
         }
 
         container.innerHTML = html;
-        document.getElementById('totalAmount').innerText = total.toLocaleString();
+        document.getElementById('totalAmount').innerText = calculateFinalTotal().toLocaleString();
+    }
+
+    // IN PHIẾU BÁO BẾP RIÊNG BIỆT
+    function printKitchenTicket() {
+        if (!selectedTable || !tablesData[selectedTable] || !tablesData[selectedTable].order || tablesData[selectedTable].order.length === 0) {
+            return alert('Bàn chưa có món!');
+        }
+
+        const currentOrder = tablesData[selectedTable].order;
+        const dateStr = new Date().toLocaleTimeString('vi-VN');
+
+        let rowsHTML = '';
+        currentOrder.forEach(item => {
+            rowsHTML += `
+                <tr>
+                    <td style="padding: 3px 0; font-size:13px; font-weight:bold;">${item.name}</td>
+                    <td style="text-align:right; padding: 3px 0; font-size:15px; font-weight:bold;">x${item.qty}</td>
+                </tr>
+            `;
+        });
+
+        const printArea = document.getElementById('printArea');
+        printArea.innerHTML = `
+            <div style="width: 46mm; margin: 0 auto; padding: 5px 0; font-family: 'Courier New', Courier, monospace; color: #000;">
+                <div style="text-align: center;">
+                    <b style="font-size: 14px;">🔥 PHIẾU BÁO BẾP 🔥</b><br>
+                    <b style="font-size: 16px;">${selectedTable}</b><br>
+                    <span style="font-size: 10px;">Giờ: ${dateStr}</span>
+                </div>
+                <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left;">Món ăn</th>
+                            <th style="text-align:right;">SL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHTML}
+                    </tbody>
+                </table>
+                <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
+            </div>
+        `;
+
+        setTimeout(() => { window.print(); }, 100);
     }
 
     function printReceipt() {
@@ -874,12 +1027,11 @@
 
         const currentOrder = tablesData[selectedTable].order;
         const dateStr = new Date().toLocaleString('vi-VN');
-        let total = 0;
+        const finalTotal = calculateFinalTotal();
 
         let rowsHTML = '';
         currentOrder.forEach(item => {
             const itemTotal = item.price * item.qty;
-            total += itemTotal;
             rowsHTML += `
                 <tr>
                     <td style="padding: 2px 0;">${item.name}</td>
@@ -919,7 +1071,7 @@
                 </table>
                 <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
                 <div style="text-align: right;">
-                    <b style="font-size: ${is58 ? '11px' : '14px'};">TỔNG: ${total.toLocaleString()} đ</b>
+                    <b style="font-size: ${is58 ? '11px' : '14px'};">TỔNG CỘNG: ${finalTotal.toLocaleString()} đ</b>
                 </div>
                 <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
                 <div style="text-align: center; font-size: ${is58 ? '8px' : '10px'}; margin-top:4px;">
@@ -928,36 +1080,69 @@
             </div>
         `;
 
-        setTimeout(() => {
-            window.print();
-        }, 100);
+        setTimeout(() => { window.print(); }, 100);
     }
 
-    async function checkout() {
+    function openPaymentModal() {
         if (!selectedTable) return;
         const currentTableObj = tablesData[selectedTable];
         if (!currentTableObj || !currentTableObj.order || currentTableObj.order.length === 0) return;
 
-        let totalNum = 0;
-        currentTableObj.order.forEach(i => totalNum += i.price * i.qty);
+        const finalTotal = calculateFinalTotal();
+        document.getElementById('payModalTableTitle').innerText = selectedTable;
+        document.getElementById('payModalTotalAmount').innerText = finalTotal.toLocaleString() + ' VNĐ';
 
-        if (confirm(`THANH TOÁN ${selectedTable}\n\nTổng tiền: ${totalNum.toLocaleString()} VNĐ`)) {
-            printReceipt();
+        selectPayType('TIỀN MẶT');
+        document.getElementById('paymentModal').style.display = 'flex';
+    }
 
-            await fetch('/api/checkout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    tableName: selectedTable,
-                    items: currentTableObj.order,
-                    total: totalNum
-                })
-            });
+    function closePaymentModal() {
+        document.getElementById('paymentModal').style.display = 'none';
+    }
 
-            renderTables();
-            renderOrder();
-            loadRevenue();
+    function selectPayType(type) {
+        currentPayType = type;
+        const vietQrBox = document.getElementById('vietQrContainer');
+        
+        if (type === 'CHUYỂN KHOẢN') {
+            if (!bankId || !bankAcc) {
+                alert('Vui lòng cài đặt Tên Ngân Hàng và STK trong phần ⚙️ Cài Đặt trước!');
+                return;
+            }
+            const finalTotal = calculateFinalTotal();
+            const qrUrl = `https://img.vietqr.io/image/${bankId}-${bankAcc}-compact2.png?amount=${finalTotal}&addInfo=${encodeURIComponent(selectedTable + ' QUAN NUONG TUOI TRE')}`;
+            document.getElementById('vietQrImg').src = qrUrl;
+            vietQrBox.style.display = 'block';
+        } else {
+            vietQrBox.style.display = 'none';
         }
+    }
+
+    async function executeCheckout() {
+        const finalTotal = calculateFinalTotal();
+        const currentTableObj = tablesData[selectedTable];
+
+        printReceipt();
+
+        await fetch('/api/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                tableName: selectedTable,
+                items: currentTableObj.order,
+                total: finalTotal,
+                payType: currentPayType
+            })
+        });
+
+        // ĐẶT LẠI GIẢM GIÁ
+        document.getElementById('discountPercent').value = 0;
+        document.getElementById('surchargeAmount').value = 0;
+
+        closePaymentModal();
+        renderTables();
+        renderOrder();
+        loadRevenue();
     }
 
     loadData();

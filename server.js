@@ -150,7 +150,7 @@ app.post('/api/transfer-table', (req, res) => {
 });
 
 app.post('/api/checkout', (req, res) => {
-    const { tableName, items, total } = req.body;
+    const { tableName, items, total, payType } = req.body;
     const now = new Date();
     const vnDate = new Date(now.getTime() + (7 * 60 * 60 * 1000));
     const dateStr = vnDate.toISOString().split('T')[0];
@@ -161,6 +161,7 @@ app.post('/api/checkout', (req, res) => {
         tableName,
         items,
         total: Number(total),
+        payType: payType || 'TIỀN MẶT',
         dateStr,
         timeStr
     };
