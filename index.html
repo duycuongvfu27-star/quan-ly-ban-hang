@@ -70,8 +70,8 @@
 <body>
 
     <div class="login-card">
-        <h2>🔥 NHẬP MÃ PIN QUẢN LÝ 🔥</h2>
-        <p style="font-size: 14px; color: #aaa; margin-bottom: 15px;">Nhập mã PIN riêng của bạn để đăng nhập</p>
+        <h2>🔥 QUÁN NƯỚNG TUỔI TRẺ 🔥</h2>
+        <p style="font-size: 14px; color: #aaa; margin-bottom: 15px;">Nhập mã PIN quản lý để tiếp tục</p>
         
         <div class="input-group">
             <input type="password" id="pinInput" placeholder="••••" maxlength="6" autofocus>
@@ -108,8 +108,8 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    // Đăng nhập thành công, chuyển hướng vào phần mềm (bạn có thể đổi 'dashboard.html' thành trang quản lý của quán nếu có)
-                    window.location.href = '/dashboard.html'; 
+                    // Đăng nhập thành công, chuyển hướng vào giao diện chính của quán (bạn có thể thay đổi tên file phía sau nếu cần)
+                    window.location.href = '/index.html'; // Hoặc đổi sang tên file quản lý của bạn
                 } else {
                     alert(data.message || 'Sai mã PIN!');
                 }
