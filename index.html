@@ -129,7 +129,7 @@
 </div>
 
 <div class="audio-banner" id="audioBanner" onclick="enableAudioAndVibration()">
-    🗣️ BẤM VÀO ĐÂY LẦN ĐẦU ĐỂ KÍCH HOẠT THÔNG BÁO TIẾNG VIỆT
+    🗣️ BẤM VÀO ĐÂY LẦN ĐẦU ĐỂ KÍCH HOẠT LOA THÔNG BÁO TIẾNG VIỆT
 </div>
 
 <div class="settings-panel" id="settingsPanel">
@@ -368,7 +368,7 @@
     updatePrintBtnLabel();
 
     function enableAudioAndVibration() {
-        speakText("Bàn chín gọi đồ");
+        speakVietnameseTable(9);
         document.getElementById('audioBanner').innerText = "✅ ĐÃ KÍCH HOẠT THÔNG BÁO TIẾNG VIỆT THÀNH CÔNG";
         document.getElementById('audioBanner').style.background = "#27ae60";
         setTimeout(() => {
@@ -376,34 +376,31 @@
         }, 3000);
     }
 
-    // ÉP BẮT BUỘC ĐỌC BẰNG BỘ ĐỌC TIẾNG VIỆT
-    function speakText(text) {
+    // PHÁT ÂM THANH TIẾNG VIỆT CHUẨN QUA GOOGLE ONLINE ENGINE
+    function speakVietnameseTable(tableNum) {
         if (navigator.vibrate) {
             navigator.vibrate([200, 100, 200, 100, 400]);
         }
+        let text = `Bàn ${tableNum} gọi đồ`;
+        let ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=vi&client=tw-ob`;
         
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            let utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'vi-VN';
-            
-            // Tìm giọng đọc Tiếng Việt chuẩn trong máy
-            let voices = window.speechSynthesis.getVoices();
-            let viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VI'));
-            if (viVoice) {
-                utterance.voice = viVoice;
+        let audio = new Audio(ttsUrl);
+        audio.play().catch(err => {
+            // Trường hợp trình duyệt chặn âm thanh tự động, phát dự phòng bằng SpeechSynthesis
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                let utterance = new SpeechSynthesisUtterance(text);
+                
+                // Cố gắng quét tất cả giọng nói có sẵn trong máy
+                let voices = window.speechSynthesis.getVoices();
+                let viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VI'));
+                if (viVoice) utterance.voice = viVoice;
+                
+                utterance.lang = 'vi-VN';
+                utterance.rate = 0.85;
+                window.speechSynthesis.speak(utterance);
             }
-            
-            utterance.rate = 0.9;
-            window.speechSynthesis.speak(utterance);
-        }
-    }
-
-    // Nạp giọng đọc ngay khi ứng dụng khởi chạy
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.onvoiceschanged = function() {
-            window.speechSynthesis.getVoices();
-        };
+        });
     }
 
     function saveBankConfig() {
@@ -491,7 +488,7 @@
                         if (!knownPendingTables.has(tName)) {
                             let numStr = tName.replace(/\D/g, '');
                             let numVal = parseInt(numStr, 10);
-                            speakText(`Bàn ${numVal} gọi đồ`);
+                            speakVietnameseTable(numVal);
                         }
                     }
                 });
