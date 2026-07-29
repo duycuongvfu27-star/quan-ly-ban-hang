@@ -68,10 +68,34 @@
 
         .category-title { background: #2c3e50; color: white; padding: 5px 8px; margin-top: 12px; border-radius: 4px; font-weight: bold; font-size: 13px; }
         .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 8px; margin-top: 8px; }
-        .item-card { border: 1px solid #e0e0e0; border-radius: 6px; padding: 6px; text-align: center; cursor: pointer; transition: 0.15s; background: #fafafa; }
-        .item-card:active { background: #fdf2e9; border-color: #c0392b; }
-        .item-name { font-weight: bold; font-size: 12px; color: #333; height: 30px; display: flex; align-items: center; justify-content: center; }
+        
+        /* HIỆU ỨNG THẺ MÓN ĂN THƯỜNG */
+        .item-card { border: 2px solid #e0e0e0; border-radius: 8px; padding: 6px; text-align: center; cursor: pointer; transition: all 0.2s ease; background: #fafafa; position: relative; }
+        .item-card:active { transform: scale(0.95); }
+        .item-name { font-weight: bold; font-size: 12px; color: #333; height: 32px; display: flex; align-items: center; justify-content: center; }
         .item-price { color: #e67e22; font-weight: bold; font-size: 12px; margin-top: 2px; }
+
+        /* HIỆU ỨNG KHI MÓN ĐÃ ĐƯỢC BẤM CHỌN (NỔI BẬT) */
+        .item-card.selected {
+            background: #fff3e0;
+            border-color: #e67e22;
+            box-shadow: 0 4px 10px rgba(230, 126, 34, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        /* BONG BÓNG ĐỎ HIỂN THỊ SỐ LƯỢNG TRÊN GÓC THẺ MÓN */
+        .item-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #e74c3c;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
 
         .order-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; margin-top: 4px; }
         .order-table th, .order-table td { padding: 5px 3px; border-bottom: 1px solid #eee; text-align: left; font-size: 12px; }
@@ -129,7 +153,7 @@
 </div>
 
 <div class="audio-banner" id="audioBanner" onclick="enableAudioAndVibration()">
-    🗣️ BẤM VÀO ĐÂY LẦN ĐẦU ĐỂ KÍCH HOẠT LOA THÔNG BÁO TIẾNG VIỆT
+    🗣️ BẤM VÀO ĐÂY LẦN ĐẦU ĐỂ KÍCH HOẠT THÔNG BÁO TIẾNG VIỆT
 </div>
 
 <div class="settings-panel" id="settingsPanel">
@@ -368,7 +392,7 @@
     updatePrintBtnLabel();
 
     function enableAudioAndVibration() {
-        speakVietnameseTable(9);
+        speakText("Bàn chín gọi đồ");
         document.getElementById('audioBanner').innerText = "✅ ĐÃ KÍCH HOẠT THÔNG BÁO TIẾNG VIỆT THÀNH CÔNG";
         document.getElementById('audioBanner').style.background = "#27ae60";
         setTimeout(() => {
@@ -376,31 +400,31 @@
         }, 3000);
     }
 
-    // PHÁT ÂM THANH TIẾNG VIỆT CHUẨN QUA GOOGLE ONLINE ENGINE
-    function speakVietnameseTable(tableNum) {
+    function speakText(text) {
         if (navigator.vibrate) {
             navigator.vibrate([200, 100, 200, 100, 400]);
         }
-        let text = `Bàn ${tableNum} gọi đồ`;
-        let ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=vi&client=tw-ob`;
         
-        let audio = new Audio(ttsUrl);
-        audio.play().catch(err => {
-            // Trường hợp trình duyệt chặn âm thanh tự động, phát dự phòng bằng SpeechSynthesis
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                let utterance = new SpeechSynthesisUtterance(text);
-                
-                // Cố gắng quét tất cả giọng nói có sẵn trong máy
-                let voices = window.speechSynthesis.getVoices();
-                let viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VI'));
-                if (viVoice) utterance.voice = viVoice;
-                
-                utterance.lang = 'vi-VN';
-                utterance.rate = 0.85;
-                window.speechSynthesis.speak(utterance);
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            let utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'vi-VN';
+            
+            let voices = window.speechSynthesis.getVoices();
+            let viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VI'));
+            if (viVoice) {
+                utterance.voice = viVoice;
             }
-        });
+            
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = function() {
+            window.speechSynthesis.getVoices();
+        };
     }
 
     function saveBankConfig() {
@@ -488,7 +512,7 @@
                         if (!knownPendingTables.has(tName)) {
                             let numStr = tName.replace(/\D/g, '');
                             let numVal = parseInt(numStr, 10);
-                            speakVietnameseTable(numVal);
+                            speakText(`Bàn ${numVal} gọi đồ`);
                         }
                     }
                 });
@@ -703,6 +727,7 @@
         selectedTable = tableName;
         document.getElementById('selectedTableTitle').innerText = selectedTable;
         renderTables();
+        renderMenu();
         renderOrder();
     }
 
@@ -723,6 +748,7 @@
         tablesData[selectedTable].status = 'confirmed';
         knownPendingTables.delete(selectedTable);
         renderTables();
+        renderMenu();
         renderOrder();
         alert(`Đã xác nhận đơn món mới của ${selectedTable}! Sơ đồ chuyển sang MÀU ĐỎ.`);
     }
@@ -769,16 +795,26 @@
         }
     }
 
+    // TỐI ƯU CẢI TIẾN THÊM HIỆU ỨNG NỔI BẬT CHO MÓN ĐÃ BẤM CHỌN
     function renderMenu() {
         const container = document.getElementById('menuContainer');
         container.innerHTML = '';
 
+        const currentOrder = (selectedTable && tablesData[selectedTable]) ? (tablesData[selectedTable].order || []) : [];
+
         menuData.forEach((cat) => {
             let html = `<div class="category-title">${cat.category}</div><div class="menu-grid">`;
             cat.items.forEach((item) => {
+                // Kiểm tra xem món này đã có trong danh sách order chưa
+                const orderedItem = currentOrder.find(i => i.name === item.name);
+                const isSelected = !!orderedItem;
+                const qtyBadge = isSelected ? `<span class="item-badge">x${orderedItem.qty}</span>` : '';
+                const checkMark = isSelected ? ' ✓' : '';
+
                 html += `
-                    <div class="item-card" onclick="addToOrder('${item.name}', ${item.price})">
-                        <div class="item-name">${item.name}</div>
+                    <div class="item-card ${isSelected ? 'selected' : ''}" onclick="addToOrder('${item.name}', ${item.price})">
+                        ${qtyBadge}
+                        <div class="item-name">${item.name}${checkMark}</div>
                         <div class="item-price">${(item.price/1000)}k</div>
                     </div>
                 `;
@@ -872,6 +908,7 @@
         let targetStatus = isCustomerMode ? 'pending' : (currentTableObj.status === 'pending' ? 'pending' : 'confirmed');
         await saveOrder(selectedTable, targetStatus);
         renderTables();
+        renderMenu(); // Cập nhật lại khung nổi bật cho các món
         renderOrder();
     }
 
@@ -892,6 +929,7 @@
         let targetStatus = currentOrder.length === 0 ? 'empty' : currentTableObj.status;
         await saveOrder(selectedTable, targetStatus);
         renderTables();
+        renderMenu(); // Cập nhật lại trạng thái thẻ món ăn
         renderOrder();
     }
 
@@ -1215,6 +1253,7 @@
 
         closePaymentModal();
         renderTables();
+        renderMenu();
         renderOrder();
         loadRevenue();
     }
