@@ -7,12 +7,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-// Lấy trực tiếp chuỗi kết nối MongoDB Atlas
-const mongoURI = process.env.MONGO_URI || 'mongodb+srv://duycuongvfu27_db_user:ZuJ3gcVJLHTuzLTV@cluster0.dt5kmd1.mongodb.net/nuongtuoitre?retryWrites=true&w=majority';
+const mongoURI = process.env.MONGO_URI || 'mongodb://...'; // Giữ nguyên chuỗi kết nối hiện tại của bạn
 
 mongoose.connect(mongoURI)
   .then(() => console.log('✅ Đã kết nối thành công tới MongoDB Atlas!'))
   .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
+
+// ➕ THÊM API ĐĂNG NHẬP NÀY VÀO:
+app.post('/api/login', (req, res) => {
+  const { pin } = req.body;
+  if (pin === '1234' || pin === '5555') {
+    return res.json({ success: true, message: 'Đăng nhập thành công!' });
+  } else {
+    return res.status(400).json({ success: false, message: 'Sai mã PIN!' });
+  }
+});
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
