@@ -108,8 +108,9 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    // Đăng nhập thành công, chuyển hướng vào giao diện chính của quán (bạn có thể thay đổi tên file phía sau nếu cần)
-                    window.location.href = '/index.html'; // Hoặc đổi sang tên file quản lý của bạn
+                    // Đăng nhập thành công, chuyển hướng vào trang quản lý chính của quán 
+                    // (Bạn hãy thay 'quanly.html' thành đúng tên file quản lý thực tế trong dự án nếu cần)
+                    window.location.href = '/quanly.html'; 
                 } else {
                     alert(data.message || 'Sai mã PIN!');
                 }
