@@ -12,7 +12,10 @@ for (let i = 1; i <= tablesCount; i++) {
     tablesData[`Bàn ${i < 10 ? '0' + i : i}`] = [];
 }
 
-// Menu chuẩn mặc định của QUÁN NƯỚNG TUỔI TRẺ (Đã bổ sung danh mục Combo)
+// Lịch sử doanh thu các đơn hàng
+let revenueHistory = [];
+
+// Menu chuẩn mặc định của QUÁN NƯỚNG TUỔI TRẺ
 let defaultMenu = [
     { category: "CÁC COMBO NƯỚNG", items: [
         { name: "Combo 1 (Dành cho 2-3 người)", price: 319000 },
@@ -75,6 +78,9 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/data', (req, res) => {
+    if (!menuData || menuData.length === 0) {
+        menuData = defaultMenu;
+    }
     res.json({ tablesData, menuData });
 });
 
@@ -89,6 +95,38 @@ app.post('/api/update-menu', (req, res) => {
         menuData = req.body.menuData;
     }
     res.json({ success: true });
+});
+
+// API Lưu Hóa Đơn Khi Thanh Toán
+app.post('/api/checkout', (req, res) => {
+    const { tableName, items, total } = req.body;
+    
+    // Tính ngày theo múi giờ Việt Nam (UTC+7)
+    const now = new Date();
+    const vnDate = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    const dateStr = vnDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    const timeStr = vnDate.toISOString().split('T')[1].substring(0, 5); // HH:mm
+
+    const newRecord = {
+        id: Date.now(),
+        tableName,
+        items,
+        total: Number(total),
+        dateStr,
+        timeStr
+    };
+
+    revenueHistory.push(newRecord);
+    
+    // Xóa đơn của bàn đã thanh toán
+    tablesData[tableName] = [];
+
+    res.json({ success: true, record: newRecord });
+});
+
+// API Lấy danh sách doanh thu
+app.get('/api/revenue', (req, res) => {
+    res.json({ revenueHistory });
 });
 
 const PORT = process.env.PORT || 3000;
