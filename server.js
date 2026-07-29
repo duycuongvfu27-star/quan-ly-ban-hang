@@ -9,7 +9,7 @@ app.use(express.static(__dirname)); // Phục vụ file tĩnh ngay từ thư m�
 
 const DATA_FILE = path.join(__dirname, 'data.json');
 
-// Khởi tạo dữ liệu mặc định
+// Khởi tạo dữ liệu mặc định (Chỉ dùng nếu chưa có file data.json cũ)
 let defaultData = {
     usersPin: [
         { name: "Admin (Máy chủ)", pin: "1234", role: "admin" },
@@ -54,7 +54,7 @@ let defaultData = {
     revenueHistory: []
 };
 
-// Đọc dữ liệu từ file data.json
+// Hàm đọc dữ liệu (ƯU TIÊN LẤY MENU & DỮ LIỆU CŨ TỪ FILE DATA.JSON)
 function loadData() {
     if (fs.existsSync(DATA_FILE)) {
         try {
@@ -85,7 +85,7 @@ function saveData(data) {
 
 let db = loadData();
 
-// Trả về trang chủ index.html
+// Trang chủ
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
