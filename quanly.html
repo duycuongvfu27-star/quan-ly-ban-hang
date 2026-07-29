@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QUÁN NƯỚNG TUỔI TRẺ - Quản Lý POS & Đổi Bàn</title>
+    <title>QUÁN NƯỚNG TUỔI TRẺ - Quản Lý POS Đồng Bộ Thời Gian Thực</title>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f4f6f9; color: #333; margin: 0; padding: 10px; }
@@ -48,7 +48,7 @@
         .qr-btn { width: 100%; background: #0288d1; color: white; border: none; padding: 7px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 12px; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-box { background: white; padding: 20px; border-radius: 8px; text-align: center; width: 380px; }
+        .modal-box { background: white; padding: 20px; border-radius: 8px; text-align: center; width: 400px; max-height: 90vh; overflow-y: auto; }
         .modal-box input, .modal-box select { width: 100%; padding: 8px; margin: 6px 0; border: 1px solid #ccc; border-radius: 4px; }
     </style>
 </head>
@@ -108,19 +108,18 @@
         <div class="modal-box">
             <h3 style="color: #b71c1c; margin-top:0;">🔀 Tính Năng Đổi Bàn</h3>
             <p style="font-size: 13px;">Chuyển toàn bộ món từ <b id="moveFromTable" style="color:#d32f2f;"></b> sang:</p>
-            <select id="targetTableSelect">
-                <!-- Danh sách bàn đích -->
-            </select>
+            <select id="targetTableSelect"></select>
             <button onclick="confirmMoveTable()" style="background:#673ab7; color:white; border:none; padding:10px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:8px;">✅ Xác Nhận Đổi Bàn</button>
             <button onclick="document.getElementById('moveTableModal').style.display='none'" style="background:#555; color:white; border:none; padding:6px; width:100%; border-radius:4px; margin-top:6px; cursor:pointer;">Hủy</button>
         </div>
     </div>
 
-    <!-- MODAL CÀI ĐẶT -->
+    <!-- MODAL CÀI ĐẶT (Tích hợp Định vị GPS & Ngân hàng) -->
     <div id="settingsModal" class="modal">
-        <div class="modal-box" style="text-align: left; width: 420px;">
+        <div class="modal-box" style="text-align: left;">
             <h3 style="color: #b71c1c; margin-top:0; text-align:center;">⚙️ Cài Đặt Hệ Thống Quán</h3>
-            <label style="font-weight: bold; font-size: 12px;">Cấu hình Tài khoản Ngân Hàng (VietQR):</label>
+            
+            <label style="font-weight: bold; font-size: 12px;">1. Cấu hình Tài khoản Ngân Hàng (VietQR):</label>
             <select id="bankNameSelect">
                 <option value="ICB">VietinBank</option>
                 <option value="VCB">Vietcombank</option>
@@ -131,7 +130,16 @@
             </select>
             <input type="text" id="bankAccInput" placeholder="Số tài khoản ngân hàng...">
             <input type="text" id="bankNameAccInput" placeholder="Tên chủ tài khoản (VIẾT HOA KHÔNG DẤU)...">
-            <button onclick="saveBankConfig()" style="background:#0288d1; color:white; border:none; padding:6px; width:100%; border-radius:4px; cursor:pointer; font-weight:bold; margin-top:5px;">Lưu Thông Tin Ngân Hàng</button>
+            <button onclick="saveBankConfig()" style="background:#0288d1; color:white; border:none; padding:6px; width:100%; border-radius:4px; cursor:pointer; font-weight:bold; margin-top:4px;">Lưu Ngân Hàng</button>
+
+            <hr style="margin: 12px 0; border:0; border-top:1px solid #ddd;">
+
+            <label style="font-weight: bold; font-size: 12px;">2. Cài đặt Định vị GPS (Chống gọi món từ xa):</label>
+            <input type="text" id="storeLat" placeholder="Vĩ độ quán (Latitude)...">
+            <input type="text" id="storeLng" placeholder="Kinh độ quán (Longitude)...">
+            <button onclick="getGPS()" style="background:#ff9800; color:white; border:none; padding:6px; width:100%; border-radius:4px; cursor:pointer; font-size:12px; font-weight:bold; margin-bottom:4px;">📍 Lấy Tọa Độ Vị Trí Của Bạn Ngay</button>
+            <button onclick="saveGPS()" style="background:#4caf50; color:white; border:none; padding:6px; width:100%; border-radius:4px; cursor:pointer; font-weight:bold;">Lưu Phạm Vi Định Vị</button>
+
             <button onclick="document.getElementById('settingsModal').style.display='none'" style="background:#555; color:white; border:none; padding:8px; width:100%; border-radius:4px; cursor:pointer; margin-top:15px; font-weight:bold;">Đóng Cài Đặt</button>
         </div>
     </div>
@@ -217,6 +225,7 @@
         let tableRounds = {}; 
         let tableStatus = {}; 
         let bankConfig = JSON.parse(localStorage.getItem('bankConfig') || '{"bank":"VCB","acc":"","name":""}');
+        let storeGPS = JSON.parse(localStorage.getItem('storeGPS') || '{"lat":0,"lng":0}');
 
         const urlParams = new URLSearchParams(window.location.search);
         const tableParam = urlParams.get('table');
@@ -227,7 +236,8 @@
                 <div style="max-width:480px; margin:0 auto; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
                     <div style="text-align:center; color:#d32f2f; font-weight:bold; font-size:20px;">🔥 QUÁN NƯỚNG TUỔI TRẺ 🔥</div>
                     <div style="text-align:center; color:#555; font-size:13px; margin-bottom:10px;">Gọi món trực tuyến tại bàn</div>
-                    <div style="background:#ffebee; color:#d32f2f; border:1px dashed #d32f2f; padding:8px; text-align:center; font-weight:bold; border-radius:6px; margin-bottom:12px;">Bàn đang chọn: Bàn ${tableParam < 10 && !tableParam.startsWith('0') ? '0'+tableParam : tableParam}</div>
+                    <div id="gpsAlert" style="background:#fff3e0; color:#e65100; padding:6px; font-size:11px; border-radius:4px; text-align:center; margin-bottom:8px; font-weight:bold;">📍 Đang kiểm tra vị trí định vị...</div>
+                    <div style="background:#ffebee; color:#d32f2f; border:1px dashed #d32f2f; padding:8px; text-align:center; font-weight:bold; border-radius:6px; margin-bottom:10px;">Bàn đang chọn: Bàn ${tableParam < 10 && !tableParam.startsWith('0') ? '0'+tableParam : tableParam}</div>
                     <div id="customerMenu"></div>
                     <div style="background:#f1f1f1; padding:10px; border-radius:8px; margin-top:15px;">
                         <div style="font-weight:bold; font-size:14px; margin-bottom:6px;">📋 Phiếu Gọi Món Của Bạn</div>
@@ -272,7 +282,7 @@
                 menuContainer.appendChild(grid);
             });
             loadTodayRevenue();
-            setInterval(checkNewOrdersForAudio, 5000);
+            setInterval(syncAndCheckOrders, 4000);
         }
 
         function speakVoice(text) {
@@ -284,7 +294,7 @@
         }
 
         let lastCheckedCount = 0;
-        async function checkNewOrdersForAudio() {
+        async function syncAndCheckOrders() {
             try {
                 const res = await fetch('/api/orders');
                 const data = await res.json();
@@ -293,12 +303,42 @@
                     speakVoice(`${latestOrder.tableName} gọi đồ`);
                 }
                 lastCheckedCount = data.length;
+
+                data.forEach(ord => {
+                    let tName = ord.tableName;
+                    if(tableStatus[tName] === 'empty' && !tableRounds[tName]) {
+                        tableStatus[tName] = 'busy';
+                        updateTableUI(tName, 'Có khách', 'table-busy');
+                        tableRounds[tName] = [{ round: 1, items: ord.items }];
+                    }
+                });
             } catch(e) {}
         }
 
         function initCustomerView(tNum) {
             let tName = 'Bàn ' + (tNum < 10 && !tNum.startsWith('0') ? '0' + tNum : tNum);
             let cusCart = [];
+
+            // Kiểm tra định vị GPS của khách
+            if(navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    let userLat = position.coords.latitude;
+                    let userLng = position.coords.longitude;
+                    if(storeGPS.lat !== 0 && storeGPS.lng !== 0) {
+                        let distance = getDistanceFromLatLonInKm(userLat, userLng, storeGPS.lat, storeGPS.lng);
+                        if(distance > 0.2) { // Vượt quá 200m
+                            document.getElementById('gpsAlert').innerHTML = '❌ Bạn đang ở ngoài khu vực quán (>200m). Không thể gọi món!';
+                            document.getElementById('gpsAlert').style.background = '#ffebee';
+                            document.getElementById('gpsAlert').style.color = '#c62828';
+                            return;
+                        }
+                    }
+                    document.getElementById('gpsAlert').style.display = 'none';
+                }, () => {
+                    document.getElementById('gpsAlert').innerHTML = '⚠️ Hãy bật định vị để xác thực tại quán.';
+                });
+            }
+
             let menuDiv = document.getElementById('customerMenu');
             menuData.forEach(cat => {
                 menuDiv.innerHTML += `<div style="font-size:12px; font-weight:bold; color:#ffa726; background:#37474f; padding:4px 8px; border-radius:4px; margin:8px 0 4px 0;">${cat.cat}</div>`;
@@ -341,6 +381,16 @@
             }
         }
 
+        function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+            let R = 6371; 
+            let dLat = deg2rad(lat2-lat1);  
+            let dLon = deg2rad(lon2-lon1); 
+            let a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2); 
+            let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+            return R * c;
+        }
+        function deg2rad(deg) { return deg * (Math.PI/180); }
+
         function selectTable(tableName) {
             document.querySelectorAll('.table-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('tbtn-' + tableName).classList.add('active');
@@ -366,9 +416,11 @@
 
         function updateTableUI(tName, statusText, className) {
             let btn = document.getElementById('tbtn-' + tName);
+            if(!btn) return;
             btn.className = 'table-btn ' + className;
             if(btn.classList.contains('active')) btn.classList.add('active');
-            document.getElementById('tstatus-' + tName).innerText = statusText;
+            let statusSpan = document.getElementById('tstatus-' + tName);
+            if(statusSpan) statusSpan.innerText = statusText;
         }
 
         function renderBill() {
@@ -407,7 +459,6 @@
             renderBill();
         }
 
-        // --- TÍNH NĂNG ĐỔI BÀN ---
         function openMoveTableModal() {
             if(!selectedTable || !tableRounds[selectedTable]) { alert('Bàn hiện tại không có dữ liệu để đổi!'); return; }
             document.getElementById('moveFromTable').innerText = selectedTable;
@@ -425,21 +476,14 @@
         function confirmMoveTable() {
             let targetTable = document.getElementById('targetTableSelect').value;
             if(!targetTable) return;
-
-            // Chuyển dữ liệu sang bàn đích
             tableRounds[targetTable] = tableRounds[selectedTable];
             tableStatus[targetTable] = tableStatus[selectedTable];
-            
-            // Xóa dữ liệu bàn cũ
             delete tableRounds[selectedTable];
             tableStatus[selectedTable] = 'empty';
             updateTableUI(selectedTable, 'Trống', 'table-empty');
-
-            // Cập nhật giao diện bàn mới
             let newStatusText = tableStatus[targetTable] === 'busy' ? 'Có khách' : 'Đang order';
             let newClassName = tableStatus[targetTable] === 'busy' ? 'table-busy' : 'table-ordering';
             updateTableUI(targetTable, newStatusText, newClassName);
-
             document.getElementById('moveTableModal').style.display = 'none';
             alert(`✅ Đã chuyển thành công sang ${targetTable}!`);
             selectTable(targetTable);
@@ -499,6 +543,8 @@
             document.getElementById('bankNameSelect').value = bankConfig.bank;
             document.getElementById('bankAccInput').value = bankConfig.acc;
             document.getElementById('bankNameAccInput').value = bankConfig.name;
+            document.getElementById('storeLat').value = storeGPS.lat;
+            document.getElementById('storeLng').value = storeGPS.lng;
             document.getElementById('settingsModal').style.display = 'flex';
         }
 
@@ -510,6 +556,25 @@
             };
             localStorage.setItem('bankConfig', JSON.stringify(bankConfig));
             alert('✅ Đã lưu thông tin tài khoản ngân hàng thành công!');
+        }
+
+        function getGPS() {
+            if(navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    document.getElementById('storeLat').value = pos.coords.latitude;
+                    document.getElementById('storeLng').value = pos.coords.longitude;
+                    alert('Lấy tọa độ vị trí hiện tại thành công!');
+                }, () => alert('Không lấy được GPS!'));
+            }
+        }
+
+        function saveGPS() {
+            storeGPS = {
+                lat: parseFloat(document.getElementById('storeLat').value),
+                lng: parseFloat(document.getElementById('storeLng').value)
+            };
+            localStorage.setItem('storeGPS', JSON.stringify(storeGPS));
+            alert('✅ Đã lưu phạm vi định vị quán thành công!');
         }
 
         async function loadTodayRevenue() {
