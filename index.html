@@ -59,11 +59,11 @@
         .total-box { font-size: 17px; font-weight: bold; text-align: right; color: #c0392b; margin: 12px 0; padding-top: 8px; border-top: 2px dashed #ccc; }
         
         .btn-group { display: flex; gap: 8px; flex-direction: column; }
-        .btn-transfer { padding: 10px; background: #e67e22; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; text-align: center; }
-        .btn-print { padding: 10px; background: #2980b9; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; text-align: center; }
+        .btn-transfer { padding: 11px; background: #d35400; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
+        .btn-print { padding: 11px; background: #2980b9; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
         .btn-checkout { padding: 12px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
 
-        /* VÙNG CHỨA TỜ HÓA ĐƠN CHUẨN IN CHO IPHONE */
+        /* Khung in nội bộ */
         #printArea { display: none; }
         @media print {
             body * { visibility: hidden !important; }
@@ -201,14 +201,13 @@
         </div>
 
         <div class="btn-group">
-            <button class="btn-transfer" onclick="transferTablePrompt()">🔄 Chuyển Bàn / Đổi Bàn</button>
+            <button class="btn-transfer" onclick="transferTablePrompt()">🔄 Đổi Bàn / Chuyển Bàn</button>
             <button class="btn-print" id="btnPrintLabel" onclick="printReceipt()">🖨️ In Hóa Đơn (Khổ 58mm)</button>
             <button class="btn-checkout" onclick="checkout()">✅ Thanh Toán & Trả Bàn</button>
         </div>
     </div>
 </div>
 
-<!-- KHUNG IN NỘI BỘ DÀNH RIÊNG CHO IPHONE / SAFARI -->
 <div id="printArea"></div>
 
 <script>
@@ -370,16 +369,20 @@
     async function transferTablePrompt() {
         if (!selectedTable) return alert('Vui lòng chọn bàn hiện tại!');
         const currentOrder = tablesData[selectedTable];
-        if (!currentOrder || currentOrder.length === 0) return alert('Bàn này đang trống!');
+        if (!currentOrder || currentOrder.length === 0) return alert('Bàn này đang trống, không có món để đổi!');
 
-        const targetTable = prompt(`Đang chuyển từ ${selectedTable}.\nNhập tên bàn mới (Ví dụ: Bàn 08):`);
+        const targetTable = prompt(`Đang đổi từ ${selectedTable}.\nNhập tên bàn mới muốn chuyển đến (Ví dụ: Bàn 08 hoặc 8):`);
         if (!targetTable) return;
 
-        const formattedTarget = targetTable.trim();
-        if (!tablesData.hasOwnProperty(formattedTarget)) return alert('Tên bàn không hợp lệ!');
-        if (formattedTarget === selectedTable) return alert('Không thể chuyển về chính bàn này!');
+        let numStr = targetTable.trim().replace(/\D/g, '');
+        if (!numStr) return alert('Số bàn không hợp lệ!');
+        let num = parseInt(numStr, 10);
+        let formattedTarget = `Bàn ${num < 10 ? '0' + num : num}`;
 
-        if (confirm(`Xác nhận chuyển món từ ${selectedTable} sang ${formattedTarget}?`)) {
+        if (!tablesData.hasOwnProperty(formattedTarget)) return alert('Bàn vừa nhập không tồn tại!');
+        if (formattedTarget === selectedTable) return alert('Bàn mới phải khác bàn hiện tại!');
+
+        if (confirm(`Xác nhận đổi tất cả món từ ${selectedTable} sang ${formattedTarget}?`)) {
             const res = await fetch('/api/transfer-table', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -387,7 +390,7 @@
             });
             const data = await res.json();
             tablesData = data.tablesData;
-            alert(`Đã chuyển sang ${formattedTarget}!`);
+            alert(`Đã chuyển toàn bộ món sang ${formattedTarget}!`);
             selectTable(formattedTarget);
         }
     }
@@ -539,7 +542,6 @@
         document.getElementById('totalAmount').innerText = total.toLocaleString();
     }
 
-    // CƠ CHẾ IN TRỰC TIẾP TƯƠNG THÍCH HOÀN HẢO IPHONE SAFARI / CHROME
     function printReceipt() {
         if (!selectedTable || !tablesData[selectedTable] || tablesData[selectedTable].length === 0) {
             return alert('Bàn chưa có món!');
@@ -601,7 +603,6 @@
             </div>
         `;
 
-        // Gọi trực tiếp lệnh in trên iPhone mà không mở popup
         setTimeout(() => {
             window.print();
         }, 100);
