@@ -902,12 +902,14 @@
         renderOrder();
     }
 
+    // KHI BẤM XÁC NHẬN MÓN MỚI -> TỰ ĐỘNG GỘP LƯỢT 2 VÀO LƯỢT 1
     async function adminConfirmOrder() {
         if (!selectedTable || !tablesData[selectedTable]) return;
         
         const currentTableObj = tablesData[selectedTable];
         currentTableObj.order.forEach(item => {
-            item.sentQty = item.qty; // Chốt số lượng bếp đã nhận
+            item.turnStatus = 'confirmed';
+            item.sentQty = item.qty; // Chốt số lượng đã làm cho Bếp
         });
 
         await fetch('/api/confirm-table', {
@@ -921,7 +923,7 @@
         renderTables();
         renderMenu();
         renderOrder();
-        alert(`Đã xác nhận đơn món mới của ${selectedTable}! Sơ đồ chuyển sang MÀU ĐỎ.`);
+        alert(`Đã xác nhận món mới của ${selectedTable}! Đơn lượt 2 đã được gộp xuống lượt 1.`);
     }
 
     function openTransferModal() {
@@ -1061,13 +1063,15 @@
         }
     }
 
+    // THÊM MÓN: GÁN TRẠNG THÁI 'turnStatus = new' ĐỂ NẰM Ở LƯỢT BẢNG MỚI PHÍA TRÊN
     async function addToOrder(name, price) {
         if (!selectedTable) return alert('Vui lòng chọn Bàn trước!');
 
         const currentTableObj = tablesData[selectedTable];
         if (!currentTableObj.order) currentTableObj.order = [];
 
-        const existing = currentTableObj.order.find(i => i.name === name);
+        // Tìm món chưa xác nhận (đang nằm ở lượt mới)
+        const existing = currentTableObj.order.find(i => i.name === name && i.turnStatus === 'new');
         if (existing) {
             existing.qty += 1;
         } else {
@@ -1075,18 +1079,17 @@
                 name, 
                 price, 
                 qty: 1, 
-                sentQty: 0
+                sentQty: 0,
+                turnStatus: 'new' // Đánh dấu món mới ở lượt hiện tại
             });
         }
         
-        // NẾU LÀ MÁY QUẢN LÝ / NHÂN VIÊN -> LƯU VỀ MÁY CHỦ
-        // NẾU LÀ MÁY KHÁCH CHỌN MÓN KHÔNG TỰ ĐỘNG GỬI -> BẤM "GỬI YÊU CẦU" MỚI GỬI
         if (!isCustomerMode) {
             let targetStatus = currentTableObj.status === 'pending' ? 'pending' : 'confirmed';
             await saveOrder(selectedTable, targetStatus);
             renderTables();
         }
-        
+
         renderMenu();
         renderOrder();
     }
@@ -1172,11 +1175,6 @@
 
     async function processSendOrder() {
         const currentTableObj = tablesData[selectedTable];
-        currentTableObj.order.forEach(item => {
-            item.sentQty = item.qty; // Chốt mốc số lượng gửi bếp
-        });
-
-        // LÚC NÀY MỚI LƯU & BÁO CHÍNH THỨC VỀ MÁY CHỦ
         await saveOrder(selectedTable, 'pending');
         renderOrder();
         alert(`✅ ĐÃ GỬI YÊU CẦU THÀNH CÔNG!\n\nNhân viên sẽ mang món lên ngay cho ${selectedTable}. Chúc bạn ngon miệng!`);
@@ -1195,6 +1193,7 @@
         return finalTotal > 0 ? finalTotal : 0;
     }
 
+    // HIỂN THỊ LƯỢT 2 Ở TRÊN (KHUNG VÀNG) - LƯỢT 1 Ở DƯỚI (KHUNG XÁM)
     function renderOrder() {
         const container = document.getElementById('orderContentArea');
         container.innerHTML = '';
@@ -1223,39 +1222,96 @@
             return;
         }
 
-        let html = `
-            <table class="order-table">
-                <thead>
-                    <tr style="background:#fdebd0;">
-                        <th>Tên món</th>
-                        <th style="width:65px;">SL</th>
-                        <th style="text-align:right;">Thành tiền</th>
-                        <th style="text-align:center; width:35px;">Xóa</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
+        // PHÂN LOẠI MÓN LƯỢT MỚI (LƯỢT 2) VÀ LƯỢT ĐÃ XÁC NHẬN (LƯỢT 1)
+        let newTurnItems = [];
+        let oldTurnItems = [];
 
         currentOrder.forEach((item, index) => {
-            const itemTotal = item.price * item.qty;
-
-            html += `
-                <tr>
-                    <td><b>${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
-                    <td>
-                        <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
-                        <span style="margin:0 2px;"><b>${item.qty}</b></span>
-                        <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
-                    </td>
-                    <td style="text-align:right;"><b>${itemTotal.toLocaleString()}</b></td>
-                    <td style="text-align:center;">
-                        <button class="btn-delete-item" onclick="deleteOrderItem(${index})">🗑️</button>
-                    </td>
-                </tr>
-            `;
+            if (item.turnStatus === 'new' || (!item.turnStatus && currentTableObj.status === 'pending')) {
+                newTurnItems.push({ item, index });
+            } else {
+                oldTurnItems.push({ item, index });
+            }
         });
 
-        html += `</tbody></table>`;
+        let html = '';
+
+        // BẢNG 1: HIỂN THỊ LƯỢT MỚI (LƯỢT 2) NẰM Ở TRÊN
+        if (newTurnItems.length > 0) {
+            html += `
+                <div style="background:#fff3cd; border:2px solid #f1c40f; border-radius:8px; padding:8px; margin-bottom:12px;">
+                    <b style="color:#d35400; font-size:13px; display:block; margin-bottom:4px;">🔥 ĐƠN GỌI THÊM CẦN BẾP CHẾ BIẾN (LƯỢT 2):</b>
+                    <table class="order-table" style="background:white; border-radius:4px;">
+                        <thead>
+                            <tr style="background:#fdebd0;">
+                                <th>Tên món mới</th>
+                                <th style="width:65px;">SL</th>
+                                <th style="text-align:right;">Thành tiền</th>
+                                <th style="text-align:center; width:35px;">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            newTurnItems.forEach(({ item, index }) => {
+                const itemTotal = item.price * item.qty;
+                html += `
+                    <tr>
+                        <td><b style="color:#d35400;">${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
+                        <td>
+                            <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
+                            <span style="margin:0 2px;"><b>${item.qty}</b></span>
+                            <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+                        </td>
+                        <td style="text-align:right; color:#d35400;"><b>${itemTotal.toLocaleString()}</b></td>
+                        <td style="text-align:center;">
+                            <button class="btn-delete-item" onclick="deleteOrderItem(${index})">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table></div>`;
+        }
+
+        // BẢNG 2: HIỂN THỊ LƯỢT ĐÃ PHỤC VỤ (LƯỢT 1) NẰM Ở DƯỚI
+        if (oldTurnItems.length > 0) {
+            html += `
+                <div style="background:#f8f9fa; border:1px solid #ccc; border-radius:8px; padding:8px;">
+                    <b style="color:#2c3e50; font-size:12px; display:block; margin-bottom:4px;">📋 Các món đã báo bếp phục vụ (Lượt 1):</b>
+                    <table class="order-table" style="background:white; border-radius:4px;">
+                        <thead>
+                            <tr>
+                                <th>Tên món</th>
+                                <th style="width:65px;">SL</th>
+                                <th style="text-align:right;">Thành tiền</th>
+                                <th style="text-align:center; width:35px;">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            oldTurnItems.forEach(({ item, index }) => {
+                const itemTotal = item.price * item.qty;
+                html += `
+                    <tr>
+                        <td><b>${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
+                        <td>
+                            <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
+                            <span style="margin:0 2px;"><b>${item.qty}</b></span>
+                            <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+                        </td>
+                        <td style="text-align:right;"><b>${itemTotal.toLocaleString()}</b></td>
+                        <td style="text-align:center;">
+                            <button class="btn-delete-item" onclick="deleteOrderItem(${index})">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table></div>`;
+        }
+
         container.innerHTML = html;
         document.getElementById('totalAmount').innerText = calculateFinalTotal().toLocaleString();
     }
