@@ -6,91 +6,151 @@
     <title>QUÁN NƯỚNG TUỔI TRẺ - Quản Lý Bán Hàng</title>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #121212; color: #ffffff; margin: 0; padding: 20px; }
-        header { text-align: center; margin-bottom: 30px; }
-        header h1 { color: #ff9800; margin: 0 0 10px 0; }
-        .container { display: flex; gap: 20px; max-width: 1200px; margin: 0 auto; }
-        .section { background: #1e1e1e; padding: 20px; border-radius: 10px; flex: 1; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        h2 { border-bottom: 2px solid #ff9800; padding-bottom: 8px; margin-top: 0; font-size: 18px; color: #ff9800; }
-        .table-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .table-btn { background: #2e7d32; color: white; border: none; padding: 15px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
+        body { background-color: #121212; color: #ffffff; margin: 0; padding: 15px; }
+        header { text-align: center; margin-bottom: 20px; }
+        header h1 { color: #ff9800; margin: 0 0 5px 0; font-size: 24px; }
+        .container { display: flex; gap: 15px; max-width: 1400px; margin: 0 auto; }
+        .section { background: #1e1e1e; padding: 15px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); height: 85vh; overflow-y: auto; }
+        .tables-section { flex: 1.2; }
+        .menu-section { flex: 1.8; }
+        .bill-section { flex: 1.5; }
+        h2 { border-bottom: 2px solid #ff9800; padding-bottom: 6px; margin-top: 0; font-size: 16px; color: #ff9800; }
+        
+        /* 16 Bàn */
+        .table-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .table-btn { background: #2e7d32; color: white; border: none; padding: 12px 5px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.3s; }
         .table-btn:hover { background: #388e3c; }
-        .menu-item { display: flex; justify-content: space-between; align-items: center; background: #2b2b2b; padding: 10px; margin-bottom: 8px; border-radius: 6px; }
-        .menu-item button { background: #ff9800; color: #121212; border: none; padding: 6px 12px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        .table-btn.active { background: #e65100; border: 2px solid #ff9800; }
+
+        /* Menu */
+        .category-title { font-size: 14px; font-weight: bold; color: #ffa726; margin: 10px 0 5px 0; text-transform: uppercase; }
+        .menu-item { display: flex; justify-content: space-between; align-items: center; background: #2b2b2b; padding: 8px 10px; margin-bottom: 6px; border-radius: 5px; font-size: 13px; }
+        .menu-item button { background: #ff9800; color: #121212; border: none; padding: 4px 10px; font-weight: bold; border-radius: 4px; cursor: pointer; }
         .menu-item button:hover { background: #ffa726; }
-        .bill-box { background: #2b2b2b; padding: 15px; border-radius: 6px; min-height: 150px; margin-bottom: 15px; }
-        .checkout-btn { width: 100%; background: #d32f2f; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+
+        /* Hóa đơn */
+        .bill-box { background: #2b2b2b; padding: 10px; border-radius: 6px; height: 50vh; overflow-y: auto; margin-bottom: 10px; font-size: 14px; }
+        .checkout-btn { width: 100%; background: #d32f2f; color: white; border: none; padding: 12px; font-size: 15px; font-weight: bold; border-radius: 6px; cursor: pointer; }
         .checkout-btn:hover { background: #e53935; }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>🔥 HỆ THỐNG QUẢN LÝ QUÁN NƯỚNG TUỔI TRẺ 🔥</h1>
-        <p>Phần mềm bán hàng & gọi món tối ưu trực tuyến</p>
+        <h1>🔥 QUÁN NƯỚNG TUỔI TRẺ - HỆ THỐNG POS 🔥</h1>
+        <p style="margin: 0; color: #aaa; font-size: 13px;">Hotline: 0842.163.333</p>
     </header>
 
     <div class="container">
-        <!-- CỘT 1: QUẢN LÝ BÀN ĂN -->
-        <div class="section">
-            <h2>🪑 Danh Sách Bàn</h2>
-            <div class="table-grid">
-                <button class="table-btn" onclick="selectTable('Bàn 1')">Bàn 1</button>
-                <button class="table-btn" onclick="selectTable('Bàn 2')">Bàn 2</button>
-                <button class="table-btn" onclick="selectTable('Bàn 3')">Bàn 3</button>
-                <button class="table-btn" onclick="selectTable('Bàn 4')">Bàn 4</button>
+        <!-- CỘT 1: 16 BÀN ĂN -->
+        <div class="section tables-section">
+            <h2>🪑 Quản Lý 16 Bàn</h2>
+            <div class="table-grid" id="tableGrid"></div>
+        </div>
+
+        <!-- CỘT 2: THỰC ĐƠN CHUẨN TỪ MENU -->
+        <div class="section menu-section">
+            <h2>🥩 Thực Đơn Món & Combo</h2>
+            <div id="menuContainer">
+                <div class="category-title">COMBO SIÊU HÓT</div>
+                <div class="menu-item"><span>1. Combo 2-3 người (319k)</span><button onclick="addToOrder('Combo 2-3 người', 319000)">Chọn</button></div>
+                <div class="menu-item"><span>2. Combo 3-4 người (459k)</span><button onclick="addToOrder('Combo 3-4 người', 459000)">Chọn</button></div>
+                <div class="menu-item"><span>3. Combo 4-6 người (619k)</span><button onclick="addToOrder('Combo 4-6 người', 619000)">Chọn</button></div>
+                <div class="menu-item"><span>4. Combo nhiều người (1199k)</span><button onclick="addToOrder('Combo nhiều người', 1199000)">Chọn</button></div>
+
+                <div class="category-title">Đồ Ăn Nhẹ</div>
+                <div class="menu-item"><span>Hoa quả thập cẩm (29k)</span><button onclick="addToOrder('Hoa quả thập cẩm', 29000)">Chọn</button></div>
+                <div class="menu-item"><span>Ngô chiên (35k)</span><button onclick="addToOrder('Ngô chiên', 35000)">Chọn</button></div>
+                <div class="menu-item"><span>Bánh mỳ nướng bơ (19k)</span><button onclick="addToOrder('Bánh mỳ nướng bơ', 19000)">Chọn</button></div>
+                <div class="menu-item"><span>Khoai tây chiên (35k)</span><button onclick="addToOrder('Khoai tây chiên', 35000)">Chọn</button></div>
+                <div class="menu-item"><span>Salad rau tổng hợp (29k)</span><button onclick="addToOrder('Salad rau tổng hợp', 29000)">Chọn</button></div>
+                <div class="menu-item"><span>Salad hoa quả (39k)</span><button onclick="addToOrder('Salad hoa quả', 39000)">Chọn</button></div>
+                <div class="menu-item"><span>Kim chi Hàn Quốc (29k)</span><button onclick="addToOrder('Kim chi Hàn Quốc', 29000)">Chọn</button></div>
+
+                <div class="category-title">Các Món Nướng</div>
+                <div class="menu-item"><span>Ba chỉ (65k)</span><button onclick="addToOrder('Ba chỉ', 65000)">Chọn</button></div>
+                <div class="menu-item"><span>Sụn non ướp ngũ vị (69k)</span><button onclick="addToOrder('Sụn non ướp ngũ vị', 69000)">Chọn</button></div>
+                <div class="menu-item"><span>Nầm tươi ứa sữa (75k)</span><button onclick="addToOrder('Nầm tươi ứa sữa', 75000)">Chọn</button></div>
+                <div class="menu-item"><span>Bò cuộn nấm kim (59k)</span><button onclick="addToOrder('Bò cuộn nấm kim', 59000)">Chọn</button></div>
+                <div class="menu-item"><span>Thịt dải heo (69k)</span><button onclick="addToOrder('Thịt dải heo', 69000)">Chọn</button></div>
+                <div class="menu-item"><span>Má đào heo (79k)</span><button onclick="addToOrder('Má đào heo', 79000)">Chọn</button></div>
+                <div class="menu-item"><span>Nọng má tươi (79k)</span><button onclick="addToOrder('Nọng má tươi', 79000)">Chọn</button></div>
+                <div class="menu-item"><span>Chân gà rút xương (99k)</span><button onclick="addToOrder('Chân gà rút xương', 99000)">Chọn</button></div>
+                <div class="menu-item"><span>Lòng non (59k)</span><button onclick="addToOrder('Lòng non', 59000)">Chọn</button></div>
+                <div class="menu-item"><span>Khâu đuôi giòn sần sật (69k)</span><button onclick="addToOrder('Khâu đuôi giòn sần sật', 69000)">Chọn</button></div>
+                <div class="menu-item"><span>Lòng già mũm mĩm (59k)</span><button onclick="addToOrder('Lòng già mũm mĩm', 59000)">Chọn</button></div>
+                <div class="menu-item"><span>Dạ dày nướng xa tê (69k)</span><button onclick="addToOrder('Dạ dày nướng xa tê', 69000)">Chọn</button></div>
+                <div class="menu-item"><span>Tôm tươi (89k)</span><button onclick="addToOrder('Tôm tươi', 89000)">Chọn</button></div>
+                <div class="menu-item"><span>Mực rụng trứng (89k)</span><button onclick="addToOrder('Mực rụng trứng', 89000)">Chọn</button></div>
+                <div class="menu-item"><span>Bạch tuộc nướng xa tê (79k)</span><button onclick="addToOrder('Bạch tuộc nướng xa tê', 79000)">Chọn</button></div>
+                <div class="menu-item"><span>Xúc xích ướp ngũ vị (59k)</span><button onclick="addToOrder('Xúc xích ướp ngũ vị', 59000)">Chọn</button></div>
+                <div class="menu-item"><span>Dồi sụn ướp ngũ vị (59k)</span><button onclick="addToOrder('Dồi sụn ướp ngũ vị', 59000)">Chọn</button></div>
+                <div class="menu-item"><span>Lạp xưởng nướng thượng hạng (59k)</span><button onclick="addToOrder('Lạp xưởng nướng thượng hạng', 59000)">Chọn</button></div>
+                <div class="menu-item"><span>Dải thăn bò nướng tảng (79k)</span><button onclick="addToOrder('Dải thăn bò nướng tảng', 79000)">Chọn</button></div>
+                <div class="menu-item"><span>Nạc vai nướng tảng (69k)</span><button onclick="addToOrder('Nạc vai nướng tảng', 69000)">Chọn</button></div>
+                <div class="menu-item"><span>Bò ăn dỏi lăn (79k)</span><button onclick="addToOrder('Bò ăn dỏi lăn', 79000)">Chọn</button></div>
+                <div class="menu-item"><span>U bò nướng (89k)</span><button onclick="addToOrder('U bò nướng', 89000)">Chọn</button></div>
+                <div class="menu-item"><span>Rẻ sườn nướng xa tê (69k)</span><button onclick="addToOrder('Rẻ sườn nướng xa tê', 69000)">Chọn</button></div>
+                <div class="menu-item"><span>Bắp bò ướp ngũ vị (79k)</span><button onclick="addToOrder('Bắp bò ướp ngũ vị', 79000)">Chọn</button></div>
+
+                <div class="category-title">Đồ Uống</div>
+                <div class="menu-item"><span>Rượu ngô non, táo mèo, mơ (40k)</span><button onclick="addToOrder('Rượu ngô non/táo mèo', 40000)">Chọn</button></div>
+                <div class="menu-item"><span>Bia Sài Gòn, 333 (15k)</span><button onclick="addToOrder('Bia Sài Gòn/333', 15000)">Chọn</button></div>
+                <div class="menu-item"><span>Bia Tiger (22k)</span><button onclick="addToOrder('Bia Tiger', 22000)">Chọn</button></div>
+                <div class="menu-item"><span>Bò húc (17k)</span><button onclick="addToOrder('Bò húc', 17000)">Chọn</button></div>
+                <div class="menu-item"><span>Nước lọc (7k)</span><button onclick="addToOrder('Nước lọc', 7000)">Chọn</button></div>
+                <div class="menu-item"><span>Trà đá (ca), thuốc lá (20k)</span><button onclick="addToOrder('Trà đá/thuốc lá', 20000)">Chọn</button></div>
+                <div class="menu-item"><span>Rượu dừa (65k)</span><button onclick="addToOrder('Rượu dừa', 65000)">Chọn</button></div>
+                <div class="menu-item"><span>Nước ngọt các loại (13k)</span><button onclick="addToOrder('Nước ngọt các loại', 13000)">Chọn</button></div>
             </div>
         </div>
 
-        <!-- CỘT 2: MENU MÓN NƯỚNG -->
-        <div class="section">
-            <h2>🥩 Thực Đơn Món</h2>
-            <div id="menuList">
-                <div class="menu-item">
-                    <span>Ba chỉ bò Mỹ (80k)</span>
-                    <button onclick="addToOrder('Ba chỉ bò Mỹ', 80000)">Chọn</button>
-                </div>
-                <div class="menu-item">
-                    <span>Nầm heo nướng sa tế (70k)</span>
-                    <button onclick="addToOrder('Nầm heo nướng sa tế', 70000)">Chọn</button>
-                </div>
-                <div class="menu-item">
-                    <span>Bạch tuộc sốt cay (90k)</span>
-                    <button onclick="addToOrder('Bạch tuộc sốt cay', 90000)">Chọn</button>
-                </div>
-                <div class="menu-item">
-                    <span>Coca Cola / Pepsi (15k)</span>
-                    <button onclick="addToOrder('Coca Cola / Pepsi', 15000)">Chọn</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- CỘT 3: HÓA ĐƠN & GỌI MÓN -->
-        <div class="section">
-            <h2>🛒 Hóa Đơn - <span id="currentTable" style="color: #fff;">Chưa chọn bàn</span></h2>
+        <!-- CỘT 3: HÓA ĐƠN & THANH TOÁN -->
+        <div class="section bill-section">
+            <h2>🛒 Hóa Đơn - <span id="currentTable" style="color: #ff9800;">Chưa chọn bàn</span></h2>
             <div class="bill-box" id="billContent">
-                <p style="color: #aaa; text-align: center;">Chưa có món nào được chọn</p>
+                <p style="color: #aaa; text-align: center; margin-top: 50px;">Vui lòng chọn bàn bên trái để bắt đầu gọi món</p>
             </div>
-            <h3 style="display: flex; justify-content: space-between;">Tổng tiền: <span id="totalPrice" style="color: #ff9800;">0đ</span></h3>
-            <button class="checkout-btn" onclick="checkout()">THANH TOÁN & HOÀN TẤT</button>
+            <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-bottom: 10px;">
+                <span>Tổng cộng:</span>
+                <span id="totalPrice" style="color: #ff9800;">0đ</span>
+            </div>
+            <button class="checkout-btn" onclick="checkout()">THANH TOÁN & LƯU LÊN DATABASE</button>
         </div>
     </div>
 
     <script>
+        const tableGrid = document.getElementById('tableGrid');
+        let ordersData = {};
+
+        for (let i = 1; i <= 16; i++) {
+            let btn = document.createElement('button');
+            btn.className = 'table-btn';
+            btn.innerText = 'Bàn ' + i;
+            btn.id = 'table-' + i;
+            btn.onclick = () => selectTable('Bàn ' + i);
+            tableGrid.appendChild(btn);
+        }
+
         let selectedTable = '';
-        let currentOrder = [];
 
         function selectTable(tableName) {
+            document.querySelectorAll('.table-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
             selectedTable = tableName;
             document.getElementById('currentTable').innerText = tableName;
-            alert('Đã chọn ' + tableName);
+            renderBill();
         }
 
         function addToOrder(name, price) {
             if (!selectedTable) {
-                alert('Vui lòng chọn bàn trước khi gọi món!');
+                alert('⚠️ Vui lòng bấm chọn một bàn trước khi thêm món!');
                 return;
             }
+            if (!ordersData[selectedTable]) {
+                ordersData[selectedTable] = [];
+            }
+            let currentOrder = ordersData[selectedTable];
             let item = currentOrder.find(i => i.name === name);
             if (item) {
                 item.quantity += 1;
@@ -102,42 +162,74 @@
 
         function renderBill() {
             const billContent = document.getElementById('billContent');
-            if (currentOrder.length === 0) {
-                billContent.innerHTML = '<p style="color: #aaa; text-align: center;">Chưa có món nào được chọn</p>';
+            if (!selectedTable || !ordersData[selectedTable] || ordersData[selectedTable].length === 0) {
+                billContent.innerHTML = '<p style="color: #aaa; text-align: center; margin-top: 50px;">Bàn này chưa có món nào</p>';
                 document.getElementById('totalPrice').innerText = '0đ';
                 return;
             }
 
             let html = '';
             let total = 0;
-            currentOrder.forEach((item, index) => {
+            ordersData[selectedTable].forEach((item) => {
                 let subtotal = item.price * item.quantity;
                 total += subtotal;
-                html += `<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                html += `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #444; padding-bottom: 4px;">
                     <span>${item.name} (x${item.quantity})</span>
-                    <span>${subtotal.toLocaleString()}đ</span>
+                    <span>${subtotal.toLocaleString()}đ 
+                        <button onclick="removeItem('${item.name}')" style="background:#d32f2f; color:#fff; border:none; padding:2px 6px; border-radius:3px; cursor:pointer; margin-left:5px;">X</button>
+                    </span>
                 </div>`;
             });
             billContent.innerHTML = html;
             document.getElementById('totalPrice').innerText = total.toLocaleString() + 'đ';
         }
 
-    async function checkout() {
-        if (!selectedTable) {
-            alert('Chưa chọn bàn thanh toán!');
-            return;
-        }
-        if (currentOrder.length === 0) {
-            alert('Hóa đơn trống!');
-            return;
+        function removeItem(name) {
+            let currentOrder = ordersData[selectedTable];
+            let index = currentOrder.findIndex(i => i.name === name);
+            if (index !== -1) {
+                currentOrder[index].quantity -= 1;
+                if (currentOrder[index].quantity <= 0) {
+                    currentOrder.splice(index, 1);
+                }
+            }
+            renderBill();
         }
 
-        alert('Thanh toán thành công cho ' + selectedTable + '! Dữ liệu đã sẵn sàng lưu trữ.');
-        currentOrder = [];
-        renderBill();
-        selectedTable = 'Chưa chọn bàn';
-        document.getElementById('currentTable').innerText = selectedTable;
-    }
+        async function checkout() {
+            if (!selectedTable) {
+                alert('Chưa chọn bàn thanh toán!');
+                return;
+            }
+            if (!ordersData[selectedTable] || ordersData[selectedTable].length === 0) {
+                alert('Bàn này không có hóa đơn nào để thanh toán!');
+                return;
+            }
+
+            let items = ordersData[selectedTable];
+            let totalAmount = items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+
+            if (confirm('Xác nhận thanh toán hoàn tất cho ' + selectedTable + ' với tổng tiền ' + totalAmount.toLocaleString() + 'đ?')) {
+                try {
+                    const response = await fetch('/api/checkout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tableName: selectedTable, items, totalAmount })
+                    });
+                    const result = await response.json();
+                    if (response.ok && result.success) {
+                        alert('✅ Thanh toán thành công và đã lưu hóa đơn vào MongoDB Atlas!');
+                        ordersData[selectedTable] = [];
+                        renderBill();
+                    } else {
+                        alert('Lỗi lưu database: ' + (result.message || 'Không rõ'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Lỗi kết nối máy chủ khi thanh toán!');
+                }
+            }
+        }
     </script>
 </body>
 </html>
