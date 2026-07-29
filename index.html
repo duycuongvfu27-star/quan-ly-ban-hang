@@ -69,13 +69,11 @@
         .category-title { background: #2c3e50; color: white; padding: 5px 8px; margin-top: 12px; border-radius: 4px; font-weight: bold; font-size: 13px; }
         .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 8px; margin-top: 8px; }
         
-        /* HIỆU ỨNG THẺ MÓN ĂN THƯỜNG */
         .item-card { border: 2px solid #e0e0e0; border-radius: 8px; padding: 6px; text-align: center; cursor: pointer; transition: all 0.2s ease; background: #fafafa; position: relative; }
         .item-card:active { transform: scale(0.95); }
         .item-name { font-weight: bold; font-size: 12px; color: #333; height: 32px; display: flex; align-items: center; justify-content: center; }
         .item-price { color: #e67e22; font-weight: bold; font-size: 12px; margin-top: 2px; }
 
-        /* HIỆU ỨNG KHI MÓN ĐÃ ĐƯỢC BẤM CHỌN (NỔI BẬT) */
         .item-card.selected {
             background: #fff3e0;
             border-color: #e67e22;
@@ -83,7 +81,6 @@
             transform: translateY(-2px);
         }
         
-        /* BONG BÓNG ĐỎ HIỂN THỊ SỐ LƯỢNG TRÊN GÓC THẺ MÓN */
         .item-badge {
             position: absolute;
             top: -6px;
@@ -795,7 +792,7 @@
         }
     }
 
-    // TỐI ƯU CẢI TIẾN THÊM HIỆU ỨNG NỔI BẬT CHO MÓN ĐÃ BẤM CHỌN
+    // SỬA LỖI TÍNH TỔNG SỐ LƯỢNG MÓN (CỘNG CẢ LƯỢT CŨ & LƯỢT MỚI)
     function renderMenu() {
         const container = document.getElementById('menuContainer');
         container.innerHTML = '';
@@ -805,10 +802,13 @@
         menuData.forEach((cat) => {
             let html = `<div class="category-title">${cat.category}</div><div class="menu-grid">`;
             cat.items.forEach((item) => {
-                // Kiểm tra xem món này đã có trong danh sách order chưa
-                const orderedItem = currentOrder.find(i => i.name === item.name);
-                const isSelected = !!orderedItem;
-                const qtyBadge = isSelected ? `<span class="item-badge">x${orderedItem.qty}</span>` : '';
+                // Tính tổng số lượng món trùng tên (bao gồm cả lượt mới và lượt cũ đã xác nhận)
+                const totalQty = currentOrder
+                    .filter(i => i.name === item.name)
+                    .reduce((sum, i) => sum + i.qty, 0);
+
+                const isSelected = totalQty > 0;
+                const qtyBadge = isSelected ? `<span class="item-badge">x${totalQty}</span>` : '';
                 const checkMark = isSelected ? ' ✓' : '';
 
                 html += `
@@ -908,7 +908,7 @@
         let targetStatus = isCustomerMode ? 'pending' : (currentTableObj.status === 'pending' ? 'pending' : 'confirmed');
         await saveOrder(selectedTable, targetStatus);
         renderTables();
-        renderMenu(); // Cập nhật lại khung nổi bật cho các món
+        renderMenu();
         renderOrder();
     }
 
@@ -929,7 +929,7 @@
         let targetStatus = currentOrder.length === 0 ? 'empty' : currentTableObj.status;
         await saveOrder(selectedTable, targetStatus);
         renderTables();
-        renderMenu(); // Cập nhật lại trạng thái thẻ món ăn
+        renderMenu();
         renderOrder();
     }
 
