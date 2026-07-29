@@ -108,9 +108,8 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    // Đăng nhập thành công, chuyển hướng vào trang quản lý chính của quán 
-                    // (Bạn hãy thay 'quanly.html' thành đúng tên file quản lý thực tế trong dự án nếu cần)
-                    window.location.href = '/quanly.html'; 
+                    // Đăng nhập thành công, chuyển hướng về trang gốc để tải giao diện quản lý
+                    window.location.href = '/'; 
                 } else {
                     alert(data.message || 'Sai mã PIN!');
                 }
