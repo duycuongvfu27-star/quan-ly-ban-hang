@@ -102,6 +102,7 @@
         .qty-btn { width: 24px; height: 24px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-weight: bold; border-radius: 4px; }
         .qty-btn:disabled { background: #e0e0e0; color: #aaa; border-color: #ddd; cursor: not-allowed; }
         .btn-delete-item { background: #ff4d4d; color: white; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .btn-delete-item:disabled { opacity: 0.3; cursor: not-allowed; background: #ccc; }
         
         .discount-box { background: #f8f9fa; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; margin-top: 8px; font-size: 12px; }
         .discount-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
@@ -909,6 +910,7 @@
         const currentTableObj = tablesData[selectedTable];
         currentTableObj.order.forEach(item => {
             item.turnStatus = 'confirmed';
+            item.confirmedQty = item.qty; // Chốt mốc cho phép hủy của bếp
         });
 
         await fetch('/api/confirm-table', {
@@ -1068,7 +1070,7 @@
         const currentTableObj = tablesData[selectedTable];
         if (!currentTableObj.order) currentTableObj.order = [];
 
-        const existing = currentTableObj.order.find(i => i.name === name && (i.turnStatus === 'new' || isCustomerMode));
+        const existing = currentTableObj.order.find(i => i.name === name);
         if (existing) {
             existing.qty += 1;
         } else {
@@ -1076,6 +1078,7 @@
                 name, 
                 price, 
                 qty: 1, 
+                confirmedQty: 0,
                 locked: false,
                 turnStatus: 'new'
             });
@@ -1088,17 +1091,27 @@
         renderOrder();
     }
 
+    // HÀM GIẢM SỐ LƯỢNG SỬA ĐỔI CHUẨN LOGIC
     async function changeQty(index, amount) {
         if (!selectedTable) return;
         const currentTableObj = tablesData[selectedTable];
         const currentOrder = currentTableObj.order;
+        const item = currentOrder[index];
 
-        if (isCustomerMode && currentOrder[index].locked) {
-            return alert('Món này đã gửi bếp, không thể thay đổi! Vui lòng báo nhân viên.');
+        let confirmedQty = item.confirmedQty || (item.locked ? item.qty : 0);
+
+        if (isCustomerMode) {
+            if (amount < 0 && item.qty + amount < confirmedQty) {
+                if (confirmedQty > 0) {
+                    return alert(`Món này đã gửi bếp ${confirmedQty} phần ở lượt trước! Vui lòng báo nhân viên nếu muốn hủy.`);
+                } else {
+                    return alert('Món này đã gửi bếp, không thể giảm!');
+                }
+            }
         }
 
-        currentOrder[index].qty += amount;
-        if (currentOrder[index].qty <= 0) {
+        item.qty += amount;
+        if (item.qty <= 0) {
             currentOrder.splice(index, 1);
         }
         
@@ -1109,17 +1122,29 @@
         renderOrder();
     }
 
-    // HÀM XÓA HẲN MÓN BẤM NHẦM (CHO CẢ KHÁCH VÀ NHÂN VIÊN)
+    // HÀM XÓA MÓN BẤM NHẦM TẠI LƯỢT GỌI MỚI
     async function deleteOrderItem(index) {
         if (!selectedTable) return;
         const currentTableObj = tablesData[selectedTable];
         const currentOrder = currentTableObj.order;
+        const item = currentOrder[index];
 
-        if (isCustomerMode && currentOrder[index].locked) {
-            return alert('Món này đã gửi bếp, không thể xóa! Vui lòng báo nhân viên.');
+        let confirmedQty = item.confirmedQty || (item.locked ? item.qty : 0);
+
+        if (isCustomerMode) {
+            if (confirmedQty > 0) {
+                if (item.qty > confirmedQty) {
+                    item.qty = confirmedQty; // Trả số lượng về đúng mốc đã chốt ở lượt cũ
+                } else {
+                    return alert(`Món này đã gửi bếp ${confirmedQty} phần ở lượt trước, không thể xóa! Vui lòng báo nhân viên.`);
+                }
+            } else {
+                currentOrder.splice(index, 1); // Xóa hẳn nếu là món mới chọn nhầm ở lượt này
+            }
+        } else {
+            currentOrder.splice(index, 1); // Quản lý/NV có quyền xóa hẳn
         }
 
-        currentOrder.splice(index, 1);
         let targetStatus = currentOrder.length === 0 ? 'empty' : currentTableObj.status;
         await saveOrder(selectedTable, targetStatus);
         renderTables();
@@ -1151,6 +1176,7 @@
         const currentTableObj = tablesData[selectedTable];
         currentTableObj.order.forEach(item => {
             item.locked = true;
+            item.confirmedQty = item.qty; // Chốt mốc số lượng đã chốt gửi bếp
         });
 
         await saveOrder(selectedTable, 'pending');
@@ -1171,7 +1197,6 @@
         return finalTotal > 0 ? finalTotal : 0;
     }
 
-    // HIỂN THỊ DANH SÁCH MÓN GỌI VỚI NÚT XÓA MÓN NHẦM CHO KHÁCH
     function renderOrder() {
         const container = document.getElementById('orderContentArea');
         container.innerHTML = '';
@@ -1200,95 +1225,44 @@
             return;
         }
 
-        let newItems = [];
-        let oldItems = [];
+        let html = `
+            <table class="order-table">
+                <thead>
+                    <tr style="background:#fdebd0;">
+                        <th>Tên món</th>
+                        <th style="width:65px;">SL</th>
+                        <th style="text-align:right;">Thành tiền</th>
+                        <th style="text-align:center; width:35px;">Xóa</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
 
         currentOrder.forEach((item, index) => {
-            if (item.turnStatus === 'new' && currentTableObj.status === 'pending') {
-                newItems.push({ item, index });
-            } else {
-                oldItems.push({ item, index });
-            }
+            const itemTotal = item.price * item.qty;
+            const confirmedQty = item.confirmedQty || (item.locked ? item.qty : 0);
+            
+            // Điều kiện hoạt động của nút Giảm (-) và Xóa (🗑️)
+            const canDecrease = !(isCustomerMode && item.qty <= confirmedQty);
+            const canDelete = !(isCustomerMode && confirmedQty > 0 && item.qty <= confirmedQty);
+
+            html += `
+                <tr>
+                    <td><b>${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
+                    <td>
+                        <button class="qty-btn" ${!canDecrease ? 'disabled' : ''} onclick="changeQty(${index}, -1)">-</button>
+                        <span style="margin:0 2px;"><b>${item.qty}</b></span>
+                        <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+                    </td>
+                    <td style="text-align:right;"><b>${itemTotal.toLocaleString()}</b></td>
+                    <td style="text-align:center;">
+                        <button class="btn-delete-item" ${!canDelete ? 'disabled' : ''} onclick="deleteOrderItem(${index})">🗑️</button>
+                    </td>
+                </tr>
+            `;
         });
 
-        let html = '';
-
-        if (newItems.length > 0) {
-            html += `
-                <div class="section-new-orders">
-                    <div class="title-new-orders">🔥 ĐƠN MỚI CẦN BẾP CHẾ BIẾN:</div>
-                    <table class="order-table">
-                        <thead>
-                            <tr style="background:#fdebd0;">
-                                <th>Tên món mới</th>
-                                <th style="width:65px;">SL</th>
-                                <th style="text-align:right;">Thành tiền</th>
-                                <th style="text-align:center; width:35px;">Xóa</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-
-            newItems.forEach(({ item, index }) => {
-                const itemTotal = item.price * item.qty;
-                const canEdit = !(isCustomerMode && item.locked);
-                html += `
-                    <tr>
-                        <td><b style="color:#d35400;">${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
-                        <td>
-                            <button class="qty-btn" ${!canEdit ? 'disabled' : ''} onclick="changeQty(${index}, -1)">-</button>
-                            <span style="margin:0 2px;"><b>${item.qty}</b></span>
-                            <button class="qty-btn" ${!canEdit ? 'disabled' : ''} onclick="changeQty(${index}, 1)">+</button>
-                        </td>
-                        <td style="text-align:right; color:#d35400;"><b>${itemTotal.toLocaleString()}</b></td>
-                        <td style="text-align:center;">
-                            <button class="btn-delete-item" ${!canEdit ? 'disabled style="opacity:0.3;"' : ''} onclick="deleteOrderItem(${index})">🗑️</button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            html += `</tbody></table></div>`;
-        }
-
-        if (oldItems.length > 0) {
-            html += `
-                <div class="section-old-orders">
-                    <div class="title-old-orders">📋 Các món đã phục vụ (Lượt cũ):</div>
-                    <table class="order-table">
-                        <thead>
-                            <tr>
-                                <th>Tên món</th>
-                                <th style="width:65px;">SL</th>
-                                <th style="text-align:right;">Thành tiền</th>
-                                <th style="text-align:center; width:35px;">Xóa</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-
-            oldItems.forEach(({ item, index }) => {
-                const itemTotal = item.price * item.qty;
-                const canEdit = !(isCustomerMode && item.locked);
-                html += `
-                    <tr>
-                        <td><b>${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
-                        <td>
-                            <button class="qty-btn" ${!canEdit ? 'disabled' : ''} onclick="changeQty(${index}, -1)">-</button>
-                            <span style="margin:0 2px;"><b>${item.qty}</b></span>
-                            <button class="qty-btn" ${!canEdit ? 'disabled' : ''} onclick="changeQty(${index}, 1)">+</button>
-                        </td>
-                        <td style="text-align:right;"><b>${itemTotal.toLocaleString()}</b></td>
-                        <td style="text-align:center;">
-                            <button class="btn-delete-item" ${!canEdit ? 'disabled style="opacity:0.3;"' : ''} onclick="deleteOrderItem(${index})">🗑️</button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            html += `</tbody></table></div>`;
-        }
-
+        html += `</tbody></table>`;
         container.innerHTML = html;
         document.getElementById('totalAmount').innerText = calculateFinalTotal().toLocaleString();
     }
