@@ -108,8 +108,8 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    // Đăng nhập thành công, chuyển hướng về trang chủ '/'
-                    window.location.href = '/'; 
+                    // Đăng nhập thành công, chuyển hướng sang trang quanly.html
+                    window.location.href = '/quanly.html'; 
                 } else {
                     alert(data.message || 'Sai mã PIN!');
                 }
