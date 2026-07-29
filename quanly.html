@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QUÁN NƯỚNG TUỔI TRẺ - Quản Lý POS & Âm Thanh Báo Bàn</title>
+    <title>QUÁN NƯỚNG TUỔI TRẺ - Quản Lý POS & Đổi Bàn</title>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f4f6f9; color: #333; margin: 0; padding: 10px; }
@@ -29,7 +29,7 @@
 
         .main-container { display: flex; gap: 10px; }
         .menu-col { flex: 2; }
-        .bill-col { flex: 1; background: white; padding: 12px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 540px; display: flex; flex-direction: column; }
+        .bill-col { flex: 1; background: white; padding: 12px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 560px; display: flex; flex-direction: column; }
 
         .category-title { font-size: 13px; font-weight: bold; color: #fff; background: #37474f; padding: 4px 8px; border-radius: 4px; margin: 8px 0 4px 0; text-transform: uppercase; }
         .food-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-height: 180px; overflow-y: auto; }
@@ -42,9 +42,10 @@
         .round-title { font-size: 11px; font-weight: bold; color: #0288d1; background: #e1f5fe; padding: 2px 6px; margin: 6px 0 4px 0; border-radius: 3px; }
         .bill-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; border-bottom: 1px dashed #eee; padding-bottom: 3px; font-size: 12px; }
         
-        .kitchen-btn { width: 100%; background: #ff9800; color: white; border: none; padding: 8px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 5px; }
-        .checkout-btn { width: 100%; background: #d32f2f; color: white; border: none; padding: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 5px; }
-        .qr-btn { width: 100%; background: #0288d1; color: white; border: none; padding: 8px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .kitchen-btn { width: 100%; background: #ff9800; color: white; border: none; padding: 7px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 12px; margin-bottom: 4px; }
+        .move-btn { width: 100%; background: #673ab7; color: white; border: none; padding: 7px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 12px; margin-bottom: 4px; }
+        .checkout-btn { width: 100%; background: #d32f2f; color: white; border: none; padding: 9px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 4px; }
+        .qr-btn { width: 100%; background: #0288d1; color: white; border: none; padding: 7px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 12px; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
         .modal-box { background: white; padding: 20px; border-radius: 8px; text-align: center; width: 380px; }
@@ -79,7 +80,7 @@
     </div>
 
     <div class="main-container">
-        <div class="section menu-col" style="margin-bottom:0; height: 540px; overflow-y: auto;">
+        <div class="section menu-col" style="margin-bottom:0; height: 560px; overflow-y: auto;">
             <h2>🥩 Thực Đơn Món Nướng & Đồ Uống</h2>
             <div id="menuContainer"></div>
         </div>
@@ -91,13 +92,27 @@
             <div class="bill-items" id="billItemsContainer">
                 <p style="color: #888; text-align: center; margin-top: 50px; font-size: 12px;">Vui lòng chọn bàn ở sơ đồ phía trên</p>
             </div>
-            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 6px;">
                 <span>Tổng cộng:</span>
                 <span id="totalPrice" style="color: #d32f2f;">0đ</span>
             </div>
             <button class="kitchen-btn" onclick="sendToKitchen()">🔔 Báo Bếp / Gửi Lượt Mới</button>
+            <button class="move-btn" onclick="openMoveTableModal()">🔀 Đổi Bàn / Chuyển Bàn</button>
             <button class="checkout-btn" onclick="openBankQRModal()">💳 Thanh Toán & Tạo QR Chuyển Khoản</button>
             <button class="qr-btn" onclick="showTableQR()">📱 Xem Mã QR Cho Khách Order</button>
+        </div>
+    </div>
+
+    <!-- MODAL ĐỔI BÀN -->
+    <div id="moveTableModal" class="modal">
+        <div class="modal-box">
+            <h3 style="color: #b71c1c; margin-top:0;">🔀 Tính Năng Đổi Bàn</h3>
+            <p style="font-size: 13px;">Chuyển toàn bộ món từ <b id="moveFromTable" style="color:#d32f2f;"></b> sang:</p>
+            <select id="targetTableSelect">
+                <!-- Danh sách bàn đích -->
+            </select>
+            <button onclick="confirmMoveTable()" style="background:#673ab7; color:white; border:none; padding:10px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:8px;">✅ Xác Nhận Đổi Bàn</button>
+            <button onclick="document.getElementById('moveTableModal').style.display='none'" style="background:#555; color:white; border:none; padding:6px; width:100%; border-radius:4px; margin-top:6px; cursor:pointer;">Hủy</button>
         </div>
     </div>
 
@@ -105,8 +120,7 @@
     <div id="settingsModal" class="modal">
         <div class="modal-box" style="text-align: left; width: 420px;">
             <h3 style="color: #b71c1c; margin-top:0; text-align:center;">⚙️ Cài Đặt Hệ Thống Quán</h3>
-            
-            <label style="font-weight: bold; font-size: 12px;">1. Cấu hình Tài khoản Ngân Hàng:</label>
+            <label style="font-weight: bold; font-size: 12px;">Cấu hình Tài khoản Ngân Hàng (VietQR):</label>
             <select id="bankNameSelect">
                 <option value="ICB">VietinBank</option>
                 <option value="VCB">Vietcombank</option>
@@ -117,8 +131,7 @@
             </select>
             <input type="text" id="bankAccInput" placeholder="Số tài khoản ngân hàng...">
             <input type="text" id="bankNameAccInput" placeholder="Tên chủ tài khoản (VIẾT HOA KHÔNG DẤU)...">
-            <button onclick="saveBankConfig()" style="background:#0288d1; color:white; border:none; padding:6px; width:100%; border-radius:4px; cursor:pointer; font-weight:bold;">Lưu Thông Tin Ngân Hàng</button>
-
+            <button onclick="saveBankConfig()" style="background:#0288d1; color:white; border:none; padding:6px; width:100%; border-radius:4px; cursor:pointer; font-weight:bold; margin-top:5px;">Lưu Thông Tin Ngân Hàng</button>
             <button onclick="document.getElementById('settingsModal').style.display='none'" style="background:#555; color:white; border:none; padding:8px; width:100%; border-radius:4px; cursor:pointer; margin-top:15px; font-weight:bold;">Đóng Cài Đặt</button>
         </div>
     </div>
@@ -209,7 +222,7 @@
         const tableParam = urlParams.get('table');
 
         if (tableParam) {
-            // GIAO DIỆN KHÁCH HÀNG QUÉT QR TRÊN ĐIỆN THOẠI
+            // GIAO DIỆN KHÁCH HÀNG QUÉT QR
             document.body.innerHTML = `
                 <div style="max-width:480px; margin:0 auto; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
                     <div style="text-align:center; color:#d32f2f; font-weight:bold; font-size:20px;">🔥 QUÁN NƯỚNG TUỔI TRẺ 🔥</div>
@@ -228,7 +241,7 @@
             `;
             initCustomerView(tableParam);
         } else {
-            // GIAO DIỆN QUẢN LÝ POS MÁY TÍNH
+            // GIAO DIỆN POS MÁY TÍNH
             const tableGrid = document.getElementById('tableGrid');
             for(let i=1; i<=16; i++) {
                 let tName = 'Bàn ' + (i < 10 ? '0' + i : i);
@@ -259,17 +272,13 @@
                 menuContainer.appendChild(grid);
             });
             loadTodayRevenue();
-
-            // Tự động quét kiểm tra đơn hàng mới mỗi 5 giây để phát âm thanh báo bàn
             setInterval(checkNewOrdersForAudio, 5000);
         }
 
-        // --- HỆ THÔNG BÁO ÂM THANH TIẾNG VIỆT ---
         function speakVoice(text) {
             if ('speechSynthesis' in window) {
                 let utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'vi-VN'; // Giọng đọc tiếng Việt
-                utterance.rate = 1.0; // Tốc độ đọc
+                utterance.lang = 'vi-VN';
                 window.speechSynthesis.speak(utterance);
             }
         }
@@ -280,20 +289,16 @@
                 const res = await fetch('/api/orders');
                 const data = await res.json();
                 if (data.length > lastCheckedCount && lastCheckedCount !== 0) {
-                    // Lấy bàn mới nhất vừa order
                     let latestOrder = data[0]; 
-                    let spokenText = `${latestOrder.tableName} gọi đồ`;
-                    speakVoice(spokenText);
+                    speakVoice(`${latestOrder.tableName} gọi đồ`);
                 }
                 lastCheckedCount = data.length;
             } catch(e) {}
         }
 
-        // --- CODE CHO PHÍA KHÁCH HÀNG QUÉT QR ---
         function initCustomerView(tNum) {
             let tName = 'Bàn ' + (tNum < 10 && !tNum.startsWith('0') ? '0' + tNum : tNum);
             let cusCart = [];
-
             let menuDiv = document.getElementById('customerMenu');
             menuData.forEach(cat => {
                 menuDiv.innerHTML += `<div style="font-size:12px; font-weight:bold; color:#ffa726; background:#37474f; padding:4px 8px; border-radius:4px; margin:8px 0 4px 0;">${cat.cat}</div>`;
@@ -336,7 +341,6 @@
             }
         }
 
-        // --- CODE CHO POS QUẢN LÝ ---
         function selectTable(tableName) {
             document.querySelectorAll('.table-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('tbtn-' + tableName).classList.add('active');
@@ -397,12 +401,48 @@
             alert(`🔔 ĐÃ BÁO BẾP THÀNH CÔNG CHO ${selectedTable} (LƯỢT ${activeRound.round})!`);
             tableStatus[selectedTable] = 'busy';
             updateTableUI(selectedTable, 'Có khách', 'table-busy');
-
-            // Phát âm thanh đọc tiếng Việt trực tiếp khi nhân viên bấm báo bếp
             speakVoice(`${selectedTable} gọi đồ`);
 
             rounds.push({ round: rounds.length + 1, items: [] });
             renderBill();
+        }
+
+        // --- TÍNH NĂNG ĐỔI BÀN ---
+        function openMoveTableModal() {
+            if(!selectedTable || !tableRounds[selectedTable]) { alert('Bàn hiện tại không có dữ liệu để đổi!'); return; }
+            document.getElementById('moveFromTable').innerText = selectedTable;
+            let select = document.getElementById('targetTableSelect');
+            select.innerHTML = '';
+            for(let i=1; i<=16; i++) {
+                let tName = 'Bàn ' + (i < 10 ? '0' + i : i);
+                if(tName !== selectedTable) {
+                    select.innerHTML += `<option value="${tName}">${tName}</option>`;
+                }
+            }
+            document.getElementById('moveTableModal').style.display = 'flex';
+        }
+
+        function confirmMoveTable() {
+            let targetTable = document.getElementById('targetTableSelect').value;
+            if(!targetTable) return;
+
+            // Chuyển dữ liệu sang bàn đích
+            tableRounds[targetTable] = tableRounds[selectedTable];
+            tableStatus[targetTable] = tableStatus[selectedTable];
+            
+            // Xóa dữ liệu bàn cũ
+            delete tableRounds[selectedTable];
+            tableStatus[selectedTable] = 'empty';
+            updateTableUI(selectedTable, 'Trống', 'table-empty');
+
+            // Cập nhật giao diện bàn mới
+            let newStatusText = tableStatus[targetTable] === 'busy' ? 'Có khách' : 'Đang order';
+            let newClassName = tableStatus[targetTable] === 'busy' ? 'table-busy' : 'table-ordering';
+            updateTableUI(targetTable, newStatusText, newClassName);
+
+            document.getElementById('moveTableModal').style.display = 'none';
+            alert(`✅ Đã chuyển thành công sang ${targetTable}!`);
+            selectTable(targetTable);
         }
 
         function openBankQRModal() {
