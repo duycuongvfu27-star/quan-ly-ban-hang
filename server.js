@@ -8,14 +8,12 @@ app.use(express.static(__dirname));
 
 const DATA_FILE = path.join(__dirname, 'data.json');
 
-// Khởi tạo 16 bàn mặc định
 const tablesCount = 16;
 let defaultTables = {};
 for (let i = 1; i <= tablesCount; i++) {
-    defaultTables[`Bàn ${i < 10 ? '0' + i : i}`] = { order: [], status: 'empty' }; // empty, pending, confirmed
+    defaultTables[`Bàn ${i < 10 ? '0' + i : i}`] = { order: [], status: 'empty' };
 }
 
-// Menu mặc định QUÁN NƯỚNG TUỔI TRẺ
 let defaultMenu = [
     { category: "CÁC COMBO NƯỚNG", items: [
         { name: "Combo 1 (Dành cho 2-3 người)", price: 319000 },
@@ -76,7 +74,6 @@ function loadDatabase() {
         try {
             const raw = fs.readFileSync(DATA_FILE, 'utf8');
             let data = JSON.parse(raw);
-            // Tự động chuyển đổi dữ liệu cũ sang chuẩn cấu trúc mới có trạng thái status
             if (data.tablesData) {
                 Object.keys(data.tablesData).forEach(k => {
                     if (Array.isArray(data.tablesData[k])) {
@@ -122,9 +119,10 @@ app.post('/api/update-order', (req, res) => {
 });
 
 app.post('/api/confirm-table', (req, res) => {
-    const { tableName } = req.body;
+    const { tableName, order } = req.body;
     if (db.tablesData[tableName]) {
         db.tablesData[tableName].status = 'confirmed';
+        if (order) db.tablesData[tableName].order = order;
         saveDatabase(db);
     }
     res.json({ success: true, tablesData: db.tablesData });

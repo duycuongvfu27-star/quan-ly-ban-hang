@@ -91,7 +91,9 @@
         .modal-table-btn { padding: 10px 5px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; }
         .modal-table-btn.occupied { background: #e74c3c; }
 
-        .badge-locked { display: inline-block; background: #7f8c8d; color: white; font-size: 9px; padding: 2px 4px; border-radius: 3px; font-weight: normal; margin-left: 3px; }
+        /* MÓN MỚI GỌI Ở LƯỢT TIẾP THEO */
+        .badge-new-turn { display: inline-block; background: #d35400; color: white; font-size: 10px; padding: 2px 5px; border-radius: 4px; font-weight: bold; margin-left: 3px; }
+        .badge-old-turn { display: inline-block; background: #7f8c8d; color: white; font-size: 10px; padding: 2px 5px; border-radius: 4px; font-weight: normal; margin-left: 3px; }
 
         #printArea { display: none; }
         @media print {
@@ -113,21 +115,21 @@
     </div>
 </div>
 
-<!-- KHU VỰC CÀI ĐẶT CÓ THÊM CẤU HÌNH WI-FI QUÁN -->
 <div class="settings-panel" id="settingsPanel">
-    <h3 style="margin-top:0; color:#856404; font-size:15px;">⚙️ Cấu Hình Hệ Thống & Máy In</h3>
+    <h3 style="margin-top:0; color:#856404; font-size:15px;">⚙️ Cấu Hình Định Vị GPS & Máy In</h3>
     
-    <!-- CẤU HÌNH MẠNG WI-FI BẮT BUỘC KHI GỌI MÓN -->
+    <!-- CÀI ĐẶT ĐỊNH VỊ GPS QUÁN NƯỚNG TUỔI TRẺ -->
     <div class="setting-row">
-        <b style="font-size:13px; color:#2c3e50;">📶 Cài Đặt Tên Mạng Wi-Fi Quán (Yêu cầu khách bắt Wi-Fi mới cho đặt):</b>
+        <b style="font-size:13px; color:#2c3e50;">📍 Cài Đặt Tọa Độ GPS Quán Nướng (Chặn đặt ngoài bán kính 50m):</b>
         <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
-            <input type="text" id="wifiNameInput" placeholder="Tên Wi-Fi quán (VD: QUAN NUONG TUOI TRE)" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:2; min-width:150px;">
-            <button class="btn-sm-save" style="padding:6px 12px;" onclick="saveWifiConfig()">Lưu Wi-Fi</button>
+            <input type="text" id="gpsLatInput" placeholder="Vĩ độ (VD: 20.4358)" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:1;">
+            <input type="text" id="gpsLngInput" placeholder="Kinh độ (VD: 106.1783)" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px; flex:1;">
+            <button class="btn-sm-save" style="padding:6px 10px;" onclick="getCurrentGPS()">📍 Lấy GPS Hiện Tại</button>
+            <button class="btn-sm-save" style="padding:6px 10px; background:#e67e22;" onclick="saveGPSConfig()">Lưu GPS</button>
         </div>
-        <small style="font-size:11px; color:#666; margin-top:4px; display:block;">Mẹo: Bỏ trống nếu không muốn bắt buộc kết nối Wi-Fi.</small>
+        <small style="font-size:11px; color:#666; margin-top:4px; display:block;">Mẹo: Bấm nút 'Lấy GPS Hiện Tại' khi bạn đang đứng ở quán để lưu vị trí chính xác nhất.</small>
     </div>
 
-    <!-- CẤU HÌNH KHỔ GIẤY -->
     <div class="setting-row">
         <b style="font-size:13px; color:#2c3e50;">🖨️ Chọn Khổ Giấy Máy In Hóa Đơn:</b>
         <div style="margin-top:6px; display:flex; gap:12px; align-items:center;">
@@ -247,7 +249,7 @@
         </div>
 
         <div class="btn-group" id="adminBtnGroup">
-            <button class="btn-confirm-order" id="btnConfirmOrder" onclick="adminConfirmOrder()">🔔 XÁC NHẬN BÀN (CHUYỂN SANG MÀU ĐỎ)</button>
+            <button class="btn-confirm-order" id="btnConfirmOrder" onclick="adminConfirmOrder()">🔔 XÁC NHẬN MÓN MỚI (CHUYỂN SANG ĐÃ XÁC NHẬN)</button>
             <button class="btn-transfer" onclick="openTransferModal()">🔄 Đổi Bàn / Chuyển Bàn</button>
             <button class="btn-print" id="btnPrintLabel" onclick="printReceipt()">🖨️ In Hóa Đơn (Khổ 58mm)</button>
             <button class="btn-checkout" onclick="checkout()">✅ Thanh Toán & Trả Bàn</button>
@@ -276,7 +278,8 @@
     let revenueHistory = [];
     let selectedTable = null;
     let currentPaperSize = localStorage.getItem('paperSize') || '58mm';
-    let requiredWifiName = localStorage.getItem('requiredWifiName') || '';
+    let targetLat = parseFloat(localStorage.getItem('gpsLat')) || 0;
+    let targetLng = parseFloat(localStorage.getItem('gpsLng')) || 0;
     let isCustomerMode = false;
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -289,17 +292,44 @@
     }
 
     document.getElementById('paperSizeSelect').value = currentPaperSize;
-    document.getElementById('wifiNameInput').value = requiredWifiName;
+    if (targetLat) document.getElementById('gpsLatInput').value = targetLat;
+    if (targetLng) document.getElementById('gpsLngInput').value = targetLng;
     updatePrintBtnLabel();
 
-    function saveWifiConfig() {
-        requiredWifiName = document.getElementById('wifiNameInput').value.trim();
-        localStorage.setItem('requiredWifiName', requiredWifiName);
-        if (requiredWifiName) {
-            alert(`Đã lưu Wi-Fi bắt buộc: "${requiredWifiName}". Khách quét QR ở xa không kết nối Wi-Fi này sẽ không gửi đơn được!`);
-        } else {
-            alert('Đã tắt yêu cầu Wi-Fi!');
-        }
+    function getCurrentGPS() {
+        if (!navigator.geolocation) return alert('Trình duyệt không hỗ trợ GPS!');
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                document.getElementById('gpsLatInput').value = pos.coords.latitude;
+                document.getElementById('gpsLngInput').value = pos.coords.longitude;
+                alert('Đã lấy tọa độ GPS thành công! Bấm "Lưu GPS" để hoàn tất.');
+            },
+            (err) => alert('Vui lòng bật Định vị GPS trên điện thoại!'),
+            { enableHighAccuracy: true }
+        );
+    }
+
+    function saveGPSConfig() {
+        targetLat = parseFloat(document.getElementById('gpsLatInput').value);
+        targetLng = parseFloat(document.getElementById('gpsLngInput').value);
+        localStorage.setItem('gpsLat', targetLat);
+        localStorage.setItem('gpsLng', targetLng);
+        alert(`Đã lưu tọa độ quán! Hệ thống sẽ chặn người ở cách xa hơn 50 mét.`);
+    }
+
+    // TÍNH KHOẢNG CÁCH GPS NỘI BỘ HÀM
+    function getDistanceInMeters(lat1, lon1, lat2, lon2) {
+        const R = 6371e3;
+        const φ1 = lat1 * Math.PI/180;
+        const φ2 = lat2 * Math.PI/180;
+        const Δφ = (lat2-lat1) * Math.PI/180;
+        const Δλ = (lon2-lon1) * Math.PI/180;
+
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                  Math.cos(φ1) * Math.cos(φ2) *
+                  Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
     }
 
     function setupViewMode() {
@@ -481,7 +511,7 @@
 
             if (status === 'pending') {
                 statusClass = 'table-pending';
-                statusText = '🔥 Đơn mới';
+                statusText = '🔥 Món Mới';
             } else if (status === 'confirmed') {
                 statusClass = 'table-confirmed';
                 statusText = 'Có khách';
@@ -509,16 +539,21 @@
     async function adminConfirmOrder() {
         if (!selectedTable || !tablesData[selectedTable]) return;
         
+        const currentTableObj = tablesData[selectedTable];
+        currentTableObj.order.forEach(item => {
+            item.turnStatus = 'confirmed'; // Đánh dấu đã xác nhận lượt này
+        });
+
         await fetch('/api/confirm-table', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tableName: selectedTable })
+            body: JSON.stringify({ tableName: selectedTable, order: currentTableObj.order })
         });
 
         tablesData[selectedTable].status = 'confirmed';
         renderTables();
         renderOrder();
-        alert(`Đã xác nhận đơn của ${selectedTable}! Sơ đồ đã chuyển sang MÀU ĐỎ.`);
+        alert(`Đã xác nhận lượt món mới cho ${selectedTable}!`);
     }
 
     function openTransferModal() {
@@ -650,11 +685,17 @@
         const currentTableObj = tablesData[selectedTable];
         if (!currentTableObj.order) currentTableObj.order = [];
 
-        const existing = currentTableObj.order.find(i => i.name === name);
+        const existing = currentTableObj.order.find(i => i.name === name && i.turnStatus === 'new');
         if (existing) {
             existing.qty += 1;
         } else {
-            currentTableObj.order.push({ name, price, qty: 1, locked: false });
+            currentTableObj.order.push({ 
+                name, 
+                price, 
+                qty: 1, 
+                locked: false,
+                turnStatus: 'new' // Đánh dấu món mới gọi ở lượt này
+            });
         }
         
         let targetStatus = isCustomerMode ? 'pending' : (currentTableObj.status === 'pending' ? 'pending' : 'confirmed');
@@ -669,7 +710,7 @@
         const currentOrder = currentTableObj.order;
 
         if (isCustomerMode && currentOrder[index].locked && amount < 0) {
-            return alert('Món này đã được gửi bếp chế biến, không thể bớt hoặc xóa! Vui lòng báo nhân viên nếu cần hủy món.');
+            return alert('Món này đã gửi bếp, không thể giảm! Vui lòng báo nhân viên.');
         }
 
         currentOrder[index].qty += amount;
@@ -683,25 +724,42 @@
         renderOrder();
     }
 
+    // GỬI ĐƠN CÓ ĐỊNH VỊ GPS VÀ LỌC LƯỢT ĐẶT
     async function customerSendOrder() {
-        // KIỂM TRA MẠNG WI-FI BẮT BUỘC KHI KHÁCH ĐẶT MÓN
-        if (requiredWifiName && !navigator.onLine) {
-            return alert(`⚠️ BẠN CHƯA BẮT WI-FI CỦA QUÁN!\n\nVui lòng kết nối vào Wi-Fi "${requiredWifiName}" tại Quán Nướng Tuổi Trẻ để bấm gửi đơn gọi món.`);
-        }
-
         const currentTableObj = tablesData[selectedTable];
         if (!currentTableObj || !currentTableObj.order || currentTableObj.order.length === 0) {
             return alert('Bạn chưa chọn món nào!');
         }
 
+        // KIỂM TRA ĐỊNH VỊ GPS ĐẢM BẢO KHÁCH ĐANG Ở QUÁN
+        if (targetLat && targetLng && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    const distance = getDistanceInMeters(pos.coords.latitude, pos.coords.longitude, targetLat, targetLng);
+                    if (distance > 50) {
+                        return alert(`⚠️ BẠN ĐANG Ở QUÁ XA QUÁN (${Math.round(distance)}m)!\n\nVui lòng đến Quán Nướng Tuổi Trẻ để bấm gọi món.`);
+                    }
+                    await processSendOrder();
+                },
+                (err) => {
+                    alert('⚠️ Vui lòng Bật Định Vị GPS trên điện thoại để xác nhận bạn đang ở quán!');
+                },
+                { enableHighAccuracy: true }
+            );
+        } else {
+            await processSendOrder();
+        }
+    }
+
+    async function processSendOrder() {
+        const currentTableObj = tablesData[selectedTable];
         currentTableObj.order.forEach(item => {
             item.locked = true;
         });
 
         await saveOrder(selectedTable, 'pending');
         renderOrder();
-
-        alert(`✅ ĐÃ GỬI YÊU CẦU THÀNH CÔNG!\n\nNhân viên Quán Nướng Tuổi Trẻ sẽ mang món lên ngay cho ${selectedTable}. Chúc bạn ngon miệng!`);
+        alert(`✅ ĐÃ GỬI YÊU CẦU THÀNH CÔNG!\n\nNhân viên sẽ mang món lên ngay cho ${selectedTable}. Chúc bạn ngon miệng!`);
     }
 
     function renderOrder() {
@@ -736,16 +794,25 @@
         currentOrder.forEach((item, index) => {
             const itemTotal = item.price * item.qty;
             total += itemTotal;
-            const isLocked = isCustomerMode && item.locked;
+            
+            // PHÂN BIỆT MÓN MỚI GỌI Ở LƯỢT TIẾP THEO
+            let turnBadge = '';
+            if (!isCustomerMode) {
+                if (item.turnStatus === 'new' && currentTableObj.status === 'pending') {
+                    turnBadge = '<span class="badge-new-turn">🔥 MÓN MỚI (LƯỢT NÀY)</span>';
+                } else {
+                    turnBadge = '<span class="badge-old-turn">Đã phục vụ</span>';
+                }
+            }
 
             tbody.innerHTML += `
                 <tr>
                     <td>
-                        <b>${item.name}</b> ${isLocked ? '<span class="badge-locked">Đã gửi</span>' : ''}<br>
+                        <b>${item.name}</b> ${turnBadge}<br>
                         <small>${item.price.toLocaleString()}đ</small>
                     </td>
                     <td>
-                        <button class="qty-btn" ${isLocked ? 'disabled' : ''} onclick="changeQty(${index}, -1)">-</button>
+                        <button class="qty-btn" ${isCustomerMode && item.locked ? 'disabled' : ''} onclick="changeQty(${index}, -1)">-</button>
                         <span style="margin:0 2px;"><b>${item.qty}</b></span>
                         <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
                     </td>
