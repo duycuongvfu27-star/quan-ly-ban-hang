@@ -1,201 +1,220 @@
 const express = require('express');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(__dirname)); // Phục vụ file tĩnh ngay từ thư mục gốc
 
 const DATA_FILE = path.join(__dirname, 'data.json');
 
-const tablesCount = 16;
-let defaultTables = {};
-for (let i = 1; i <= tablesCount; i++) {
-    defaultTables[`Bàn ${i < 10 ? '0' + i : i}`] = { order: [], status: 'empty', lastBill: null };
-}
+// Khởi tạo dữ liệu mặc định
+let defaultData = {
+    usersPin: [
+        { name: "Admin (Máy chủ)", pin: "1234", role: "admin" },
+        { name: "Nhân viên 01", pin: "5555", role: "staff" }
+    ],
+    tablesData: {
+        "Bàn 01": { order: [], status: "empty" },
+        "Bàn 02": { order: [], status: "empty" },
+        "Bàn 03": { order: [], status: "empty" },
+        "Bàn 04": { order: [], status: "empty" },
+        "Bàn 05": { order: [], status: "empty" },
+        "Bàn 06": { order: [], status: "empty" },
+        "Bàn 07": { order: [], status: "empty" },
+        "Bàn 08": { order: [], status: "empty" },
+        "Bàn 09": { order: [], status: "empty" },
+        "Bàn 10": { order: [], status: "empty" }
+    },
+    menuData: [
+        {
+            category: "CÁC COMBO NƯỚNG",
+            items: [
+                { name: "Combo Nướng Tuổi Trẻ", price: 299000 },
+                { name: "Combo Bò Hàu Phô Mai", price: 259000 }
+            ]
+        },
+        {
+            category: "ĐỒ ĂN NHẸ",
+            items: [
+                { name: "Khoai Tây Chiên", price: 35000 },
+                { name: "Chân Gà Sốt Thái", price: 65000 }
+            ]
+        },
+        {
+            category: "ĐỒ UỐNG",
+            items: [
+                { name: "Nước Lọc", price: 10000 },
+                { name: "Coca Cola", price: 15000 },
+                { name: "Bia Hà Nội", price: 18000 }
+            ]
+        }
+    ],
+    revenueHistory: []
+};
 
-let defaultMenu = [
-    { category: "CÁC COMBO NƯỚNG", items: [
-        { name: "Combo 1 (Dành cho 2-3 người)", price: 319000 },
-        { name: "Combo 2 (Dành cho 3-4 người)", price: 459000 },
-        { name: "Combo 3 (Dành cho 4-6 người)", price: 619000 },
-        { name: "Combo 4 (Dành cho nhiều người)", price: 1199000 }
-    ]},
-    { category: "ĐỒ ĂN NHẸ", items: [
-        { name: "Hoa quả thập cẩm", price: 29000 },
-        { name: "Ngô chiên", price: 35000 },
-        { name: "Bánh mỳ nướng bơ", price: 19000 },
-        { name: "Khoai tây chiên", price: 35000 },
-        { name: "Salad rau tổng hợp", price: 29000 },
-        { name: "Salad hoa quả", price: 39000 },
-        { name: "Kim chi Hàn Quốc", price: 29000 }
-    ]},
-    { category: "CÁC MÓN NƯỚNG", items: [
-        { name: "Ba chỉ", price: 65000 },
-        { name: "Sụn non ướp ngũ vị", price: 69000 },
-        { name: "Nầm tươi ứa sữa", price: 75000 },
-        { name: "Bò cuộn nấm kim", price: 59000 },
-        { name: "Thịt dải heo", price: 69000 },
-        { name: "Má đào heo", price: 79000 },
-        { name: "Nọng má tươi", price: 79000 },
-        { name: "Chân gà rút xương (Lớn)", price: 99000 },
-        { name: "Chân gà rút xương (Đĩa nhỏ)", price: 59000 },
-        { name: "Lòng non", price: 59000 },
-        { name: "Khấu đuôi giòn sần sật", price: 69000 },
-        { name: "Lòng già mềm mềm", price: 59000 },
-        { name: "Dạ dày nướng xa tế", price: 69000 },
-        { name: "Tôm tươi", price: 89000 },
-        { name: "Mực rụng trứng", price: 89000 },
-        { name: "Bạch tuộc nướng xa tế", price: 79000 },
-        { name: "Xúc xích ướp ngũ vị", price: 59000 },
-        { name: "Dồi sụn ướp ngũ vị", price: 59000 },
-        { name: "Lạp xưởng nướng thượng hạng", price: 59000 },
-        { name: "Dải thăn bò nướng tảng", price: 79000 },
-        { name: "Nạc vai nướng tảng", price: 69000 },
-        { name: "Bò ăn dồi lăn", price: 79000 },
-        { name: "U bò nướng", price: 89000 },
-        { name: "Dẻ sườn nướng xa tế", price: 69000 },
-        { name: "Bắp bò ướp ngũ vị", price: 79000 }
-    ]},
-    { category: "ĐỒ UỐNG", items: [
-        { name: "Rượu ngô, táo mèo, mơ, men lá", price: 40000 },
-        { name: "Bia Sài Gòn / Bia 333", price: 15000 },
-        { name: "Bia Tiger", price: 22000 },
-        { name: "Bò húc", price: 17000 },
-        { name: "Nước lọc", price: 7000 },
-        { name: "Trà đá (ca) / Thuốc lá", price: 20000 },
-        { name: "Rượu dừa", price: 65000 },
-        { name: "Nước ngọt các loại", price: 13000 }
-    ]}
-];
-
-function loadDatabase() {
+// Đọc dữ liệu từ file data.json
+function loadData() {
     if (fs.existsSync(DATA_FILE)) {
         try {
             const raw = fs.readFileSync(DATA_FILE, 'utf8');
-            let data = JSON.parse(raw);
-            if (data.tablesData) {
-                Object.keys(data.tablesData).forEach(k => {
-                    if (Array.isArray(data.tablesData[k])) {
-                        let oldOrder = data.tablesData[k];
-                        data.tablesData[k] = {
-                            order: oldOrder,
-                            status: oldOrder.length > 0 ? 'confirmed' : 'empty',
-                            lastBill: null
-                        };
-                    }
-                });
-            }
-            return data;
+            const parsed = JSON.parse(raw);
+            if (!parsed.usersPin) parsed.usersPin = defaultData.usersPin;
+            if (!parsed.tablesData) parsed.tablesData = defaultData.tablesData;
+            if (!parsed.menuData) parsed.menuData = defaultData.menuData;
+            return parsed;
         } catch (e) {
-            console.error("Lỗi đọc file data.json");
+            return defaultData;
         }
+    } else {
+        try {
+            fs.writeFileSync(DATA_FILE, JSON.stringify(defaultData, null, 2));
+        } catch(err) {}
+        return defaultData;
     }
-    return { tablesData: defaultTables, menuData: defaultMenu, revenueHistory: [] };
 }
 
-function saveDatabase(db) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2), 'utf8');
+function saveData(data) {
+    try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    } catch(err) {
+        console.error("Lỗi ghi file:", err);
+    }
 }
 
-let db = loadDatabase();
+let db = loadData();
 
+// Trả về trang chủ index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// API Lấy dữ liệu
 app.get('/api/data', (req, res) => {
-    res.json({ tablesData: db.tablesData, menuData: db.menuData });
+    db = loadData();
+    res.json({
+        tablesData: db.tablesData || defaultData.tablesData,
+        menuData: db.menuData || defaultData.menuData,
+        usersPin: db.usersPin || defaultData.usersPin
+    });
 });
 
+// API Đăng nhập PIN
+app.post('/api/login-pin', (req, res) => {
+    const { pin } = req.body;
+    db = loadData();
+    const userList = db.usersPin || defaultData.usersPin;
+    const foundUser = userList.find(u => u.pin === pin);
+    if (foundUser) {
+        res.json({ success: true, user: foundUser });
+    } else {
+        res.json({ success: false, message: "Mã PIN không chính xác!" });
+    }
+});
+
+// API Cập nhật danh sách Nhân viên & PIN
+app.post('/api/update-users', (req, res) => {
+    const { usersPin } = req.body;
+    db.usersPin = usersPin;
+    saveData(db);
+    res.json({ success: true, message: "Đã cập nhật danh sách thành công!" });
+});
+
+// API Cập nhật Order Bàn
 app.post('/api/update-order', (req, res) => {
     const { tableName, order, status } = req.body;
+    if (!db.tablesData) db.tablesData = defaultData.tablesData;
     if (db.tablesData[tableName]) {
         db.tablesData[tableName].order = order;
-        db.tablesData[tableName].lastBill = null; // Xóa màn hình bill cũ khi khách gọi đồ mới
-        if (status) db.tablesData[tableName].status = status;
-        else if (order.length === 0) db.tablesData[tableName].status = 'empty';
-        saveDatabase(db);
+        db.tablesData[tableName].status = status;
+        saveData(db);
     }
     res.json({ success: true });
 });
 
+// API Xác nhận món từ bếp
 app.post('/api/confirm-table', (req, res) => {
     const { tableName, order } = req.body;
+    if (!db.tablesData) db.tablesData = defaultData.tablesData;
     if (db.tablesData[tableName]) {
+        db.tablesData[tableName].order = order;
         db.tablesData[tableName].status = 'confirmed';
-        if (order) db.tablesData[tableName].order = order;
-        saveDatabase(db);
-    }
-    res.json({ success: true, tablesData: db.tablesData });
-});
-
-app.post('/api/update-menu', (req, res) => {
-    if (req.body.menuData && req.body.menuData.length > 0) {
-        db.menuData = req.body.menuData;
-        saveDatabase(db);
+        saveData(db);
     }
     res.json({ success: true });
 });
 
+// API Chuyển Bàn
 app.post('/api/transfer-table', (req, res) => {
     const { fromTable, toTable } = req.body;
+    if (!db.tablesData) db.tablesData = defaultData.tablesData;
     if (db.tablesData[fromTable] && db.tablesData[toTable]) {
         db.tablesData[toTable].order = db.tablesData[toTable].order.concat(db.tablesData[fromTable].order);
         db.tablesData[toTable].status = 'confirmed';
-        
         db.tablesData[fromTable].order = [];
         db.tablesData[fromTable].status = 'empty';
-        saveDatabase(db);
+        saveData(db);
     }
     res.json({ success: true, tablesData: db.tablesData });
 });
 
+// API Cập nhật Menu
+app.post('/api/update-menu', (req, res) => {
+    const { menuData } = req.body;
+    db.menuData = menuData;
+    saveData(db);
+    res.json({ success: true });
+});
+
+// API Thanh Toán Hóa Đơn
 app.post('/api/checkout', (req, res) => {
-    const { tableName, items, total, payType } = req.body;
-    const now = new Date();
-    const vnDate = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-    const dateStr = vnDate.toISOString().split('T')[0];
-    const timeStr = vnDate.toISOString().split('T')[1].substring(0, 5);
+    const { tableName, items, total, payType, staffName } = req.body;
+    
+    const now = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].substring(0, 5);
 
     const newRecord = {
         id: Date.now(),
+        dateStr,
+        timeStr,
         tableName,
         items,
-        total: Number(total),
-        payType: payType || 'TIỀN MẶT',
-        dateStr,
-        timeStr
+        total,
+        payType,
+        staffName: staffName || "Khách/Thu ngân"
     };
 
     if (!db.revenueHistory) db.revenueHistory = [];
-    db.revenueHistory.push(newRecord);
-    
-    // TRẢ BÀN VÀ LƯU BILL CUỐI CHO ĐIỆN THOẠI KHÁCH XEM CẢM ƠN
-    db.tablesData[tableName] = { 
-        order: [], 
-        status: 'empty',
-        lastBill: newRecord 
-    };
+    db.revenueHistory.unshift(newRecord);
 
-    saveDatabase(db);
-    res.json({ success: true, record: newRecord });
+    if (db.tablesData && db.tablesData[tableName]) {
+        db.tablesData[tableName].order = [];
+        db.tablesData[tableName].status = 'empty';
+        db.tablesData[tableName].lastBill = newRecord;
+    }
+
+    saveData(db);
+    res.json({ success: true });
 });
 
+// API Lấy Lịch sử Doanh thu
+app.get('/api/revenue', (req, res) => {
+    db = loadData();
+    res.json({ revenueHistory: db.revenueHistory || [] });
+});
+
+// API Xóa Doanh thu
 app.post('/api/delete-revenue', (req, res) => {
     const { id } = req.body;
     if (db.revenueHistory) {
         db.revenueHistory = db.revenueHistory.filter(item => item.id !== id);
-        saveDatabase(db);
+        saveData(db);
     }
     res.json({ success: true });
 });
 
-app.get('/api/revenue', (req, res) => {
-    res.json({ revenueHistory: db.revenueHistory || [] });
-});
-
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server Quan Nuong Tuoi Tre running on port ${PORT}`);
+    console.log(`Server Quán Nướng Tuổi Trẻ running on port ${PORT}`);
 });
