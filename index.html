@@ -15,8 +15,8 @@
         .table-grid-section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .table-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; margin-top: 10px; }
         .table-card { padding: 10px 5px; text-align: center; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; border: 2px solid transparent; transition: 0.2s; }
-        .table-empty { background-color: #2ecc71; color: white; } /* Bàn trống màu xanh */
-        .table-occupied { background-color: #e74c3c; color: white; } /* Bàn có khách màu đỏ */
+        .table-empty { background-color: #2ecc71; color: white; }
+        .table-occupied { background-color: #e74c3c; color: white; }
         .table-card.active { border-color: #2c3e50; transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
 
         .layout { display: flex; gap: 15px; flex-wrap: wrap; }
@@ -35,8 +35,24 @@
         .qty-btn { width: 22px; height: 22px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-weight: bold; border-radius: 3px; }
         
         .total-box { font-size: 18px; font-weight: bold; text-align: right; color: #c0392b; margin: 15px 0; padding-top: 10px; border-top: 2px dashed #ccc; }
-        .btn-checkout { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        
+        .btn-group { display: flex; gap: 10px; flex-direction: column; }
+        .btn-print { padding: 12px; background: #2980b9; color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; }
+        .btn-print:hover { background: #1c5980; }
+        .btn-checkout { padding: 12px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; }
         .btn-checkout:hover { background: #219150; }
+
+        /* KHU VỰC IN HÓA ĐƠN (ẨN KHI XEM WEB, CHỈ HIỆN KHI IN) */
+        #receiptPrint { display: none; }
+        @media print {
+            body * { visibility: hidden; }
+            #receiptPrint, #receiptPrint * { visibility: visible; }
+            #receiptPrint { display: block !important; position: absolute; left: 0; top: 0; width: 80mm; font-family: monospace; font-size: 12px; color: black; }
+            .receipt-header { text-align: center; }
+            .receipt-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            .receipt-table th, .receipt-table td { font-size: 11px; text-align: left; padding: 3px 0; }
+            .receipt-divider { border-top: 1px dashed black; margin: 8px 0; }
+        }
     </style>
 </head>
 <body>
@@ -80,12 +96,40 @@
             Tổng cộng: <span id="totalAmount">0</span> VNĐ
         </div>
 
-        <button class="btn-checkout" onclick="checkout()">Thanh Toán & Trả Bàn</button>
+        <div class="btn-group">
+            <button class="btn-print" onclick="printReceipt()">🖨️ In Hóa Đơn Tạm Tính</button>
+            <button class="btn-checkout" onclick="checkout()">✅ Thanh Toán & Trả Bàn</button>
+        </div>
     </div>
 </div>
 
+<!-- FORM MẪU IN HÓA ĐƠN -->
+<div id="receiptPrint">
+    <div class="receipt-header">
+        <h2 style="margin:0;">QUÁN NƯỚNG TUỔI TRẺ</h2>
+        <p style="margin:2px 0;">Hotline: 0842.163.333</p>
+        <div class="receipt-divider"></div>
+        <h3 style="margin:5px 0;">HÓA ĐƠN THANH TOÁN</h3>
+        <p style="margin:2px 0;"><span id="pTable">Bàn: --</span> | <span id="pDate">--</span></p>
+    </div>
+    <div class="receipt-divider"></div>
+    <table class="receipt-table">
+        <thead>
+            <tr>
+                <th>Tên món</th>
+                <th style="text-align:center;">SL</th>
+                <th style="text-align:right;">T.Tiền</th>
+            </tr>
+        </thead>
+        <tbody id="pList"></tbody>
+    </table>
+    <div class="receipt-divider"></div>
+    <h3 style="text-align:right; margin:5px 0;">TỔNG CỘNG: <span id="pTotal">0</span> VNĐ</h3>
+    <div class="receipt-divider"></div>
+    <p style="text-align:center; margin-top:10px;">Cảm ơn quý khách & Hẹn gặp lại!</p>
+</div>
+
 <script>
-    // Khởi tạo dữ liệu 16 bàn
     const tablesCount = 16;
     let tablesData = {};
     for (let i = 1; i <= tablesCount; i++) {
@@ -94,7 +138,6 @@
 
     let selectedTable = null;
 
-    // Menu quán
     const menuData = [
         { category: "ĐỒ ĂN NHẸ", items: [
             { name: "Hoa quả thập cẩm", price: 29000 },
@@ -144,7 +187,6 @@
         ]}
     ];
 
-    // Vẽ danh sách 16 Bàn
     function renderTables() {
         const grid = document.getElementById('tableGrid');
         grid.innerHTML = '';
@@ -163,7 +205,6 @@
         });
     }
 
-    // Chọn Bàn
     function selectTable(tableName) {
         selectedTable = tableName;
         document.getElementById('selectedTableTitle').innerText = selectedTable;
@@ -171,7 +212,6 @@
         renderOrder();
     }
 
-    // Vẽ Menu
     function renderMenu() {
         const container = document.getElementById('menuContainer');
         container.innerHTML = '';
@@ -191,10 +231,9 @@
         });
     }
 
-    // Thêm món vào bàn đang chọn
     function addToOrder(name, price) {
         if (!selectedTable) {
-            alert('Vui lòng click chọn 1 Bàn ở sơ đồ phía trên trước!');
+            alert('Vui lòng chọn 1 Bàn ở sơ đồ phía trên trước!');
             return;
         }
 
@@ -209,7 +248,6 @@
         renderOrder();
     }
 
-    // Tăng/giảm số lượng món
     function changeQty(index, amount) {
         if (!selectedTable) return;
         const currentOrder = tablesData[selectedTable];
@@ -221,7 +259,6 @@
         renderOrder();
     }
 
-    // Hiển thị phiếu order của bàn đang chọn
     function renderOrder() {
         const tbody = document.getElementById('orderList');
         tbody.innerHTML = '';
@@ -260,7 +297,39 @@
         document.getElementById('totalAmount').innerText = total.toLocaleString();
     }
 
-    // Thanh toán giải phóng bàn
+    // HÀM IN HÓA ĐƠN
+    function printReceipt() {
+        if (!selectedTable || tablesData[selectedTable].length === 0) {
+            alert('Bàn này chưa có món nào để in hóa đơn!');
+            return;
+        }
+
+        const currentOrder = tablesData[selectedTable];
+        document.getElementById('pTable').innerText = selectedTable;
+        document.getElementById('pDate').innerText = new Date().toLocaleString('vi-VN');
+
+        const pList = document.getElementById('pList');
+        pList.innerHTML = '';
+        let total = 0;
+
+        currentOrder.forEach(item => {
+            const itemTotal = item.price * item.qty;
+            total += itemTotal;
+            pList.innerHTML += `
+                <tr>
+                    <td>${item.name}</td>
+                    <td style="text-align:center;">${item.qty}</td>
+                    <td style="text-align:right;">${itemTotal.toLocaleString()}</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('pTotal').innerText = total.toLocaleString();
+        
+        // Gọi lệnh in của trình duyệt/máy in
+        window.print();
+    }
+
     function checkout() {
         if (!selectedTable) {
             alert('Vui lòng chọn bàn!');
@@ -274,6 +343,7 @@
 
         const total = document.getElementById('totalAmount').innerText;
         if (confirm(`XÁC NHẬN THANH TOÁN:\n\n- ${selectedTable}\n- Tổng tiền: ${total} VNĐ\n\nBấm OK để hoàn tất và trả lại bàn trống.`)) {
+            printReceipt(); // Tự động in hóa đơn khi bấm thanh toán
             tablesData[selectedTable] = [];
             renderTables();
             renderOrder();
