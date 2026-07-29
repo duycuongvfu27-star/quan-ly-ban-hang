@@ -77,23 +77,32 @@ const fullMenuData = [
     }
 ];
 
+// KHỞI TẠO ĐỦ 16 BÀN
+const full16Tables = {
+    "Bàn 01": { order: [], status: "empty" },
+    "Bàn 02": { order: [], status: "empty" },
+    "Bàn 03": { order: [], status: "empty" },
+    "Bàn 04": { order: [], status: "empty" },
+    "Bàn 05": { order: [], status: "empty" },
+    "Bàn 06": { order: [], status: "empty" },
+    "Bàn 07": { order: [], status: "empty" },
+    "Bàn 08": { order: [], status: "empty" },
+    "Bàn 09": { order: [], status: "empty" },
+    "Bàn 10": { order: [], status: "empty" },
+    "Bàn 11": { order: [], status: "empty" },
+    "Bàn 12": { order: [], status: "empty" },
+    "Bàn 13": { order: [], status: "empty" },
+    "Bàn 14": { order: [], status: "empty" },
+    "Bàn 15": { order: [], status: "empty" },
+    "Bàn 16": { order: [], status: "empty" }
+};
+
 let defaultData = {
     usersPin: [
         { name: "Admin (Máy chủ)", pin: "1234", role: "admin" },
         { name: "Nhân viên 01", pin: "5555", role: "staff" }
     ],
-    tablesData: {
-        "Bàn 01": { order: [], status: "empty" },
-        "Bàn 02": { order: [], status: "empty" },
-        "Bàn 03": { order: [], status: "empty" },
-        "Bàn 04": { order: [], status: "empty" },
-        "Bàn 05": { order: [], status: "empty" },
-        "Bàn 06": { order: [], status: "empty" },
-        "Bàn 07": { order: [], status: "empty" },
-        "Bàn 08": { order: [], status: "empty" },
-        "Bàn 09": { order: [], status: "empty" },
-        "Bàn 10": { order: [], status: "empty" }
-    },
+    tablesData: full16Tables,
     menuData: fullMenuData,
     revenueHistory: []
 };
@@ -103,9 +112,20 @@ function loadData() {
         try {
             const raw = fs.readFileSync(DATA_FILE, 'utf8');
             const parsed = JSON.parse(raw);
-            parsed.menuData = fullMenuData; // Luôn ưu tiên đồng bộ menu mới nhất từ hình ảnh
+            parsed.menuData = fullMenuData;
+            
+            // Tự động bổ sung đủ 16 bàn nếu file cũ bị thiếu
+            if (!parsed.tablesData) {
+                parsed.tablesData = full16Tables;
+            } else {
+                for (let i = 1; i <= 16; i++) {
+                    let tableName = `Bàn ${i < 10 ? '0' + i : i}`;
+                    if (!parsed.tablesData[tableName]) {
+                        parsed.tablesData[tableName] = { order: [], status: "empty" };
+                    }
+                }
+            }
             if (!parsed.usersPin) parsed.usersPin = defaultData.usersPin;
-            if (!parsed.tablesData) parsed.tablesData = defaultData.tablesData;
             return parsed;
         } catch (e) {
             return defaultData;
@@ -135,7 +155,7 @@ app.get('/', (req, res) => {
 app.get('/api/data', (req, res) => {
     db = loadData();
     res.json({
-        tablesData: db.tablesData || defaultData.tablesData,
+        tablesData: db.tablesData || full16Tables,
         menuData: fullMenuData,
         usersPin: db.usersPin || defaultData.usersPin
     });
@@ -155,7 +175,7 @@ app.post('/api/login-pin', (req, res) => {
 
 app.post('/api/update-order', (req, res) => {
     const { tableName, order, status } = req.body;
-    if (!db.tablesData) db.tablesData = defaultData.tablesData;
+    if (!db.tablesData) db.tablesData = full16Tables;
     if (db.tablesData[tableName]) {
         db.tablesData[tableName].order = order;
         db.tablesData[tableName].status = status;
@@ -166,7 +186,7 @@ app.post('/api/update-order', (req, res) => {
 
 app.post('/api/confirm-table', (req, res) => {
     const { tableName, order } = req.body;
-    if (!db.tablesData) db.tablesData = defaultData.tablesData;
+    if (!db.tablesData) db.tablesData = full16Tables;
     if (db.tablesData[tableName]) {
         db.tablesData[tableName].order = order;
         db.tablesData[tableName].status = 'confirmed';
@@ -177,7 +197,7 @@ app.post('/api/confirm-table', (req, res) => {
 
 app.post('/api/transfer-table', (req, res) => {
     const { fromTable, toTable } = req.body;
-    if (!db.tablesData) db.tablesData = defaultData.tablesData;
+    if (!db.tablesData) db.tablesData = full16Tables;
     if (db.tablesData[fromTable] && db.tablesData[toTable]) {
         db.tablesData[toTable].order = db.tablesData[toTable].order.concat(db.tablesData[fromTable].order);
         db.tablesData[toTable].status = 'confirmed';
