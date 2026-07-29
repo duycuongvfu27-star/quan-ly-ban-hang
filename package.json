@@ -1,26 +1,13 @@
 {
-  "name": "new-folder",
+  "name": "quan-ly-ban-hang",
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/duycuongvfu27-star/quan-ly-ban-hang.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/duycuongvfu27-star/quan-ly-ban-hang/issues"
-  },
-  "homepage": "https://github.com/duycuongvfu27-star/quan-ly-ban-hang#readme",
   "dependencies": {
-    "express": "^5.2.1",
-    "mongoose": "^9.8.1"
+    "express": "^4.19.2",
+    "mongoose": "^8.3.1"
   }
 }
