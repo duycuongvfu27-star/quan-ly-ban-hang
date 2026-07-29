@@ -29,6 +29,7 @@
         
         /* Cài đặt thực đơn */
         .settings-panel { display: none; background: #fff3cd; border: 1px solid #ffeeba; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+        .setting-row { background: white; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #e2e8f0; }
         .add-item-box { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
         .add-item-box input, .add-item-box select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; flex: 1; min-width: 100px; }
         .btn-add-menu { background: #d35400; color: white; border: none; padding: 8px 12px; font-weight: bold; border-radius: 4px; cursor: pointer; }
@@ -41,8 +42,8 @@
         .manage-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
         .manage-table th, .manage-table td { border: 1px solid #ddd; padding: 6px; text-align: left; font-size: 12px; }
         .input-edit-price { width: 70px; padding: 3px; border: 1px solid #ccc; border-radius: 3px; font-weight: bold; }
-        .btn-sm-danger { background: #e74c3c; color: white; border: none; padding: 3px 6px; border-radius: 3px; cursor: pointer; }
-        .btn-sm-save { background: #27ae60; color: white; border: none; padding: 3px 6px; border-radius: 3px; cursor: pointer; }
+        .btn-sm-danger { background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .btn-sm-save { background: #27ae60; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; }
 
         .category-title { background: #2c3e50; color: white; padding: 5px 8px; margin-top: 12px; border-radius: 4px; font-weight: bold; font-size: 13px; }
         .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 8px; margin-top: 8px; }
@@ -58,8 +59,25 @@
         .total-box { font-size: 17px; font-weight: bold; text-align: right; color: #c0392b; margin: 12px 0; padding-top: 8px; border-top: 2px dashed #ccc; }
         
         .btn-group { display: flex; gap: 8px; flex-direction: column; }
-        .btn-print { padding: 12px; background: #2980b9; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
+        .btn-transfer { padding: 10px; background: #e67e22; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; text-align: center; }
+        .btn-print { padding: 10px; background: #2980b9; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; text-align: center; }
         .btn-checkout { padding: 12px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
+
+        /* VÙNG CHỨA TỜ HÓA ĐƠN CHUẨN IN CHO IPHONE */
+        #printArea { display: none; }
+        @media print {
+            body * { visibility: hidden !important; }
+            #printArea, #printArea * { visibility: visible !important; }
+            #printArea {
+                display: block !important;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -69,11 +87,51 @@
     <p>Hotline: 0842.163.333</p>
     <div class="header-btns">
         <button class="btn-hdr btn-hdr-rev" onclick="toggleRevenue()">📊 Doanh Thu</button>
-        <button class="btn-hdr" onclick="toggleSettings()">⚙️ Menu</button>
+        <button class="btn-hdr" onclick="toggleSettings()">⚙️ Cài Đặt</button>
     </div>
 </div>
 
-<!-- KHU VỰC QUẢN LÝ DOANH THU THEO NGÀY -->
+<div class="settings-panel" id="settingsPanel">
+    <h3 style="margin-top:0; color:#856404; font-size:15px;">⚙️ Cấu Hình Máy In & Thực Đơn</h3>
+    
+    <div class="setting-row">
+        <b style="font-size:13px; color:#2c3e50;">🖨️ Chọn Khổ Giấy Máy In Hóa Đơn:</b>
+        <div style="margin-top:6px; display:flex; gap:12px; align-items:center;">
+            <select id="paperSizeSelect" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-weight:bold;" onchange="changePaperSize()">
+                <option value="58mm">Khổ 58mm (K58 / 5x8 cm - Eyoyo, Bluetooth mini)</option>
+                <option value="80mm">Khổ 80mm (K80 / 8cm - Máy in thu ngân cỡ lớn)</option>
+            </select>
+        </div>
+    </div>
+
+    <h4 style="margin:10px 0 6px 0; font-size:13px; color:#856404;">📋 Quản Lý Món Ăn & Đơn Giá:</h4>
+    <div class="add-item-box">
+        <select id="newCategory">
+            <option value="CÁC COMBO NƯỚNG">CÁC COMBO NƯỚNG</option>
+            <option value="ĐỒ ĂN NHẸ">ĐỒ ĂN NHẸ</option>
+            <option value="CÁC MÓN NƯỚNG">CÁC MÓN NƯỚNG</option>
+            <option value="ĐỒ UỐNG">ĐỒ UỐNG</option>
+        </select>
+        <input type="text" id="newName" placeholder="Tên món">
+        <input type="number" id="newPrice" placeholder="Giá (VNĐ)">
+        <button class="btn-add-menu" onclick="addNewMenuItem()">+ Thêm Món</button>
+    </div>
+
+    <div style="max-height: 200px; overflow-y: auto;">
+        <table class="manage-table">
+            <thead>
+                <tr style="background:#f1f1f1;">
+                    <th>Loại</th>
+                    <th>Tên Món</th>
+                    <th>Giá</th>
+                    <th>Lưu/Xóa</th>
+                </tr>
+            </thead>
+            <tbody id="manageMenuTable"></tbody>
+        </table>
+    </div>
+</div>
+
 <div class="revenue-panel" id="revenuePanel">
     <h3 style="margin-top:0; color:#117a65; font-size:15px;">📊 Quản Lý Doanh Thu Theo Ngày</h3>
     
@@ -102,59 +160,27 @@
                     <th>Bàn</th>
                     <th>Chi Tiết Món Mua</th>
                     <th style="text-align:right;">Tổng Tiền</th>
+                    <th style="text-align:center; width:65px;">Thao Tác</th>
                 </tr>
             </thead>
             <tbody id="revenueTableBody">
-                <tr><td colspan="4" style="text-align:center; color:#999;">Chưa có đơn hàng nào</td></tr>
+                <tr><td colspan="5" style="text-align:center; color:#999;">Chưa có đơn hàng nào</td></tr>
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- KHU VỰC CÀI ĐẶT THỰC ĐƠN -->
-<div class="settings-panel" id="settingsPanel">
-    <h3 style="margin-top:0; color:#856404; font-size:14px;">⚙️ Quản Lý Thực Đơn & Đơn Giá</h3>
-    <div class="add-item-box">
-        <select id="newCategory">
-            <option value="CÁC COMBO NƯỚNG">CÁC COMBO NƯỚNG</option>
-            <option value="ĐỒ ĂN NHẸ">ĐỒ ĂN NHẸ</option>
-            <option value="CÁC MÓN NƯỚNG">CÁC MÓN NƯỚNG</option>
-            <option value="ĐỒ UỐNG">ĐỒ UỐNG</option>
-        </select>
-        <input type="text" id="newName" placeholder="Tên món">
-        <input type="number" id="newPrice" placeholder="Giá (VNĐ)">
-        <button class="btn-add-menu" onclick="addNewMenuItem()">+ Thêm</button>
-    </div>
-
-    <div style="max-height: 200px; overflow-y: auto;">
-        <table class="manage-table">
-            <thead>
-                <tr style="background:#f1f1f1;">
-                    <th>Loại</th>
-                    <th>Tên Món</th>
-                    <th>Giá</th>
-                    <th>Lưu/Xóa</th>
-                </tr>
-            </thead>
-            <tbody id="manageMenuTable"></tbody>
-        </table>
-    </div>
-</div>
-
-<!-- SƠ ĐỒ BÀN -->
 <div class="table-grid-section">
     <h3 style="margin:0 0 8px 0; font-size:14px;">📍 Sơ Đồ Bàn (Chọn Bàn Để Gọi Món)</h3>
     <div class="table-grid" id="tableGrid"></div>
 </div>
 
 <div class="layout">
-    <!-- MENU -->
     <div class="menu-section">
         <h3 style="margin-top:0; font-size:14px;">📋 Thực Đơn Món Ăn</h3>
         <div id="menuContainer"></div>
     </div>
 
-    <!-- PHIẾU GỌI MÓN -->
     <div class="order-section">
         <h3 style="margin-top:0; font-size:14px;">🧾 Phiếu Gọi Món: <span id="selectedTableTitle" style="color:#c0392b;">Chưa chọn bàn</span></h3>
         <table class="order-table">
@@ -175,19 +201,38 @@
         </div>
 
         <div class="btn-group">
-            <button class="btn-print" onclick="printReceipt()">🖨️ In Hóa Đơn (Khổ 5x8 cm)</button>
+            <button class="btn-transfer" onclick="transferTablePrompt()">🔄 Chuyển Bàn / Đổi Bàn</button>
+            <button class="btn-print" id="btnPrintLabel" onclick="printReceipt()">🖨️ In Hóa Đơn (Khổ 58mm)</button>
             <button class="btn-checkout" onclick="checkout()">✅ Thanh Toán & Trả Bàn</button>
         </div>
     </div>
 </div>
+
+<!-- KHUNG IN NỘI BỘ DÀNH RIÊNG CHO IPHONE / SAFARI -->
+<div id="printArea"></div>
 
 <script>
     let tablesData = {};
     let menuData = [];
     let revenueHistory = [];
     let selectedTable = null;
+    let currentPaperSize = localStorage.getItem('paperSize') || '58mm';
 
-    // Set ngày hôm nay cho ô chọn ngày xem doanh thu
+    document.getElementById('paperSizeSelect').value = currentPaperSize;
+    updatePrintBtnLabel();
+
+    function changePaperSize() {
+        currentPaperSize = document.getElementById('paperSizeSelect').value;
+        localStorage.setItem('paperSize', currentPaperSize);
+        updatePrintBtnLabel();
+        alert(`Đã đổi khổ in thành: ${currentPaperSize === '58mm' ? 'Khổ 58mm (K58 / 5x8 cm)' : 'Khổ 80mm (K80 / 8 cm)'}`);
+    }
+
+    function updatePrintBtnLabel() {
+        const btn = document.getElementById('btnPrintLabel');
+        btn.innerText = `🖨️ In Hóa Đơn (Khổ ${currentPaperSize})`;
+    }
+
     const todayStr = new Date(new Date().getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0];
     document.getElementById('revenueDatePicker').value = todayStr;
 
@@ -259,7 +304,7 @@
         tbody.innerHTML = '';
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#999; padding:15px;">Không có hóa đơn nào trong ngày này</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#999; padding:15px;">Không có hóa đơn nào trong ngày này</td></tr>';
             document.getElementById('statTotalRev').innerText = '0 VNĐ';
             document.getElementById('statCountBill').innerText = '0 đơn';
             return;
@@ -275,12 +320,26 @@
                     <td><span style="color:#c0392b; font-weight:bold;">${record.tableName}</span></td>
                     <td><small>${itemsDetail}</small></td>
                     <td style="text-align:right; font-weight:bold; color:#27ae60;">${record.total.toLocaleString()} đ</td>
+                    <td style="text-align:center;">
+                        <button class="btn-sm-danger" onclick="deleteRevenueItem(${record.id}, '${record.tableName}', ${record.total})">Xóa</button>
+                    </td>
                 </tr>
             `;
         });
 
         document.getElementById('statTotalRev').innerText = totalRev.toLocaleString() + ' VNĐ';
         document.getElementById('statCountBill').innerText = filtered.length + ' đơn';
+    }
+
+    async function deleteRevenueItem(id, tableName, total) {
+        if (confirm(`Bạn có chắc muốn XÓA hóa đơn của ${tableName} (${total.toLocaleString()} VNĐ) khỏi doanh thu?`)) {
+            await fetch('/api/delete-revenue', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            await loadRevenue();
+        }
     }
 
     function renderTables() {
@@ -306,6 +365,31 @@
         document.getElementById('selectedTableTitle').innerText = selectedTable;
         renderTables();
         renderOrder();
+    }
+
+    async function transferTablePrompt() {
+        if (!selectedTable) return alert('Vui lòng chọn bàn hiện tại!');
+        const currentOrder = tablesData[selectedTable];
+        if (!currentOrder || currentOrder.length === 0) return alert('Bàn này đang trống!');
+
+        const targetTable = prompt(`Đang chuyển từ ${selectedTable}.\nNhập tên bàn mới (Ví dụ: Bàn 08):`);
+        if (!targetTable) return;
+
+        const formattedTarget = targetTable.trim();
+        if (!tablesData.hasOwnProperty(formattedTarget)) return alert('Tên bàn không hợp lệ!');
+        if (formattedTarget === selectedTable) return alert('Không thể chuyển về chính bàn này!');
+
+        if (confirm(`Xác nhận chuyển món từ ${selectedTable} sang ${formattedTarget}?`)) {
+            const res = await fetch('/api/transfer-table', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fromTable: selectedTable, toTable: formattedTarget })
+            });
+            const data = await res.json();
+            tablesData = data.tablesData;
+            alert(`Đã chuyển sang ${formattedTarget}!`);
+            selectTable(formattedTarget);
+        }
     }
 
     function renderMenu() {
@@ -455,6 +539,7 @@
         document.getElementById('totalAmount').innerText = total.toLocaleString();
     }
 
+    // CƠ CHẾ IN TRỰC TIẾP TƯƠNG THÍCH HOÀN HẢO IPHONE SAFARI / CHROME
     function printReceipt() {
         if (!selectedTable || !tablesData[selectedTable] || tablesData[selectedTable].length === 0) {
             return alert('Bàn chưa có món!');
@@ -477,40 +562,23 @@
             `;
         });
 
-        const printHTML = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>In Hóa Đơn</title>
-                <style>
-                    @page { margin: 0; size: 58mm auto; }
-                    body { 
-                        width: 48mm; 
-                        margin: 0 auto; 
-                        padding: 5px 0;
-                        font-family: 'Courier New', Courier, monospace; 
-                        font-size: 10px; 
-                        line-height: 1.2;
-                        color: #000;
-                    }
-                    .text-center { text-align: center; }
-                    .text-right { text-align: right; }
-                    .divider { border-top: 1px dashed #000; margin: 4px 0; }
-                    table { width: 100%; border-collapse: collapse; font-size: 9px; }
-                </style>
-            </head>
-            <body>
-                <div class="text-center">
-                    <b style="font-size: 12px;">QUÁN NƯỚNG TUỔI TRẺ</b><br>
-                    <span style="font-size: 8px;">ĐT: 0842.163.333</span>
-                    <div class="divider"></div>
-                    <b style="font-size: 10px;">HÓA ĐƠN THANH TOÁN</b><br>
-                    <span style="font-size: 8px;">${selectedTable} | ${dateStr}</span>
+        const is58 = currentPaperSize === '58mm';
+        const bodyWidthCss = is58 ? '46mm' : '72mm';
+        const fontSizeHeader = is58 ? '12px' : '15px';
+        const fontSizeBody = is58 ? '9px' : '12px';
+
+        const printArea = document.getElementById('printArea');
+        printArea.innerHTML = `
+            <div style="width: ${bodyWidthCss}; margin: 0 auto; padding: 5px 0; font-family: 'Courier New', Courier, monospace; font-size: ${fontSizeBody}; color: #000;">
+                <div style="text-align: center;">
+                    <b style="font-size: ${fontSizeHeader};">QUÁN NƯỚNG TUỔI TRẺ</b><br>
+                    <span style="font-size: ${is58 ? '8px' : '10px'};">ĐT: 0842.163.333</span>
+                    <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
+                    <b style="font-size: ${is58 ? '10px' : '13px'};">HÓA ĐƠN THANH TOÁN</b><br>
+                    <span style="font-size: ${is58 ? '8px' : '10px'};">${selectedTable} | ${dateStr}</span>
                 </div>
-                <div class="divider"></div>
-                <table>
+                <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
+                <table style="width: 100%; border-collapse: collapse; font-size: ${fontSizeBody};">
                     <thead>
                         <tr>
                             <th style="text-align:left;">Tên món</th>
@@ -522,33 +590,21 @@
                         ${rowsHTML}
                     </tbody>
                 </table>
-                <div class="divider"></div>
-                <div class="text-right">
-                    <b style="font-size: 11px;">TỔNG: ${total.toLocaleString()} đ</b>
+                <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
+                <div style="text-align: right;">
+                    <b style="font-size: ${is58 ? '11px' : '14px'};">TỔNG: ${total.toLocaleString()} đ</b>
                 </div>
-                <div class="divider"></div>
-                <div class="text-center" style="font-size: 8px; margin-top:4px;">
+                <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
+                <div style="text-align: center; font-size: ${is58 ? '8px' : '10px'}; margin-top:4px;">
                     Cảm ơn quý khách & Hẹn gặp lại!
                 </div>
-                <script>
-                    window.onload = function() {
-                        setTimeout(function() {
-                            window.print();
-                        }, 300);
-                    }
-                <\/script>
-            </body>
-            </html>
+            </div>
         `;
 
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(printHTML);
-            printWindow.document.close();
-        } else {
-            alert('Vui lòng cho phép Pop-up trên trình duyệt!');
-        }
+        // Gọi trực tiếp lệnh in trên iPhone mà không mở popup
+        setTimeout(() => {
+            window.print();
+        }, 100);
     }
 
     async function checkout() {
@@ -562,7 +618,6 @@
         if (confirm(`THANH TOÁN ${selectedTable}\n\nTổng tiền: ${totalNum.toLocaleString()} VNĐ`)) {
             printReceipt();
 
-            // Gửi dữ liệu hóa đơn về Server để lưu Doanh Thu
             await fetch('/api/checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
