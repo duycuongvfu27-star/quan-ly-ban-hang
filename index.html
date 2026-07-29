@@ -104,6 +104,11 @@
         .section-old-orders { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 6px; margin-bottom: 10px; }
         .title-old-orders { font-weight: bold; color: #7f8c8d; font-size: 12px; margin-bottom: 4px; }
 
+        /* GIAO DIỆN MÀN HÌNH CẢM ƠN CHO KHÁCH HÀNG */
+        .thankyou-screen { display: none; background: white; border-radius: 12px; padding: 20px 15px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 10px; }
+        .thankyou-heart { font-size: 45px; animation: bounce 1.2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
         #printArea { display: none; }
         @media print {
             body * { visibility: hidden !important; }
@@ -125,7 +130,7 @@
 </div>
 
 <div class="audio-banner" id="audioBanner" onclick="enableAudioAndVibration()">
-    🗣️ BẤM VÀO ĐÂY LẦN ĐẦU ĐỂ KÍCH HOẠT LOA ĐỌC TÊN BÀN ORDER
+    🗣️ BẤM VÀO ĐÂY LẦN ĐẦU ĐỂ KÍCH HOẠT THÔNG BÁO TIẾNG VIỆT
 </div>
 
 <div class="settings-panel" id="settingsPanel">
@@ -244,7 +249,21 @@
     <div class="table-grid" id="tableGrid"></div>
 </div>
 
-<div class="layout">
+<!-- KHUNG HIỂN THỊ CẢM ƠN DÀNH CHO KHÁCH HÀNG SAU KHÍ THANH TOÁN -->
+<div class="thankyou-screen" id="customerThankyouScreen">
+    <div class="thankyou-heart">❤️</div>
+    <h2 style="color:#c0392b; margin:6px 0; font-size:18px;">CẢM ƠN QUÝ KHÁCH!</h2>
+    <p style="font-size:13px; color:#555; margin-top:2px;">Quán Nướng Tuổi Trẻ rất hân hạnh được phục vụ bạn.</p>
+    
+    <div style="background:#fdfefe; border:1px solid #d4efdf; border-radius:8px; padding:10px; text-align:left; margin:12px 0;">
+        <b style="color:#27ae60; font-size:13px;">🧾 HÓA ĐƠN THANH TOÁN:</b>
+        <div id="thankyouBillContent" style="margin-top:6px; font-size:12px;"></div>
+    </div>
+
+    <button style="background:#27ae60; color:white; border:none; padding:10px 18px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:13px;" onclick="resetCustomerView()">✨ Gọi Món Cho Lượt Mới</button>
+</div>
+
+<div class="layout" id="mainAppLayout">
     <div class="menu-section">
         <h3 style="margin-top:0; font-size:14px;">📋 Thực Đơn Món Ăn</h3>
         <div id="menuContainer"></div>
@@ -332,7 +351,7 @@
     let bankAcc = localStorage.getItem('bankAcc') || '';
     let isCustomerMode = false;
     let currentPayType = 'TIỀN MẶT';
-    let knownPendingTables = new Set(); // LƯU TÊN CÁC BÀN ĐANG CÓ ĐƠN MỚI DÙNG ĐỂ ĐỌC TÊN
+    let knownPendingTables = new Set();
 
     const urlParams = new URLSearchParams(window.location.search);
     const paramTable = urlParams.get('table');
@@ -351,27 +370,30 @@
     updatePrintBtnLabel();
 
     function enableAudioAndVibration() {
-        speakText("Đã bật tính năng đọc tên bàn thành công");
-        document.getElementById('audioBanner').innerText = "✅ ĐÃ KÍCH HOẠT LOA ĐỌC TÊN BÀN ORDER THÀNH CÔNG";
+        speakText("Bàn chín gọi đồ");
+        document.getElementById('audioBanner').innerText = "✅ ĐÃ KÍCH HOẠT THÔNG BÁO TIẾNG VIỆT THÀNH CÔNG";
         document.getElementById('audioBanner').style.background = "#27ae60";
         setTimeout(() => {
             document.getElementById('audioBanner').style.display = "none";
         }, 3000);
     }
 
-    // CÔNG NGHỆ CHỊ GOOGLE ĐỌC TÊN BÀN "BÀN X ORDER"
     function speakText(text) {
         if (navigator.vibrate) {
-            navigator.vibrate([200, 100, 200, 100, 400]); // Rung máy
+            navigator.vibrate([200, 100, 200, 100, 400]);
         }
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); // Dừng câu cũ
-            let utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'vi-VN';
-            utterance.rate = 1.0; // Tốc độ đọc
-            utterance.pitch = 1.0;
-            window.speechSynthesis.speak(utterance);
-        }
+        
+        let audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=vi&client=tw-ob`;
+        let audio = new Audio(audioUrl);
+        audio.play().catch(e => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                let utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'vi-VN';
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+        });
     }
 
     function saveBankConfig() {
@@ -451,20 +473,26 @@
             tablesData = data.tablesData;
             menuData = data.menuData;
 
-            // KIỂM TRA BÀN NÀO VỪA ORDER ĐỂ PHÁT ÂM THANH BÁO TÊN BÀN ĐÓ
             if (!isCustomerMode) {
                 let currentPendingSet = new Set();
                 Object.keys(tablesData).forEach(tName => {
                     if (tablesData[tName] && tablesData[tName].status === 'pending') {
                         currentPendingSet.add(tName);
-                        // Nếu bàn này chưa có trong danh sách đã biết -> Phát âm thanh đọc tên bàn
                         if (!knownPendingTables.has(tName)) {
-                            let cleanName = tName.replace('Bàn 0', 'Bàn ').replace('Bàn ', 'Bàn ');
-                            speakText(`${cleanName} order`);
+                            let numStr = tName.replace(/\D/g, '');
+                            let numVal = parseInt(numStr, 10);
+                            speakText(`Bàn ${numVal} gọi đồ`);
                         }
                     }
                 });
                 knownPendingTables = currentPendingSet;
+            } else {
+                // KIỂM TRA ĐIỆN THOẠI KHÁCH CÓ VỪA ĐƯỢC THANH TOÁN HAY KHÔNG
+                const currentTableObj = tablesData[selectedTable];
+                if (currentTableObj && currentTableObj.lastBill) {
+                    showCustomerThankyou(currentTableObj.lastBill);
+                    return;
+                }
             }
 
             setupViewMode();
@@ -475,6 +503,33 @@
         } catch(e) {
             console.error("Lỗi kết nối server:", e);
         }
+    }
+
+    // HIỂN THỊ MÀN HÌNH CẢM ƠN VÀ BILL CHO KHÁCH
+    function showCustomerThankyou(bill) {
+        document.getElementById('mainAppLayout').style.display = 'none';
+        const thankyouScreen = document.getElementById('customerThankyouScreen');
+        thankyouScreen.style.display = 'block';
+
+        let itemsHtml = '<ul style="padding-left:18px; margin:4px 0;">';
+        bill.items.forEach(i => {
+            itemsHtml += `<li><b>${i.name}</b> x${i.qty} - ${(i.price * i.qty).toLocaleString()}đ</li>`;
+        });
+        itemsHtml += '</ul>';
+
+        document.getElementById('thankyouBillContent').innerHTML = `
+            ${itemsHtml}
+            <div style="border-top:1px dashed #ccc; margin-top:6px; padding-top:6px; text-align:right;">
+                <b>TỔNG TIỀN ĐÃ THANH TOÁN: <span style="color:#c0392b; font-size:15px;">${bill.total.toLocaleString()} VNĐ</span></b><br>
+                <small style="color:#888;">Hình thức: ${bill.payType || 'TIỀN MẶT'}</small>
+            </div>
+        `;
+    }
+
+    function resetCustomerView() {
+        document.getElementById('customerThankyouScreen').style.display = 'none';
+        document.getElementById('mainAppLayout').style.display = 'flex';
+        location.reload();
     }
 
     async function loadRevenue() {

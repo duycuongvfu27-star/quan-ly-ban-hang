@@ -11,7 +11,7 @@ const DATA_FILE = path.join(__dirname, 'data.json');
 const tablesCount = 16;
 let defaultTables = {};
 for (let i = 1; i <= tablesCount; i++) {
-    defaultTables[`Bàn ${i < 10 ? '0' + i : i}`] = { order: [], status: 'empty' };
+    defaultTables[`Bàn ${i < 10 ? '0' + i : i}`] = { order: [], status: 'empty', lastBill: null };
 }
 
 let defaultMenu = [
@@ -80,7 +80,8 @@ function loadDatabase() {
                         let oldOrder = data.tablesData[k];
                         data.tablesData[k] = {
                             order: oldOrder,
-                            status: oldOrder.length > 0 ? 'confirmed' : 'empty'
+                            status: oldOrder.length > 0 ? 'confirmed' : 'empty',
+                            lastBill: null
                         };
                     }
                 });
@@ -111,6 +112,7 @@ app.post('/api/update-order', (req, res) => {
     const { tableName, order, status } = req.body;
     if (db.tablesData[tableName]) {
         db.tablesData[tableName].order = order;
+        db.tablesData[tableName].lastBill = null; // Xóa màn hình bill cũ khi khách gọi đồ mới
         if (status) db.tablesData[tableName].status = status;
         else if (order.length === 0) db.tablesData[tableName].status = 'empty';
         saveDatabase(db);
@@ -169,7 +171,12 @@ app.post('/api/checkout', (req, res) => {
     if (!db.revenueHistory) db.revenueHistory = [];
     db.revenueHistory.push(newRecord);
     
-    db.tablesData[tableName] = { order: [], status: 'empty' };
+    // TRẢ BÀN VÀ LƯU BILL CUỐI CHO ĐIỆN THOẠI KHÁCH XEM CẢM ƠN
+    db.tablesData[tableName] = { 
+        order: [], 
+        status: 'empty',
+        lastBill: newRecord 
+    };
 
     saveDatabase(db);
     res.json({ success: true, record: newRecord });
