@@ -2,59 +2,71 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>QUÁN NƯỚNG TUỔI TRẺ - Quản Lý Bán Hàng</title>
     <style>
-        * { box-sizing: border-box; font-family: Arial, sans-serif; }
-        body { background: #f0f2f5; margin: 0; padding: 15px; }
-        .header { text-align: center; background: #c0392b; color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; position: relative; }
-        .header h1 { margin: 0; font-size: 22px; }
-        .header p { margin: 4px 0 0; font-size: 13px; }
-        .btn-toggle-settings { position: absolute; right: 15px; top: 15px; background: #34495e; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background: #f0f2f5; margin: 0; padding: 12px; -webkit-tap-highlight-color: transparent; }
+        
+        .header { text-align: center; background: #c0392b; color: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; position: relative; }
+        .header h1 { margin: 0; font-size: 20px; }
+        .header p { margin: 3px 0 0; font-size: 12px; opacity: 0.9; }
+        .btn-toggle-settings { position: absolute; right: 10px; top: 10px; background: #2c3e50; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 11px; }
 
-        .table-grid-section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .table-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; margin-top: 10px; }
-        .table-card { padding: 10px 5px; text-align: center; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; border: 2px solid transparent; transition: 0.2s; }
+        /* Sơ đồ bàn */
+        .table-grid-section { background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+        .table-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 8px; margin-top: 8px; }
+        .table-card { padding: 8px 4px; text-align: center; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; border: 2px solid transparent; transition: 0.15s; }
         .table-empty { background-color: #2ecc71; color: white; }
         .table-occupied { background-color: #e74c3c; color: white; }
-        .table-card.active { border-color: #2c3e50; transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .table-card.active { border-color: #2c3e50; transform: scale(1.03); box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
 
-        .layout { display: flex; gap: 15px; flex-wrap: wrap; }
-        .menu-section { flex: 2; min-width: 320px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .order-section { flex: 1; min-width: 300px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .layout { display: flex; gap: 12px; flex-wrap: wrap; }
+        .menu-section { flex: 2; min-width: 300px; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+        .order-section { flex: 1; min-width: 290px; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
         
-        .settings-panel { display: none; background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .add-item-box { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 15px; }
-        .add-item-box input, .add-item-box select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; flex: 1; min-width: 110px; }
-        .btn-add-menu { background: #d35400; color: white; border: none; padding: 8px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        /* Cài đặt thực đơn */
+        .settings-panel { display: none; background: #fff3cd; border: 1px solid #ffeeba; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+        .add-item-box { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+        .add-item-box input, .add-item-box select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; flex: 1; min-width: 100px; }
+        .btn-add-menu { background: #d35400; color: white; border: none; padding: 8px 12px; font-weight: bold; border-radius: 4px; cursor: pointer; }
 
-        .manage-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .manage-table th, .manage-table td { border: 1px solid #ddd; padding: 6px; text-align: left; font-size: 13px; }
-        .input-edit-price { width: 80px; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-weight: bold; }
-        .btn-sm-danger { background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; }
-        .btn-sm-save { background: #27ae60; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; }
+        .manage-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .manage-table th, .manage-table td { border: 1px solid #ddd; padding: 5px; text-align: left; font-size: 12px; }
+        .input-edit-price { width: 70px; padding: 3px; border: 1px solid #ccc; border-radius: 3px; font-weight: bold; }
+        .btn-sm-danger { background: #e74c3c; color: white; border: none; padding: 3px 6px; border-radius: 3px; cursor: pointer; }
+        .btn-sm-save { background: #27ae60; color: white; border: none; padding: 3px 6px; border-radius: 3px; cursor: pointer; }
 
-        .category-title { background: #2c3e50; color: white; padding: 6px 10px; margin-top: 15px; border-radius: 4px; font-weight: bold; font-size: 14px; }
-        .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-top: 10px; }
-        .item-card { border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px; text-align: center; cursor: pointer; transition: 0.2s; background: #fafafa; }
-        .item-card:hover { border-color: #c0392b; background: #fdf2e9; }
-        .item-name { font-weight: bold; font-size: 12px; color: #333; height: 32px; display: flex; align-items: center; justify-content: center; }
-        .item-price { color: #e67e22; font-weight: bold; font-size: 13px; margin-top: 4px; }
+        .category-title { background: #2c3e50; color: white; padding: 5px 8px; margin-top: 12px; border-radius: 4px; font-weight: bold; font-size: 13px; }
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 8px; margin-top: 8px; }
+        .item-card { border: 1px solid #e0e0e0; border-radius: 6px; padding: 6px; text-align: center; cursor: pointer; transition: 0.15s; background: #fafafa; }
+        .item-card:active { background: #fdf2e9; border-color: #c0392b; }
+        .item-name { font-weight: bold; font-size: 12px; color: #333; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .item-price { color: #e67e22; font-weight: bold; font-size: 12px; margin-top: 2px; }
 
-        .order-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; margin-top: 10px; }
-        .order-table th, .order-table td { padding: 8px 4px; border-bottom: 1px solid #eee; text-align: left; font-size: 13px; }
-        .qty-btn { width: 22px; height: 22px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-weight: bold; border-radius: 3px; }
+        .order-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; margin-top: 8px; }
+        .order-table th, .order-table td { padding: 6px 3px; border-bottom: 1px solid #eee; text-align: left; font-size: 12px; }
+        .qty-btn { width: 24px; height: 24px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-weight: bold; border-radius: 4px; }
         
-        .total-box { font-size: 18px; font-weight: bold; text-align: right; color: #c0392b; margin: 15px 0; padding-top: 10px; border-top: 2px dashed #ccc; }
+        .total-box { font-size: 17px; font-weight: bold; text-align: right; color: #c0392b; margin: 12px 0; padding-top: 8px; border-top: 2px dashed #ccc; }
         
         .btn-group { display: flex; gap: 8px; flex-direction: column; }
-        .btn-bt { padding: 12px; background: #8e44ad; color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; }
-        .btn-print { padding: 10px; background: #2980b9; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
-        .btn-checkout { padding: 12px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; }
+        .btn-print { padding: 12px; background: #2980b9; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
+        .btn-checkout { padding: 12px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
 
+        /* ĐỊNH DẠNG ĐẶC BIỆT CHUẨN KHỔ GIẤY 5x8 CM (K58) */
         #receiptPrint { display: none; }
         @media print {
-            @page { margin: 0; size: 58mm auto; }
+            @page { 
+                margin: 0; 
+                size: 58mm auto; /* Chuẩn 58mm (5cm) */
+            }
+            html, body { 
+                width: 58mm; 
+                margin: 0; 
+                padding: 0; 
+                background: #fff; 
+            }
             body * { visibility: hidden; }
             #receiptPrint, #receiptPrint * { visibility: visible; }
             #receiptPrint { 
@@ -62,16 +74,17 @@
                 position: absolute; 
                 left: 0; 
                 top: 0; 
-                width: 48mm; 
+                width: 46mm; /* Bề rộng in thực tế vừa vặn lòng đĩa in 5cm */
+                margin: 0 3mm;
                 font-family: 'Courier New', Courier, monospace; 
                 font-size: 10px; 
+                line-height: 1.2;
                 color: black;
-                padding: 2mm;
             }
             .receipt-header { text-align: center; }
-            .receipt-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
-            .receipt-table th, .receipt-table td { font-size: 9px; text-align: left; padding: 2px 0; word-break: break-all; }
-            .receipt-divider { border-top: 1px dashed black; margin: 5px 0; }
+            .receipt-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+            .receipt-table th, .receipt-table td { font-size: 9px; text-align: left; padding: 2px 0; word-break: break-word; }
+            .receipt-divider { border-top: 1px dashed black; margin: 4px 0; }
         }
     </style>
 </head>
@@ -80,32 +93,32 @@
 <div class="header">
     <h1>🔥 QUÁN NƯỚNG TUỔI TRẺ 🔥</h1>
     <p>Hotline: 0842.163.333</p>
-    <button class="btn-toggle-settings" onclick="toggleSettings()">⚙️ Cài Đặt Thực Đơn</button>
+    <button class="btn-toggle-settings" onclick="toggleSettings()">⚙️ Menu</button>
 </div>
 
+<!-- KHU VỰC CÀI ĐẶT THỰC ĐƠN -->
 <div class="settings-panel" id="settingsPanel">
-    <h3 style="margin-top:0; color:#856404;">⚙️ Quản Lý Thực Đơn & Đơn Giá</h3>
+    <h3 style="margin-top:0; color:#856404; font-size:14px;">⚙️ Quản Lý Thực Đơn & Đơn Giá</h3>
     <div class="add-item-box">
-        <b style="font-size:13px; width:100%;">➕ Thêm Món Mới:</b>
         <select id="newCategory">
             <option value="CÁC COMBO NƯỚNG">CÁC COMBO NƯỚNG</option>
             <option value="ĐỒ ĂN NHẸ">ĐỒ ĂN NHẸ</option>
             <option value="CÁC MÓN NƯỚNG">CÁC MÓN NƯỚNG</option>
             <option value="ĐỒ UỐNG">ĐỒ UỐNG</option>
         </select>
-        <input type="text" id="newName" placeholder="Tên món mới">
-        <input type="number" id="newPrice" placeholder="Giá tiền (VNĐ)">
-        <button class="btn-add-menu" onclick="addNewMenuItem()">+ Thêm Món</button>
+        <input type="text" id="newName" placeholder="Tên món">
+        <input type="number" id="newPrice" placeholder="Giá (VNĐ)">
+        <button class="btn-add-menu" onclick="addNewMenuItem()">+ Thêm</button>
     </div>
 
-    <div style="max-height: 250px; overflow-y: auto;">
+    <div style="max-height: 200px; overflow-y: auto;">
         <table class="manage-table">
             <thead>
                 <tr style="background:#f1f1f1;">
-                    <th>Danh Mục</th>
+                    <th>Loại</th>
                     <th>Tên Món</th>
-                    <th>Đơn Giá (VNĐ)</th>
-                    <th>Thao Tác</th>
+                    <th>Giá</th>
+                    <th>Lưu/Xóa</th>
                 </tr>
             </thead>
             <tbody id="manageMenuTable"></tbody>
@@ -113,29 +126,32 @@
     </div>
 </div>
 
+<!-- SƠ ĐỒ BÀN -->
 <div class="table-grid-section">
-    <h3 style="margin:0 0 10px 0;">📍 Sơ Đồ Quản Lý Bàn (Chọn Bàn Để Gọi Món)</h3>
+    <h3 style="margin:0 0 8px 0; font-size:14px;">📍 Sơ Đồ Bàn (Chọn Bàn Để Gọi Món)</h3>
     <div class="table-grid" id="tableGrid"></div>
 </div>
 
 <div class="layout">
+    <!-- MENU -->
     <div class="menu-section">
-        <h3 style="margin-top:0;">📋 Thực Đơn Món Ăn</h3>
+        <h3 style="margin-top:0; font-size:14px;">📋 Thực Đơn Món Ăn</h3>
         <div id="menuContainer"></div>
     </div>
 
+    <!-- PHIẾU GỌI MÓN -->
     <div class="order-section">
-        <h3 style="margin-top:0;">🧾 Phiếu Gọi Món: <span id="selectedTableTitle" style="color:#c0392b;">Chưa chọn bàn</span></h3>
+        <h3 style="margin-top:0; font-size:14px;">🧾 Phiếu Gọi Món: <span id="selectedTableTitle" style="color:#c0392b;">Chưa chọn bàn</span></h3>
         <table class="order-table">
             <thead>
                 <tr>
                     <th>Món</th>
-                    <th style="width: 70px;">SL</th>
+                    <th style="width: 65px;">SL</th>
                     <th style="text-align:right;">Tiền</th>
                 </tr>
             </thead>
             <tbody id="orderList">
-                <tr><td colspan="3" style="text-align:center; color:#999; padding:20px;">Vui lòng chọn Bàn trước khi gọi món</td></tr>
+                <tr><td colspan="3" style="text-align:center; color:#999; padding:15px;">Vui lòng chọn Bàn trước khi gọi món</td></tr>
             </tbody>
         </table>
 
@@ -144,21 +160,20 @@
         </div>
 
         <div class="btn-group">
-            <button class="btn-bt" onclick="printBluetooth()">📲 In Bluetooth Trực Tiếp (Khổ K58)</button>
-            <button class="btn-print" onclick="printReceipt()">🖨️ In Thường / Lưu PDF</button>
+            <button class="btn-print" onclick="printReceipt()">🖨️ In Hóa Đơn (Khổ 5x8 cm)</button>
             <button class="btn-checkout" onclick="checkout()">✅ Thanh Toán & Trả Bàn</button>
         </div>
     </div>
 </div>
 
+<!-- KHUNG HÓA ĐƠN CHUẨN 5x8 CM (K58) -->
 <div id="receiptPrint">
     <div class="receipt-header">
-        <h3 style="margin:0; font-size: 12px;">QUÁN NƯỚNG TUỔI TRẺ</h3>
-        <p style="margin:2px 0;">ĐT: 0842.163.333</p>
+        <b style="font-size: 11px;">QUÁN NƯỚNG TUỔI TRẺ</b><br>
+        <small style="font-size: 8px;">ĐT: 0842.163.333</small>
         <div class="receipt-divider"></div>
-        <b style="font-size:11px;">HÓA ĐƠN THANH TOÁN</b><br>
-        <small><span id="pTable">Bàn: --</span></small><br>
-        <small><span id="pDate">--</span></small>
+        <b style="font-size: 10px;">HÓA ĐƠN THANH TOÁN</b><br>
+        <small style="font-size: 8px;"><span id="pTable">Bàn: --</span> | <span id="pDate">--</span></small>
     </div>
     <div class="receipt-divider"></div>
     <table class="receipt-table">
@@ -166,24 +181,23 @@
             <tr>
                 <th>Tên món</th>
                 <th style="text-align:center;">SL</th>
-                <th style="text-align:right;">Tiền</th>
+                <th style="text-align:right;">T.Tiền</th>
             </tr>
         </thead>
         <tbody id="pList"></tbody>
     </table>
     <div class="receipt-divider"></div>
     <div style="text-align:right;">
-        <b>TỔNG: <span id="pTotal">0</span> đ</b>
+        <b style="font-size: 10px;">TỔNG: <span id="pTotal">0</span> đ</b>
     </div>
     <div class="receipt-divider"></div>
-    <p style="text-align:center; margin: 5px 0 0 0; font-size: 8px;">Cảm ơn & Hẹn gặp lại!</p>
+    <p style="text-align:center; margin: 3px 0 0 0; font-size: 8px;">Cảm ơn quý khách & Hẹn gặp lại!</p>
 </div>
 
 <script>
     let tablesData = {};
     let menuData = [];
     let selectedTable = null;
-    let bluetoothDevice = null;
 
     async function loadData() {
         try {
@@ -280,7 +294,7 @@
                             <input type="number" id="price_${catIdx}_${itemIdx}" class="input-edit-price" value="${item.price}">
                         </td>
                         <td>
-                            <button class="btn-sm-save" onclick="updateItemPrice(${catIdx}, ${itemIdx})">Lưu Giá</button>
+                            <button class="btn-sm-save" onclick="updateItemPrice(${catIdx}, ${itemIdx})">Lưu</button>
                             <button class="btn-sm-danger" onclick="deleteMenuItem(${catIdx}, ${itemIdx})">Xóa</button>
                         </td>
                     </tr>
@@ -297,7 +311,7 @@
         await saveMenu();
         renderMenu();
         renderManageMenu();
-        alert('Đã cập nhật giá mới thành công!');
+        alert('Đã lưu giá!');
     }
 
     async function addNewMenuItem() {
@@ -305,10 +319,7 @@
         const name = document.getElementById('newName').value.trim();
         const price = Number(document.getElementById('newPrice').value);
 
-        if (!name || !price) {
-            alert('Vui lòng nhập đầy đủ tên món và giá tiền!');
-            return;
-        }
+        if (!name || !price) return alert('Nhập đủ tên và giá!');
 
         const categoryObj = menuData.find(c => c.category === catName);
         if (categoryObj) {
@@ -318,13 +329,12 @@
             renderManageMenu();
             document.getElementById('newName').value = '';
             document.getElementById('newPrice').value = '';
-            alert('Đã thêm món thành công!');
+            alert('Đã thêm món!');
         }
     }
 
     async function deleteMenuItem(catIdx, itemIdx) {
-        const itemName = menuData[catIdx].items[itemIdx].name;
-        if (confirm(`Bạn có chắc chắn muốn XÓA món "${itemName}" khỏi menu?`)) {
+        if (confirm(`Xóa món này?`)) {
             menuData[catIdx].items.splice(itemIdx, 1);
             await saveMenu();
             renderMenu();
@@ -333,10 +343,7 @@
     }
 
     async function addToOrder(name, price) {
-        if (!selectedTable) {
-            alert('Vui lòng chọn 1 Bàn ở sơ đồ phía trên trước!');
-            return;
-        }
+        if (!selectedTable) return alert('Hãy chọn Bàn trước!');
 
         const currentOrder = tablesData[selectedTable];
         const existing = currentOrder.find(i => i.name === name);
@@ -369,7 +376,7 @@
         let total = 0;
 
         if (!selectedTable) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#999; padding:20px;">Vui lòng chọn Bàn ở sơ đồ trên</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#999; padding:15px;">Hãy chọn Bàn ở sơ đồ trên</td></tr>';
             document.getElementById('totalAmount').innerText = '0';
             return;
         }
@@ -377,7 +384,7 @@
         const currentOrder = tablesData[selectedTable] || [];
 
         if (currentOrder.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#999; padding:20px;">Bàn đang trống (chưa chọn món)</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#999; padding:15px;">Bàn đang trống</td></tr>';
             document.getElementById('totalAmount').innerText = '0';
             return;
         }
@@ -390,7 +397,7 @@
                     <td><b>${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
                     <td>
                         <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
-                        <span style="margin:0 4px;"><b>${item.qty}</b></span>
+                        <span style="margin:0 2px;"><b>${item.qty}</b></span>
                         <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
                     </td>
                     <td style="text-align:right;"><b>${itemTotal.toLocaleString()}</b></td>
@@ -427,75 +434,12 @@
 
     function printReceipt() {
         if (!selectedTable || !tablesData[selectedTable] || tablesData[selectedTable].length === 0) {
-            alert('Bàn này chưa có món nào để in!');
-            return;
+            return alert('Bàn chưa có món!');
         }
         updateReceiptDOM();
-        window.print();
-    }
-
-    async function printBluetooth() {
-        if (!selectedTable || !tablesData[selectedTable] || tablesData[selectedTable].length === 0) {
-            alert('Bàn này chưa có món nào để in!');
-            return;
-        }
-
-        if (!navigator.bluetooth) {
-            alert('Trình duyệt chưa bật Bluetooth!');
-            return;
-        }
-
-        try {
-            if (!bluetoothDevice || !bluetoothDevice.gatt.connected) {
-                bluetoothDevice = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', '495353C1-C9A0-4772-A7F2-0C824E6A3f52']
-                });
-            }
-
-            const server = await bluetoothDevice.gatt.connect();
-            const services = await server.getPrimaryServices();
-            let targetChar = null;
-
-            for (const service of services) {
-                const chars = await service.getCharacteristics();
-                if (chars.length > 0) {
-                    targetChar = chars[0];
-                    break;
-                }
-            }
-
-            if (!targetChar) return alert('Không tìm thấy dịch vụ in!');
-
-            let currentOrder = tablesData[selectedTable];
-            let total = 0;
-            let text = `   QUAN NUONG TUOI TRE\n`;
-            text += `  Hotline: 0842.163.333\n`;
-            text += `--------------------------------\n`;
-            text += `Ban: ${selectedTable}\n`;
-            text += `Ngay: ${new Date().toLocaleString('vi-VN')}\n`;
-            text += `--------------------------------\n`;
-            
-            currentOrder.forEach(item => {
-                let itemTotal = item.price * item.qty;
-                total += itemTotal;
-                text += `${item.name}\n`;
-                text += `  ${item.qty} x ${item.price.toLocaleString()} = ${itemTotal.toLocaleString()}d\n`;
-            });
-
-            text += `--------------------------------\n`;
-            text += `TONG CONG: ${total.toLocaleString()} VNĐ\n`;
-            text += `--------------------------------\n`;
-            text += `    Cam on & Hen gap lai!\n\n\n\n`;
-
-            const encoder = new TextEncoder();
-            await targetChar.writeValue(encoder.encode(text));
-            alert('Đã gửi lệnh in!');
-
-        } catch (error) {
-            console.error(error);
-            alert('Lỗi in Bluetooth: ' + error.message);
-        }
+        setTimeout(() => {
+            window.print();
+        }, 150);
     }
 
     async function checkout() {
@@ -504,7 +448,7 @@
         if (!currentOrder || currentOrder.length === 0) return;
 
         const total = document.getElementById('totalAmount').innerText;
-        if (confirm(`XÁC NHẬN THANH TOÁN:\n\n- ${selectedTable}\n- Tổng tiền: ${total} VNĐ`)) {
+        if (confirm(`THANH TOÁN ${selectedTable}\n\nTổng tiền: ${total} VNĐ`)) {
             printReceipt();
             tablesData[selectedTable] = [];
             await saveOrder(selectedTable);
