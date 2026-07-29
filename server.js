@@ -1,19 +1,21 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const app = express();
 
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Khởi tạo 16 bàn
+const DATA_FILE = path.join(__dirname, 'data.json');
+
+// Khởi tạo 16 bàn mặc định
 const tablesCount = 16;
-let tablesData = {};
+let defaultTables = {};
 for (let i = 1; i <= tablesCount; i++) {
-    tablesData[`Bàn ${i < 10 ? '0' + i : i}`] = [];
+    defaultTables[`Bàn ${i < 10 ? '0' + i : i}`] = [];
 }
 
-let revenueHistory = [];
-
+// Menu mặc định
 let defaultMenu = [
     { category: "CÁC COMBO NƯỚNG", items: [
         { name: "Combo 1 (Dành cho 2-3 người)", price: 319000 },
@@ -69,41 +71,55 @@ let defaultMenu = [
     ]}
 ];
 
-let menuData = defaultMenu;
+function loadDatabase() {
+    if (fs.existsSync(DATA_FILE)) {
+        try {
+            const raw = fs.readFileSync(DATA_FILE, 'utf8');
+            return JSON.parse(raw);
+        } catch (e) {
+            console.error("Lỗi đọc file data.json");
+        }
+    }
+    return { tablesData: defaultTables, menuData: defaultMenu, revenueHistory: [] };
+}
+
+function saveDatabase(db) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2), 'utf8');
+}
+
+let db = loadDatabase();
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.get('/api/data', (req, res) => {
-    if (!menuData || menuData.length === 0) {
-        menuData = defaultMenu;
-    }
-    res.json({ tablesData, menuData });
+    res.json({ tablesData: db.tablesData, menuData: db.menuData });
 });
 
 app.post('/api/update-order', (req, res) => {
     const { tableName, order } = req.body;
-    tablesData[tableName] = order;
+    db.tablesData[tableName] = order;
+    saveDatabase(db);
     res.json({ success: true });
 });
 
 app.post('/api/update-menu', (req, res) => {
     if (req.body.menuData && req.body.menuData.length > 0) {
-        menuData = req.body.menuData;
+        db.menuData = req.body.menuData;
+        saveDatabase(db);
     }
     res.json({ success: true });
 });
 
-// API Đổi bàn / Chuyển bàn
 app.post('/api/transfer-table', (req, res) => {
     const { fromTable, toTable } = req.body;
-    if (tablesData[fromTable]) {
-        // Gộp hoặc chuyển dữ liệu sang bàn mới
-        tablesData[toTable] = tablesData[toTable].concat(tablesData[fromTable]);
-        tablesData[fromTable] = []; // Xóa bàn cũ
+    if (db.tablesData[fromTable]) {
+        db.tablesData[toTable] = db.tablesData[toTable].concat(db.tablesData[fromTable]);
+        db.tablesData[fromTable] = [];
+        saveDatabase(db);
     }
-    res.json({ success: true, tablesData });
+    res.json({ success: true, tablesData: db.tablesData });
 });
 
 app.post('/api/checkout', (req, res) => {
@@ -122,20 +138,25 @@ app.post('/api/checkout', (req, res) => {
         timeStr
     };
 
-    revenueHistory.push(newRecord);
-    tablesData[tableName] = [];
+    if (!db.revenueHistory) db.revenueHistory = [];
+    db.revenueHistory.push(newRecord);
+    db.tablesData[tableName] = [];
 
+    saveDatabase(db);
     res.json({ success: true, record: newRecord });
 });
 
 app.post('/api/delete-revenue', (req, res) => {
     const { id } = req.body;
-    revenueHistory = revenueHistory.filter(item => item.id !== id);
+    if (db.revenueHistory) {
+        db.revenueHistory = db.revenueHistory.filter(item => item.id !== id);
+        saveDatabase(db);
+    }
     res.json({ success: true });
 });
 
 app.get('/api/revenue', (req, res) => {
-    res.json({ revenueHistory });
+    res.json({ revenueHistory: db.revenueHistory || [] });
 });
 
 const PORT = process.env.PORT || 3000;
