@@ -101,6 +101,7 @@
         .order-table th, .order-table td { padding: 5px 3px; border-bottom: 1px solid #eee; text-align: left; font-size: 12px; }
         .qty-btn { width: 24px; height: 24px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-weight: bold; border-radius: 4px; }
         .qty-btn:disabled { background: #e0e0e0; color: #aaa; border-color: #ddd; cursor: not-allowed; }
+        .btn-delete-item { background: #ff4d4d; color: white; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
         
         .discount-box { background: #f8f9fa; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; margin-top: 8px; font-size: 12px; }
         .discount-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
@@ -165,7 +166,6 @@
 <div class="settings-panel" id="settingsPanel">
     <h3 style="margin-top:0; color:#856404; font-size:15px;">⚙️ Cấu Hình Máy Chủ Quản Lý</h3>
 
-    <!-- QUẢN LÝ DANH SÁCH TÊN NHÂN VIÊN VÀ MÃ PIN TRÊN MÁY CHỦ -->
     <div class="setting-row" style="background:#fef9e7; border:1px solid #f9e79f;">
         <b style="font-size:13px; color:#b7950b;">👤 Quản Lý Danh Sách Tên Nhân Viên & Mã PIN Máy Chủ:</b>
         <p style="font-size:11px; color:#7f8c8d; margin:3px 0 8px 0;">Cài đặt Tên người dùng và Mã PIN riêng cho từng máy (Chủ quán chọn role Admin, Nhân viên chọn role Staff)</p>
@@ -408,7 +408,7 @@
     let bankId = localStorage.getItem('bankId') || '';
     let bankAcc = localStorage.getItem('bankAcc') || '';
     let isCustomerMode = false;
-    let userRole = localStorage.getItem('userRole') || ''; // admin | staff
+    let userRole = localStorage.getItem('userRole') || ''; 
     let currentStaffName = localStorage.getItem('currentStaffName') || '';
     let currentPayType = 'TIỀN MẶT';
     let knownPendingTables = new Set();
@@ -422,7 +422,6 @@
         selectedTable = `Bàn ${num < 10 ? '0' + num : num}`;
     }
 
-    // ĐĂNG NHẬP BẰNG API KIỂM TRA MÃ PIN TỪ SERVER
     async function checkPinLogin() {
         let pin = document.getElementById('pinInput').value.trim();
         if (!pin) return alert('Vui lòng nhập mã PIN!');
@@ -489,7 +488,6 @@
             roleBadge.innerText = "NHÂN VIÊN";
             roleBadge.style.background = "#3498db";
             
-            // NHÂN VIÊN BỊ ẨN DOANH THU & CÀI ĐẶT
             document.getElementById('btnHeaderRev').style.display = 'none';
             document.getElementById('btnHeaderSet').style.display = 'none';
             
@@ -811,7 +809,6 @@
         });
     }
 
-    // RENDER LỊCH SỬ DOANH THU CÓ TÊN NHÂN VIÊN
     function renderRevenue() {
         const selectedDate = document.getElementById('revenueDatePicker').value;
         const filtered = revenueHistory.filter(item => item.dateStr === selectedDate);
@@ -1096,8 +1093,8 @@
         const currentTableObj = tablesData[selectedTable];
         const currentOrder = currentTableObj.order;
 
-        if (isCustomerMode && currentOrder[index].locked && amount < 0) {
-            return alert('Món này đã gửi bếp, không thể giảm! Vui lòng báo nhân viên.');
+        if (isCustomerMode && currentOrder[index].locked) {
+            return alert('Món này đã gửi bếp, không thể thay đổi! Vui lòng báo nhân viên.');
         }
 
         currentOrder[index].qty += amount;
@@ -1105,6 +1102,24 @@
             currentOrder.splice(index, 1);
         }
         
+        let targetStatus = currentOrder.length === 0 ? 'empty' : currentTableObj.status;
+        await saveOrder(selectedTable, targetStatus);
+        renderTables();
+        renderMenu();
+        renderOrder();
+    }
+
+    // HÀM XÓA HẲN MÓN BẤM NHẦM (CHO CẢ KHÁCH VÀ NHÂN VIÊN)
+    async function deleteOrderItem(index) {
+        if (!selectedTable) return;
+        const currentTableObj = tablesData[selectedTable];
+        const currentOrder = currentTableObj.order;
+
+        if (isCustomerMode && currentOrder[index].locked) {
+            return alert('Món này đã gửi bếp, không thể xóa! Vui lòng báo nhân viên.');
+        }
+
+        currentOrder.splice(index, 1);
         let targetStatus = currentOrder.length === 0 ? 'empty' : currentTableObj.status;
         await saveOrder(selectedTable, targetStatus);
         renderTables();
@@ -1156,6 +1171,7 @@
         return finalTotal > 0 ? finalTotal : 0;
     }
 
+    // HIỂN THỊ DANH SÁCH MÓN GỌI VỚI NÚT XÓA MÓN NHẦM CHO KHÁCH
     function renderOrder() {
         const container = document.getElementById('orderContentArea');
         container.innerHTML = '';
@@ -1207,6 +1223,7 @@
                                 <th>Tên món mới</th>
                                 <th style="width:65px;">SL</th>
                                 <th style="text-align:right;">Thành tiền</th>
+                                <th style="text-align:center; width:35px;">Xóa</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1214,15 +1231,19 @@
 
             newItems.forEach(({ item, index }) => {
                 const itemTotal = item.price * item.qty;
+                const canEdit = !(isCustomerMode && item.locked);
                 html += `
                     <tr>
                         <td><b style="color:#d35400;">${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
                         <td>
-                            <button class="qty-btn" ${isCustomerMode && item.locked ? 'disabled' : ''} onclick="changeQty(${index}, -1)">-</button>
+                            <button class="qty-btn" ${!canEdit ? 'disabled' : ''} onclick="changeQty(${index}, -1)">-</button>
                             <span style="margin:0 2px;"><b>${item.qty}</b></span>
-                            <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+                            <button class="qty-btn" ${!canEdit ? 'disabled' : ''} onclick="changeQty(${index}, 1)">+</button>
                         </td>
                         <td style="text-align:right; color:#d35400;"><b>${itemTotal.toLocaleString()}</b></td>
+                        <td style="text-align:center;">
+                            <button class="btn-delete-item" ${!canEdit ? 'disabled style="opacity:0.3;"' : ''} onclick="deleteOrderItem(${index})">🗑️</button>
+                        </td>
                     </tr>
                 `;
             });
@@ -1240,6 +1261,7 @@
                                 <th>Tên món</th>
                                 <th style="width:65px;">SL</th>
                                 <th style="text-align:right;">Thành tiền</th>
+                                <th style="text-align:center; width:35px;">Xóa</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1247,15 +1269,19 @@
 
             oldItems.forEach(({ item, index }) => {
                 const itemTotal = item.price * item.qty;
+                const canEdit = !(isCustomerMode && item.locked);
                 html += `
                     <tr>
                         <td><b>${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
                         <td>
-                            <button class="qty-btn" ${isCustomerMode && item.locked ? 'disabled' : ''} onclick="changeQty(${index}, -1)">-</button>
+                            <button class="qty-btn" ${!canEdit ? 'disabled' : ''} onclick="changeQty(${index}, -1)">-</button>
                             <span style="margin:0 2px;"><b>${item.qty}</b></span>
-                            <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+                            <button class="qty-btn" ${!canEdit ? 'disabled' : ''} onclick="changeQty(${index}, 1)">+</button>
                         </td>
                         <td style="text-align:right;"><b>${itemTotal.toLocaleString()}</b></td>
+                        <td style="text-align:center;">
+                            <button class="btn-delete-item" ${!canEdit ? 'disabled style="opacity:0.3;"' : ''} onclick="deleteOrderItem(${index})">🗑️</button>
+                        </td>
                     </tr>
                 `;
             });
@@ -1411,7 +1437,6 @@
         }
     }
 
-    // GỬI THANH TOÁN KÈM THEO TÊN NHÂN VIÊN ĐANG ĐĂNG NHẬP
     async function executeCheckout() {
         const finalTotal = calculateFinalTotal();
         const currentTableObj = tablesData[selectedTable];
