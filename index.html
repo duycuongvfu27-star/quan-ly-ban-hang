@@ -23,6 +23,8 @@
         .btn-hdr-rev { background: #27ae60; }
         .btn-hdr-qr { background: #8e44ad; }
 
+        .audio-banner { background: #e74c3c; color: white; padding: 8px; text-align: center; font-size: 12px; font-weight: bold; border-radius: 6px; margin-bottom: 10px; cursor: pointer; display: block; }
+
         .table-grid-section { background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
         .table-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-top: 8px; }
         .table-card { padding: 8px 4px; text-align: center; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; border: 2px solid transparent; transition: 0.15s; }
@@ -122,10 +124,13 @@
     </div>
 </div>
 
+<div class="audio-banner" id="audioBanner" onclick="enableAudioAndVibration()">
+    🗣️ BẤM VÀO ĐÂY LẦN ĐẦU ĐỂ KÍCH HOẠT LOA ĐỌC TÊN BÀN ORDER
+</div>
+
 <div class="settings-panel" id="settingsPanel">
     <h3 style="margin-top:0; color:#856404; font-size:15px;">⚙️ Cấu Hình Ngân Hàng VietQR & Máy In</h3>
     
-    <!-- CẤU HÌNH TÀI KHOẢN NGÂN HÀNG LẤY MÃ VIETQR -->
     <div class="setting-row">
         <b style="font-size:13px; color:#2c3e50;">💳 Cài Đặt Tài Khoản Ngân Hàng (Tạo mã VietQR tự động):</b>
         <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
@@ -135,7 +140,6 @@
         </div>
     </div>
 
-    <!-- CÀI ĐẶT ĐỊNH VỊ GPS QUÁN -->
     <div class="setting-row">
         <b style="font-size:13px; color:#2c3e50;">📍 Cài Đặt Tọa Độ GPS Quán (Chặn đặt ngoài bán kính 50m):</b>
         <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
@@ -253,7 +257,6 @@
             <p style="text-align:center; color:#999; padding:15px;">Vui lòng chọn Bàn trước khi gọi món</p>
         </div>
 
-        <!-- MỤC TÍNH GIẢM GIÁ VÀ PHỤ THU -->
         <div class="discount-box" id="adminDiscountArea">
             <div class="discount-row">
                 <span>Giảm giá (%):</span>
@@ -283,7 +286,6 @@
     </div>
 </div>
 
-<!-- POPUP THANH TOÁN TIỀN MẶT VÀ CHUYỂN KHOẢN VIETQR -->
 <div class="modal-overlay" id="paymentModal">
     <div class="modal-box">
         <h3 style="margin-top:0; color:#27ae60; font-size:16px;">💳 Chọn Hình Thức Thanh Toán</h3>
@@ -330,7 +332,7 @@
     let bankAcc = localStorage.getItem('bankAcc') || '';
     let isCustomerMode = false;
     let currentPayType = 'TIỀN MẶT';
-    let lastPendingCount = 0;
+    let knownPendingTables = new Set(); // LƯU TÊN CÁC BÀN ĐANG CÓ ĐƠN MỚI DÙNG ĐỂ ĐỌC TÊN
 
     const urlParams = new URLSearchParams(window.location.search);
     const paramTable = urlParams.get('table');
@@ -348,21 +350,28 @@
     if (bankAcc) document.getElementById('bankAccInput').value = bankAcc;
     updatePrintBtnLabel();
 
-    // HÀM PHÁT TIẾNG CHUÔNG BÁO ĐƠN MỚI
-    function playAudioNotification() {
-        try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(880, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.5);
-            gain.gain.setValueAtTime(0.3, ctx.currentTime);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.5);
-        } catch(e) {}
+    function enableAudioAndVibration() {
+        speakText("Đã bật tính năng đọc tên bàn thành công");
+        document.getElementById('audioBanner').innerText = "✅ ĐÃ KÍCH HOẠT LOA ĐỌC TÊN BÀN ORDER THÀNH CÔNG";
+        document.getElementById('audioBanner').style.background = "#27ae60";
+        setTimeout(() => {
+            document.getElementById('audioBanner').style.display = "none";
+        }, 3000);
+    }
+
+    // CÔNG NGHỆ CHỊ GOOGLE ĐỌC TÊN BÀN "BÀN X ORDER"
+    function speakText(text) {
+        if (navigator.vibrate) {
+            navigator.vibrate([200, 100, 200, 100, 400]); // Rung máy
+        }
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // Dừng câu cũ
+            let utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'vi-VN';
+            utterance.rate = 1.0; // Tốc độ đọc
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
     }
 
     function saveBankConfig() {
@@ -370,7 +379,7 @@
         bankAcc = document.getElementById('bankAccInput').value.trim();
         localStorage.setItem('bankId', bankId);
         localStorage.setItem('bankAcc', bankAcc);
-        alert('Đã lưu tài khoản Ngân hàng! VietQR tự động điền tiền đã sẵn sàng.');
+        alert('Đã lưu tài khoản Ngân hàng!');
     }
 
     function getCurrentGPS() {
@@ -391,7 +400,7 @@
         targetLng = parseFloat(document.getElementById('gpsLngInput').value);
         localStorage.setItem('gpsLat', targetLat);
         localStorage.setItem('gpsLng', targetLng);
-        alert(`Đã lưu tọa độ quán! Chặn xa hơn 50m.`);
+        alert(`Đã lưu tọa độ quán!`);
     }
 
     function getDistanceInMeters(lat1, lon1, lat2, lon2) {
@@ -413,6 +422,7 @@
             document.getElementById('adminHeaderBtns').style.display = 'none';
             document.getElementById('adminTableSection').style.display = 'none';
             document.getElementById('adminDiscountArea').style.display = 'none';
+            document.getElementById('audioBanner').style.display = 'none';
             document.getElementById('adminBtnGroup').style.display = 'none';
             document.getElementById('customerBtnGroup').style.display = 'flex';
             document.getElementById('selectedTableTitle').innerText = `${selectedTable} (Bạn đang ngồi)`;
@@ -441,16 +451,21 @@
             tablesData = data.tablesData;
             menuData = data.menuData;
 
-            // KIỂM TRA ĐƠN MỚI ĐỂ PHÁT ÂM THANH
-            let currentPendingCount = 0;
-            Object.keys(tablesData).forEach(k => {
-                if (tablesData[k] && tablesData[k].status === 'pending') currentPendingCount++;
-            });
-
-            if (!isCustomerMode && currentPendingCount > lastPendingCount) {
-                playAudioNotification();
+            // KIỂM TRA BÀN NÀO VỪA ORDER ĐỂ PHÁT ÂM THANH BÁO TÊN BÀN ĐÓ
+            if (!isCustomerMode) {
+                let currentPendingSet = new Set();
+                Object.keys(tablesData).forEach(tName => {
+                    if (tablesData[tName] && tablesData[tName].status === 'pending') {
+                        currentPendingSet.add(tName);
+                        // Nếu bàn này chưa có trong danh sách đã biết -> Phát âm thanh đọc tên bàn
+                        if (!knownPendingTables.has(tName)) {
+                            let cleanName = tName.replace('Bàn 0', 'Bàn ').replace('Bàn ', 'Bàn ');
+                            speakText(`${cleanName} order`);
+                        }
+                    }
+                });
+                knownPendingTables = currentPendingSet;
             }
-            lastPendingCount = currentPendingCount;
 
             setupViewMode();
             renderTables();
@@ -646,6 +661,7 @@
         });
 
         tablesData[selectedTable].status = 'confirmed';
+        knownPendingTables.delete(selectedTable);
         renderTables();
         renderOrder();
         alert(`Đã xác nhận đơn món mới của ${selectedTable}! Sơ đồ chuyển sang MÀU ĐỎ.`);
@@ -974,7 +990,6 @@
         document.getElementById('totalAmount').innerText = calculateFinalTotal().toLocaleString();
     }
 
-    // IN PHIẾU BÁO BẾP RIÊNG BIỆT
     function printKitchenTicket() {
         if (!selectedTable || !tablesData[selectedTable] || !tablesData[selectedTable].order || tablesData[selectedTable].order.length === 0) {
             return alert('Bàn chưa có món!');
@@ -1135,7 +1150,6 @@
             })
         });
 
-        // ĐẶT LẠI GIẢM GIÁ
         document.getElementById('discountPercent').value = 0;
         document.getElementById('surchargeAmount').value = 0;
 
