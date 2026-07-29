@@ -104,7 +104,6 @@
         .section-old-orders { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 6px; margin-bottom: 10px; }
         .title-old-orders { font-weight: bold; color: #7f8c8d; font-size: 12px; margin-bottom: 4px; }
 
-        /* GIAO DIỆN MÀN HÌNH CẢM ƠN CHO KHÁCH HÀNG */
         .thankyou-screen { display: none; background: white; border-radius: 12px; padding: 20px 15px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 10px; }
         .thankyou-heart { font-size: 45px; animation: bounce 1.2s infinite; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
@@ -249,7 +248,6 @@
     <div class="table-grid" id="tableGrid"></div>
 </div>
 
-<!-- KHUNG HIỂN THỊ CẢM ƠN DÀNH CHO KHÁCH HÀNG SAU KHÍ THANH TOÁN -->
 <div class="thankyou-screen" id="customerThankyouScreen">
     <div class="thankyou-heart">❤️</div>
     <h2 style="color:#c0392b; margin:6px 0; font-size:18px;">CẢM ƠN QUÝ KHÁCH!</h2>
@@ -378,22 +376,34 @@
         }, 3000);
     }
 
+    // ÉP BẮT BUỘC ĐỌC BẰNG BỘ ĐỌC TIẾNG VIỆT
     function speakText(text) {
         if (navigator.vibrate) {
             navigator.vibrate([200, 100, 200, 100, 400]);
         }
         
-        let audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=vi&client=tw-ob`;
-        let audio = new Audio(audioUrl);
-        audio.play().catch(e => {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                let utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'vi-VN';
-                utterance.rate = 0.9;
-                window.speechSynthesis.speak(utterance);
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            let utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'vi-VN';
+            
+            // Tìm giọng đọc Tiếng Việt chuẩn trong máy
+            let voices = window.speechSynthesis.getVoices();
+            let viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VI'));
+            if (viVoice) {
+                utterance.voice = viVoice;
             }
-        });
+            
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    // Nạp giọng đọc ngay khi ứng dụng khởi chạy
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = function() {
+            window.speechSynthesis.getVoices();
+        };
     }
 
     function saveBankConfig() {
@@ -487,7 +497,6 @@
                 });
                 knownPendingTables = currentPendingSet;
             } else {
-                // KIỂM TRA ĐIỆN THOẠI KHÁCH CÓ VỪA ĐƯỢC THANH TOÁN HAY KHÔNG
                 const currentTableObj = tablesData[selectedTable];
                 if (currentTableObj && currentTableObj.lastBill) {
                     showCustomerThankyou(currentTableObj.lastBill);
@@ -505,7 +514,6 @@
         }
     }
 
-    // HIỂN THỊ MÀN HÌNH CẢM ƠN VÀ BILL CHO KHÁCH
     function showCustomerThankyou(bill) {
         document.getElementById('mainAppLayout').style.display = 'none';
         const thankyouScreen = document.getElementById('customerThankyouScreen');
