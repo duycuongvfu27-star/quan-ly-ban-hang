@@ -100,9 +100,7 @@
         .order-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; margin-top: 4px; }
         .order-table th, .order-table td { padding: 5px 3px; border-bottom: 1px solid #eee; text-align: left; font-size: 12px; }
         .qty-btn { width: 24px; height: 24px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-weight: bold; border-radius: 4px; }
-        .qty-btn:disabled { background: #e0e0e0; color: #aaa; border-color: #ddd; cursor: not-allowed; }
         .btn-delete-item { background: #ff4d4d; color: white; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
-        .btn-delete-item:disabled { opacity: 0.3; cursor: not-allowed; background: #ccc; }
         
         .discount-box { background: #f8f9fa; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; margin-top: 8px; font-size: 12px; }
         .discount-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
@@ -909,8 +907,7 @@
         
         const currentTableObj = tablesData[selectedTable];
         currentTableObj.order.forEach(item => {
-            item.turnStatus = 'confirmed';
-            item.confirmedQty = item.qty; // Chốt mốc cho phép hủy của bếp
+            item.sentQty = item.qty; // Chốt số lượng bếp đã nhận
         });
 
         await fetch('/api/confirm-table', {
@@ -1078,36 +1075,32 @@
                 name, 
                 price, 
                 qty: 1, 
-                confirmedQty: 0,
-                locked: false,
-                turnStatus: 'new'
+                sentQty: 0
             });
         }
         
-        let targetStatus = isCustomerMode ? 'pending' : (currentTableObj.status === 'pending' ? 'pending' : 'confirmed');
-        await saveOrder(selectedTable, targetStatus);
-        renderTables();
+        // NẾU LÀ MÁY QUẢN LÝ / NHÂN VIÊN -> LƯU VỀ MÁY CHỦ
+        // NẾU LÀ MÁY KHÁCH CHỌN MÓN KHÔNG TỰ ĐỘNG GỬI -> BẤM "GỬI YÊU CẦU" MỚI GỬI
+        if (!isCustomerMode) {
+            let targetStatus = currentTableObj.status === 'pending' ? 'pending' : 'confirmed';
+            await saveOrder(selectedTable, targetStatus);
+            renderTables();
+        }
+        
         renderMenu();
         renderOrder();
     }
 
-    // HÀM GIẢM SỐ LƯỢNG SỬA ĐỔI CHUẨN LOGIC
     async function changeQty(index, amount) {
         if (!selectedTable) return;
         const currentTableObj = tablesData[selectedTable];
         const currentOrder = currentTableObj.order;
         const item = currentOrder[index];
 
-        let confirmedQty = item.confirmedQty || (item.locked ? item.qty : 0);
+        let limitQty = item.sentQty || 0;
 
-        if (isCustomerMode) {
-            if (amount < 0 && item.qty + amount < confirmedQty) {
-                if (confirmedQty > 0) {
-                    return alert(`Món này đã gửi bếp ${confirmedQty} phần ở lượt trước! Vui lòng báo nhân viên nếu muốn hủy.`);
-                } else {
-                    return alert('Món này đã gửi bếp, không thể giảm!');
-                }
-            }
+        if (isCustomerMode && amount < 0 && item.qty + amount < limitQty) {
+            return alert(`Món này đã gửi bếp ${limitQty} phần ở lượt trước, không thể giảm thêm! Vui lòng báo nhân viên.`);
         }
 
         item.qty += amount;
@@ -1115,39 +1108,44 @@
             currentOrder.splice(index, 1);
         }
         
-        let targetStatus = currentOrder.length === 0 ? 'empty' : currentTableObj.status;
-        await saveOrder(selectedTable, targetStatus);
-        renderTables();
+        if (!isCustomerMode) {
+            let targetStatus = currentOrder.length === 0 ? 'empty' : currentTableObj.status;
+            await saveOrder(selectedTable, targetStatus);
+            renderTables();
+        }
+
         renderMenu();
         renderOrder();
     }
 
-    // HÀM XÓA MÓN BẤM NHẦM TẠI LƯỢT GỌI MỚI
     async function deleteOrderItem(index) {
         if (!selectedTable) return;
         const currentTableObj = tablesData[selectedTable];
         const currentOrder = currentTableObj.order;
         const item = currentOrder[index];
 
-        let confirmedQty = item.confirmedQty || (item.locked ? item.qty : 0);
+        let limitQty = item.sentQty || 0;
 
         if (isCustomerMode) {
-            if (confirmedQty > 0) {
-                if (item.qty > confirmedQty) {
-                    item.qty = confirmedQty; // Trả số lượng về đúng mốc đã chốt ở lượt cũ
+            if (limitQty > 0) {
+                if (item.qty > limitQty) {
+                    item.qty = limitQty; 
                 } else {
-                    return alert(`Món này đã gửi bếp ${confirmedQty} phần ở lượt trước, không thể xóa! Vui lòng báo nhân viên.`);
+                    return alert(`Món này đã gửi bếp ${limitQty} phần ở lượt trước! Vui lòng báo nhân viên nếu muốn hủy.`);
                 }
             } else {
-                currentOrder.splice(index, 1); // Xóa hẳn nếu là món mới chọn nhầm ở lượt này
+                currentOrder.splice(index, 1); 
             }
         } else {
-            currentOrder.splice(index, 1); // Quản lý/NV có quyền xóa hẳn
+            currentOrder.splice(index, 1); 
         }
 
-        let targetStatus = currentOrder.length === 0 ? 'empty' : currentTableObj.status;
-        await saveOrder(selectedTable, targetStatus);
-        renderTables();
+        if (!isCustomerMode) {
+            let targetStatus = currentOrder.length === 0 ? 'empty' : currentTableObj.status;
+            await saveOrder(selectedTable, targetStatus);
+            renderTables();
+        }
+
         renderMenu();
         renderOrder();
     }
@@ -1175,10 +1173,10 @@
     async function processSendOrder() {
         const currentTableObj = tablesData[selectedTable];
         currentTableObj.order.forEach(item => {
-            item.locked = true;
-            item.confirmedQty = item.qty; // Chốt mốc số lượng đã chốt gửi bếp
+            item.sentQty = item.qty; // Chốt mốc số lượng gửi bếp
         });
 
+        // LÚC NÀY MỚI LƯU & BÁO CHÍNH THỨC VỀ MÁY CHỦ
         await saveOrder(selectedTable, 'pending');
         renderOrder();
         alert(`✅ ĐÃ GỬI YÊU CẦU THÀNH CÔNG!\n\nNhân viên sẽ mang món lên ngay cho ${selectedTable}. Chúc bạn ngon miệng!`);
@@ -1240,23 +1238,18 @@
 
         currentOrder.forEach((item, index) => {
             const itemTotal = item.price * item.qty;
-            const confirmedQty = item.confirmedQty || (item.locked ? item.qty : 0);
-            
-            // Điều kiện hoạt động của nút Giảm (-) và Xóa (🗑️)
-            const canDecrease = !(isCustomerMode && item.qty <= confirmedQty);
-            const canDelete = !(isCustomerMode && confirmedQty > 0 && item.qty <= confirmedQty);
 
             html += `
                 <tr>
                     <td><b>${item.name}</b><br><small>${item.price.toLocaleString()}đ</small></td>
                     <td>
-                        <button class="qty-btn" ${!canDecrease ? 'disabled' : ''} onclick="changeQty(${index}, -1)">-</button>
+                        <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
                         <span style="margin:0 2px;"><b>${item.qty}</b></span>
                         <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
                     </td>
                     <td style="text-align:right;"><b>${itemTotal.toLocaleString()}</b></td>
                     <td style="text-align:center;">
-                        <button class="btn-delete-item" ${!canDelete ? 'disabled' : ''} onclick="deleteOrderItem(${index})">🗑️</button>
+                        <button class="btn-delete-item" onclick="deleteOrderItem(${index})">🗑️</button>
                     </td>
                 </tr>
             `;
