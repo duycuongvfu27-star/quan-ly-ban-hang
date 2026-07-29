@@ -99,8 +99,11 @@ const full16Tables = {
 
 let defaultData = {
     usersPin: [
-        { name: "Admin (Máy chủ)", pin: "1234", role: "admin" },
-        { name: "Nhân viên 01", pin: "5555", role: "staff" }
+        { name: "Hoàn", pin: "1234", role: "admin" },
+        { name: "Hòa (Chủ)", pin: "1234", role: "admin" },
+        { name: "Loan", pin: "5555", role: "staff" },
+        { name: "Hiên", pin: "6666", role: "staff" },
+        { name: "Hòa (NV)", pin: "7777", role: "staff" }
     ],
     tablesData: full16Tables,
     menuData: fullMenuData,
@@ -114,7 +117,6 @@ function loadData() {
             const parsed = JSON.parse(raw);
             parsed.menuData = fullMenuData;
             
-            // Tự động bổ sung đủ 16 bàn nếu file cũ bị thiếu
             if (!parsed.tablesData) {
                 parsed.tablesData = full16Tables;
             } else {
@@ -171,6 +173,15 @@ app.post('/api/login-pin', (req, res) => {
     } else {
         res.json({ success: false, message: "Mã PIN không chính xác!" });
     }
+});
+
+// API CẬP NHẬT (THÊM / XÓA) NHÂN VIÊN VÀ MÃ PIN
+app.post('/api/update-users', (req, res) => {
+    const { usersPin } = req.body;
+    db = loadData();
+    db.usersPin = usersPin;
+    saveData(db);
+    res.json({ success: true, message: "Đã cập nhật danh sách nhân viên!" });
 });
 
 app.post('/api/update-order', (req, res) => {
