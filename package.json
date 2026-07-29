@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/duycuongvfu27-star/quan-ly-ban-hang/issues"
   },
-  "homepage": "https://github.com/duycuongvfu27-star/quan-ly-ban-hang#readme"
+  "homepage": "https://github.com/duycuongvfu27-star/quan-ly-ban-hang#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
 }
