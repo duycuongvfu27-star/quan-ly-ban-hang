@@ -1,15 +1,28 @@
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
+const mongoose = require('mongoose');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(__dirname));
 
-const DATA_FILE = path.join(__dirname, 'data.json');
+// CHUỖI KẾT NỐI MONGODB ATLAS CỦA BẠN:
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://duycuongvfu27_db_user:ZuJ3gcVJLHTuzLTV@cluster0.dt5kmd1.mongodb.net/nuongtuoitre?retryWrites=true&w=majority";
 
-// THỰC ĐƠN CHUẨN ĐƯỢC CẤU HÌNH CỐ ĐỊNH TỪ MENU HÌNH ẢNH CỦA QUÁN NƯỚNG TUỔI TRẺ
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('✅ Đã kết nối thành công tới MongoDB Atlas!'))
+    .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
+
+const AppDataSchema = new mongoose.Schema({
+    idKey: { type: String, default: "main_data", unique: true },
+    usersPin: Array,
+    tablesData: Object,
+    revenueHistory: Array
+});
+
+const AppData = mongoose.model('AppData', AppDataSchema);
+
 const fullMenuData = [
     {
         category: "CÁC COMBO NƯỚNG",
@@ -77,96 +90,51 @@ const fullMenuData = [
     }
 ];
 
-// KHỞI TẠO ĐỦ 16 BÀN
-const full16Tables = {
-    "Bàn 01": { order: [], status: "empty" },
-    "Bàn 02": { order: [], status: "empty" },
-    "Bàn 03": { order: [], status: "empty" },
-    "Bàn 04": { order: [], status: "empty" },
-    "Bàn 05": { order: [], status: "empty" },
-    "Bàn 06": { order: [], status: "empty" },
-    "Bàn 07": { order: [], status: "empty" },
-    "Bàn 08": { order: [], status: "empty" },
-    "Bàn 09": { order: [], status: "empty" },
-    "Bàn 10": { order: [], status: "empty" },
-    "Bàn 11": { order: [], status: "empty" },
-    "Bàn 12": { order: [], status: "empty" },
-    "Bàn 13": { order: [], status: "empty" },
-    "Bàn 14": { order: [], status: "empty" },
-    "Bàn 15": { order: [], status: "empty" },
-    "Bàn 16": { order: [], status: "empty" }
-};
-
-let defaultData = {
-    usersPin: [
-        { name: "Hoàn", pin: "1234", role: "admin" },
-        { name: "Hòa (Chủ)", pin: "1234", role: "admin" },
-        { name: "Loan", pin: "5555", role: "staff" },
-        { name: "Hiên", pin: "6666", role: "staff" },
-        { name: "Hòa (NV)", pin: "7777", role: "staff" }
-    ],
-    tablesData: full16Tables,
-    menuData: fullMenuData,
-    revenueHistory: []
-};
-
-function loadData() {
-    if (fs.existsSync(DATA_FILE)) {
-        try {
-            const raw = fs.readFileSync(DATA_FILE, 'utf8');
-            const parsed = JSON.parse(raw);
-            parsed.menuData = fullMenuData;
-            
-            if (!parsed.tablesData) {
-                parsed.tablesData = full16Tables;
-            } else {
-                for (let i = 1; i <= 16; i++) {
-                    let tableName = `Bàn ${i < 10 ? '0' + i : i}`;
-                    if (!parsed.tablesData[tableName]) {
-                        parsed.tablesData[tableName] = { order: [], status: "empty" };
-                    }
-                }
-            }
-            if (!parsed.usersPin) parsed.usersPin = defaultData.usersPin;
-            return parsed;
-        } catch (e) {
-            return defaultData;
-        }
-    } else {
-        try {
-            fs.writeFileSync(DATA_FILE, JSON.stringify(defaultData, null, 2));
-        } catch(err) {}
-        return defaultData;
-    }
+const full16Tables = {};
+for (let i = 1; i <= 16; i++) {
+    let tableName = `Bàn ${i < 10 ? '0' + i : i}`;
+    full16Tables[tableName] = { order: [], status: "empty" };
 }
 
-function saveData(data) {
-    try {
-        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-    } catch(err) {
-        console.error("Lỗi ghi file:", err);
-    }
-}
+const defaultUsersPin = [
+    { name: "Admin (Máy chủ)", pin: "1234", role: "admin" },
+    { name: "Nhân viên 01", pin: "5555", role: "staff" }
+];
 
-let db = loadData();
+async function getDBData() {
+    let doc = await AppData.findOne({ idKey: "main_data" });
+    if (!doc) {
+        doc = await AppData.create({
+            idKey: "main_data",
+            usersPin: defaultUsersPin,
+            tablesData: full16Tables,
+            revenueHistory: []
+        });
+    }
+    return doc;
+}
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.get('/api/data', (req, res) => {
-    db = loadData();
-    res.json({
-        tablesData: db.tablesData || full16Tables,
-        menuData: fullMenuData,
-        usersPin: db.usersPin || defaultData.usersPin
-    });
+app.get('/api/data', async (req, res) => {
+    try {
+        const db = await getDBData();
+        res.json({
+            tablesData: db.tablesData || full16Tables,
+            menuData: fullMenuData,
+            usersPin: db.usersPin || defaultUsersPin
+        });
+    } catch(e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
-app.post('/api/login-pin', (req, res) => {
+app.post('/api/login-pin', async (req, res) => {
     const { pin } = req.body;
-    db = loadData();
-    const userList = db.usersPin || defaultData.usersPin;
+    const db = await getDBData();
+    const userList = db.usersPin || defaultUsersPin;
     const foundUser = userList.find(u => u.pin === pin);
     if (foundUser) {
         res.json({ success: true, user: foundUser });
@@ -175,55 +143,56 @@ app.post('/api/login-pin', (req, res) => {
     }
 });
 
-// API CẬP NHẬT (THÊM / XÓA) NHÂN VIÊN VÀ MÃ PIN
-app.post('/api/update-users', (req, res) => {
+app.post('/api/update-users', async (req, res) => {
     const { usersPin } = req.body;
-    db = loadData();
+    const db = await getDBData();
     db.usersPin = usersPin;
-    saveData(db);
-    res.json({ success: true, message: "Đã cập nhật danh sách nhân viên!" });
+    db.markModified('usersPin');
+    await db.save();
+    res.json({ success: true });
 });
 
-app.post('/api/update-order', (req, res) => {
+app.post('/api/update-order', async (req, res) => {
     const { tableName, order, status } = req.body;
+    const db = await getDBData();
     if (!db.tablesData) db.tablesData = full16Tables;
+    
     if (db.tablesData[tableName]) {
         db.tablesData[tableName].order = order;
         db.tablesData[tableName].status = status;
-        saveData(db);
+        db.markModified('tablesData');
+        await db.save();
     }
     res.json({ success: true });
 });
 
-app.post('/api/confirm-table', (req, res) => {
+app.post('/api/confirm-table', async (req, res) => {
     const { tableName, order } = req.body;
-    if (!db.tablesData) db.tablesData = full16Tables;
-    if (db.tablesData[tableName]) {
+    const db = await getDBData();
+    if (db.tablesData && db.tablesData[tableName]) {
         db.tablesData[tableName].order = order;
         db.tablesData[tableName].status = 'confirmed';
-        saveData(db);
+        db.markModified('tablesData');
+        await db.save();
     }
     res.json({ success: true });
 });
 
-app.post('/api/transfer-table', (req, res) => {
+app.post('/api/transfer-table', async (req, res) => {
     const { fromTable, toTable } = req.body;
-    if (!db.tablesData) db.tablesData = full16Tables;
+    const db = await getDBData();
     if (db.tablesData[fromTable] && db.tablesData[toTable]) {
         db.tablesData[toTable].order = db.tablesData[toTable].order.concat(db.tablesData[fromTable].order);
         db.tablesData[toTable].status = 'confirmed';
         db.tablesData[fromTable].order = [];
         db.tablesData[fromTable].status = 'empty';
-        saveData(db);
+        db.markModified('tablesData');
+        await db.save();
     }
     res.json({ success: true, tablesData: db.tablesData });
 });
 
-app.post('/api/update-menu', (req, res) => {
-    res.json({ success: true });
-});
-
-app.post('/api/checkout', (req, res) => {
+app.post('/api/checkout', async (req, res) => {
     const { tableName, items, total, payType, staffName } = req.body;
     
     const now = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));
@@ -241,6 +210,7 @@ app.post('/api/checkout', (req, res) => {
         staffName: staffName || "Khách/Thu ngân"
     };
 
+    const db = await getDBData();
     if (!db.revenueHistory) db.revenueHistory = [];
     db.revenueHistory.unshift(newRecord);
 
@@ -248,22 +218,26 @@ app.post('/api/checkout', (req, res) => {
         db.tablesData[tableName].order = [];
         db.tablesData[tableName].status = 'empty';
         db.tablesData[tableName].lastBill = newRecord;
+        db.markModified('tablesData');
     }
 
-    saveData(db);
+    db.markModified('revenueHistory');
+    await db.save();
     res.json({ success: true });
 });
 
-app.get('/api/revenue', (req, res) => {
-    db = loadData();
+app.get('/api/revenue', async (req, res) => {
+    const db = await getDBData();
     res.json({ revenueHistory: db.revenueHistory || [] });
 });
 
-app.post('/api/delete-revenue', (req, res) => {
+app.post('/api/delete-revenue', async (req, res) => {
     const { id } = req.body;
+    const db = await getDBData();
     if (db.revenueHistory) {
         db.revenueHistory = db.revenueHistory.filter(item => item.id !== id);
-        saveData(db);
+        db.markModified('revenueHistory');
+        await db.save();
     }
     res.json({ success: true });
 });
