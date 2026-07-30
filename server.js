@@ -87,10 +87,17 @@ app.post('/api/checkout', (req, res) => {
             });
         }
     } else if (totalAmount === 0 && tableStatus === 'busy') {
-        // Trường hợp báo bếp
         let existing = globalActiveOrders.find(o => o.tableName === tableName);
         if (existing) {
             existing.items = items;
+        } else {
+            globalActiveOrders.unshift({
+                id: Date.now(),
+                time: timeStr,
+                tableName,
+                items,
+                totalAmount: 0
+            });
         }
     } else {
         let discountText = discount > 0 ? ` (Giảm: -${discount.toLocaleString()}đ [${voucherCode}])` : '';

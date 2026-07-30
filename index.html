@@ -308,7 +308,6 @@
                     <div style="text-align:center; color:#555; font-size:13px; margin-bottom:10px;">Hệ thống gọi món trực tuyến tại bàn</div>
                     <div style="background:#ffebee; color:#d32f2f; border:1px dashed #d32f2f; padding:8px; text-align:center; font-weight:bold; border-radius:6px; margin-bottom:12px;">📍 Quý khách đang ngồi: ${tName}</div>
                     
-                    <!-- Lịch sử món đã gọi của bàn -->
                     <div style="background:#e8f5e9; border:1px solid #c8e6c9; padding:10px; border-radius:8px; margin-bottom:12px;">
                         <div style="font-weight:bold; font-size:13px; color:#2e7d32; margin-bottom:4px;">✅ Các món bàn đã gọi trước đó:</div>
                         <div id="customerOrderedHistory" style="max-height:120px; overflow-y:auto; font-size:12px; color:#333;">Đang đồng bộ dữ liệu bàn...</div>
@@ -355,7 +354,6 @@
                 menuDiv.appendChild(grid);
             });
 
-            // Lấy dữ liệu thực tế từ server cho khách xem
             async function fetchCustomerTableData() {
                 try {
                     const res = await fetch('/api/orders');
@@ -755,6 +753,14 @@
             }
             printKitchenBill(selectedTable, tableRounds[selectedTable]);
             
+            let currentItems = JSON.parse(JSON.stringify(tableRounds[selectedTable]));
+            if(!tableRoundsHistory[selectedTable]) {
+                tableRoundsHistory[selectedTable] = [{ roundName: "Lượt 1", items: currentItems }];
+            } else {
+                let roundNum = tableRoundsHistory[selectedTable].length + 1;
+                tableRoundsHistory[selectedTable].push({ roundName: `Lượt gọi mới ${roundNum}`, items: currentItems });
+            }
+
             tableStatus[selectedTable] = 'busy';
             updateTableUI(selectedTable, 'Có khách', 'table-busy');
             
@@ -772,7 +778,11 @@
                 });
             } catch(e) {}
 
-            alert(`🔔 ĐÃ BÁO BẾP & CHUYỂN SANG TRẠNG THÁI CÓ KHÁCH CHO ${selectedTable}!`);
+            alert(`🔔 ĐÃ BÁO BẾP & GỬI DỮ LIỆU LÊN MÀN HÌNH BẾP CHO ${selectedTable}!`);
+            
+            if(document.getElementById('kitchenModal').style.display === 'flex') {
+                openKitchenScreen();
+            }
         }
 
         function printKitchenBill(tableName, items) {
