@@ -9,6 +9,15 @@ app.use(express.static(__dirname));
 let globalActiveOrders = [];
 let globalPaidHistory = [];
 
+// Phân định rõ tài khoản Quản Lý (role: manager) và Nhân Viên (role: staff)
+let globalStaffList = [
+    { name: "Quản Lý 1", pin: "1234", role: "manager" },
+    { name: "Quản Lý 2", pin: "8888", role: "manager" },
+    { name: "Nhân Viên 1", pin: "1111", role: "staff" },
+    { name: "Nhân Viên 2", pin: "2222", role: "staff" },
+    { name: "Nhân Viên 3", pin: "3333", role: "staff" }
+];
+
 function getVietnamTime() {
     const now = new Date();
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
@@ -20,6 +29,30 @@ function getVietnamTime() {
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/api/staff', (req, res) => {
+    res.json(globalStaffList);
+});
+
+app.post('/api/staff/add', (req, res) => {
+    const { name, pin } = req.body;
+    if (name && pin) {
+        if (!globalStaffList.some(s => s.name === name)) {
+            // Mặc định nhân viên thêm mới là staff, trừ khi tên có chữ "Quản Lý"
+            let role = name.toLowerCase().includes('quản lý') ? 'manager' : 'staff';
+            globalStaffList.push({ name, pin, role });
+        }
+    }
+    res.json({ success: true, staff: globalStaffList });
+});
+
+app.post('/api/staff/remove', (req, res) => {
+    const { name } = req.body;
+    if (globalStaffList.length > 1) {
+        globalStaffList = globalStaffList.filter(s => s.name !== name);
+    }
+    res.json({ success: true, staff: globalStaffList });
 });
 
 app.post('/api/checkout', (req, res) => {

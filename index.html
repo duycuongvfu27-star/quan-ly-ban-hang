@@ -58,8 +58,8 @@
             <div style="font-size: 12px; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px;">
                 👤 NV Trực: <select id="currentStaffSelect" onchange="promptStaffPin()" style="background:transparent; color:#fff; border:none; font-weight:bold; cursor:pointer; outline:none;"></select>
             </div>
-            <button onclick="window.location.href='/api/orders/view'">📊 Doanh Thu</button>
-            <button onclick="openSettings()">⚙️ Cài Đặt</button>
+            <button onclick="requestManagerAction('revenue')">📊 Doanh Thu</button>
+            <button onclick="requestManagerAction('settings')">⚙️ Cài Đặt</button>
         </div>
     </header>
     <div class="revenue-box">
@@ -105,13 +105,13 @@
     <div id="settingsModal" class="modal">
         <div class="modal-box" style="text-align: left;">
             <h3 style="color: #b71c1c; margin-top:0; text-align:center;">⚙️ Cài Đặt Hệ Thống Quán</h3>
-            <label style="font-weight: bold; font-size: 12px;">1. Quản Lý Nhân Viên & Mã PIN:</label>
+            <label style="font-weight: bold; font-size: 12px;">1. Quản Lý Nhân Sự & Mã PIN:</label>
             <div style="display:flex; gap:6px; margin:6px 0;">
-                <input type="text" id="newStaffName" placeholder="Tên NV..." style="margin:0; flex:1;">
-                <input type="password" id="newStaffPin" placeholder="PIN..." style="margin:0; width:80px;" maxlength="6">
+                <input type="text" id="newStaffName" placeholder="Tên nhân viên..." style="margin:0; flex:1;">
+                <input type="password" id="newStaffPin" placeholder="Mã PIN..." style="margin:0; width:90px;" maxlength="6">
                 <button onclick="addStaff()" style="background:#4caf50; color:white; border:none; padding:8px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">Thêm</button>
             </div>
-            <div id="staffListContainer" style="max-height:100px; overflow-y:auto; border:1px solid #ddd; padding:4px; border-radius:4px; margin-bottom:10px; font-size:12px;"></div>
+            <div id="staffListContainer" style="max-height:120px; overflow-y:auto; border:1px solid #ddd; padding:4px; border-radius:4px; margin-bottom:10px; font-size:12px;"></div>
             <label style="font-weight: bold; font-size: 12px;">2. Tài Khoản Ngân Hàng (VietQR):</label>
             <select id="bankNameSelect">
                 <option value="ICB">VietinBank</option>
@@ -136,11 +136,11 @@
     </div>
     <div id="pinModal" class="modal">
         <div class="modal-box" style="width: 320px;">
-            <h3 style="color: #b71c1c; margin-top:0;">🔒 Xác Thực Nhân Viên</h3>
-            <p id="pinModalLabel" style="font-size: 13px; color:#555;">Nhập mã PIN để chuyển ca:</p>
+            <h3 style="color: #b71c1c; margin-top:0;">🔒 Xác Thực Nhân Sự</h3>
+            <p id="pinModalLabel" style="font-size: 13px; color:#555;">Nhập mã PIN:</p>
             <input type="password" id="inputStaffPin" placeholder="Mã PIN..." style="text-align:center; font-size:18px; letter-spacing:4px;" maxlength="6">
             <button onclick="verifyStaffPin()" style="background:#4caf50; color:white; border:none; padding:10px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:8px;">Xác Nhận</button>
-            <button onclick="document.getElementById('pinModal').style.display='none'; renderStaffDropdown();" style="background:#555; color:white; border:none; padding:6px; width:100%; border-radius:4px; cursor:pointer; margin-top:6px;">Hủy</button>
+            <button onclick="cancelPinModal()" style="background:#555; color:white; border:none; padding:6px; width:100%; border-radius:4px; cursor:pointer; margin-top:6px;">Hủy</button>
         </div>
     </div>
     <div id="qrModal" class="modal">
@@ -219,9 +219,10 @@
         let selectedTable = '', tableRounds = {}, tableStatus = {};
         let bankConfig = JSON.parse(localStorage.getItem('bankConfig') || '{"bank":"VCB","acc":"","name":""}');
         let printerConfig = JSON.parse(localStorage.getItem('printerConfig') || '{"size":"80"}');
-        let staffList = JSON.parse(localStorage.getItem('staffList') || '[{"name":"Quản Lý", "pin":"1234"}, {"name":"Nhân Viên 1", "pin":"1111"}, {"name":"Nhân Viên 2", "pin":"2222"}]');
-        let currentStaff = localStorage.getItem('currentStaff') || staffList[0].name;
+        let staffList = [];
+        let currentStaff = localStorage.getItem('currentStaff') || '';
         let pendingStaff = '';
+        let currentPinAction = ''; // 'shift', 'settings', 'revenue'
         const urlParams = new URLSearchParams(window.location.search);
         const tableParam = urlParams.get('table');
 
@@ -255,68 +256,136 @@
                 btn.onclick = () => selectTable(tName);
                 tableGrid.appendChild(btn);
             }
-            renderStaffDropdown();
+            fetchStaffAndInit();
             renderMenuPOS();
             loadTodayRevenue();
-            setInterval(syncAndCheckOrders, 2000); // Quét đồng bộ mỗi 2 giây
+            setInterval(syncAndCheckOrders, 2000);
+        }
+
+        async function fetchStaffAndInit() {
+            try {
+                const res = await fetch('/api/staff');
+                staffList = await res.json();
+                if(!currentStaff || !staffList.some(s => s.name === currentStaff)) {
+                    currentStaff = staffList[0] ? staffList[0].name : 'Quản Lý 1';
+                    localStorage.setItem('currentStaff', currentStaff);
+                }
+                renderStaffDropdown();
+            } catch(e) {}
         }
 
         function renderStaffDropdown() {
             let select = document.getElementById('currentStaffSelect');
             select.innerHTML = '';
             staffList.forEach(s => {
-                select.innerHTML += `<option value="${s.name}" ${s.name === currentStaff ? 'selected' : ''}>${s.name}</option>`;
+                let roleText = s.role === 'manager' ? ' [Quản Lý]' : ' [Nhân Viên]';
+                select.innerHTML += `<option value="${s.name}" ${s.name === currentStaff ? 'selected' : ''}>${s.name}${roleText}</option>`;
             });
         }
+
         function promptStaffPin() {
             pendingStaff = document.getElementById('currentStaffSelect').value;
-            document.getElementById('pinModalLabel').innerText = `Nhập mã PIN của [${pendingStaff}]:`;
+            if(pendingStaff === currentStaff) return;
+            currentPinAction = 'shift';
+            document.getElementById('pinModalLabel').innerText = `Nhập mã PIN của [${pendingStaff}] để đổi ca:`;
             document.getElementById('inputStaffPin').value = '';
             document.getElementById('pinModal').style.display = 'flex';
             document.getElementById('inputStaffPin').focus();
         }
-        function verifyStaffPin() {
+
+        function requestManagerAction(actionType) {
+            currentPinAction = actionType;
+            document.getElementById('pinModalLabel').innerText = `🔒 Yêu cầu quyền QUẢN LÝ. Nhập mã PIN Quản Lý:`;
+            document.getElementById('inputStaffPin').value = '';
+            document.getElementById('pinModal').style.display = 'flex';
+            document.getElementById('inputStaffPin').focus();
+        }
+
+        function cancelPinModal() {
+            document.getElementById('pinModal').style.display = 'none';
+            renderStaffDropdown();
+        }
+
+        async function verifyStaffPin() {
             let pinInput = document.getElementById('inputStaffPin').value;
-            let staffObj = staffList.find(s => s.name === pendingStaff);
-            if(staffObj && staffObj.pin === pinInput) {
-                currentStaff = pendingStaff;
-                localStorage.setItem('currentStaff', currentStaff);
-                document.getElementById('pinModal').style.display = 'none';
-                alert(`✅ Đã chuyển ca sang nhân viên: ${currentStaff}`);
+            
+            if (currentPinAction === 'shift') {
+                let staffObj = staffList.find(s => s.name === pendingStaff);
+                if(staffObj && staffObj.pin === pinInput) {
+                    currentStaff = pendingStaff;
+                    localStorage.setItem('currentStaff', currentStaff);
+                    document.getElementById('pinModal').style.display = 'none';
+                    alert(`✅ Đã đổi ca thành công sang: ${currentStaff}`);
+                } else {
+                    alert('❌ Mã PIN không chính xác!');
+                    document.getElementById('inputStaffPin').value = '';
+                    document.getElementById('inputStaffPin').focus();
+                }
             } else {
-                alert('❌ Mã PIN không chính xác!');
-                renderStaffDropdown();
-                document.getElementById('pinModal').style.display = 'none';
+                // Kiểm tra xem mã PIN nhập vào có thuộc tài khoản quản lý nào không
+                let managerObj = staffList.find(s => s.role === 'manager' && s.pin === pinInput);
+                if(managerObj) {
+                    document.getElementById('pinModal').style.display = 'none';
+                    if (currentPinAction === 'settings') {
+                        openSettingsModal();
+                    } else if (currentPinAction === 'revenue') {
+                        window.location.href = '/api/orders/view';
+                    }
+                } else {
+                    alert('❌ Từ chối truy cập! Chỉ tài khoản Quản Lý mới có quyền này.');
+                    document.getElementById('pinModal').style.display = 'none';
+                }
             }
         }
-        function renderStaffListModal() {
+
+        async function renderStaffListModal() {
+            try {
+                const res = await fetch('/api/staff');
+                staffList = await res.json();
+            } catch(e) {}
+
             let container = document.getElementById('staffListContainer');
             container.innerHTML = '';
-            staffList.forEach((s, idx) => {
-                container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px solid #eee;">
-                    <span><b>${s.name}</b> (PIN: ****)</span>
-                    ${staffList.length > 1 ? `<button onclick="removeStaff(${idx})" style="background:#d32f2f; color:#fff; border:none; padding:2px 6px; border-radius:3px; cursor:pointer; font-size:10px;">Xóa</button>` : ''}
+            staffList.forEach((s) => {
+                let badgeRole = s.role === 'manager' ? '<b style="color:#d32f2f;">(Quản Lý)</b>' : '(Nhân Viên)';
+                container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid #eee;">
+                    <span><b>${s.name}</b> ${badgeRole} - PIN: ${s.pin}</span>
+                    ${staffList.length > 1 ? `<button onclick="removeStaff('${s.name}')" style="background:#d32f2f; color:#fff; border:none; padding:2px 6px; border-radius:3px; cursor:pointer; font-size:10px;">Xóa</button>` : ''}
                 </div>`;
             });
         }
-        function addStaff() {
+
+        async function addStaff() {
             let name = document.getElementById('newStaffName').value.trim();
             let pin = document.getElementById('newStaffPin').value.trim();
             if(!name || !pin) { alert('Vui lòng nhập tên và mã PIN!'); return; }
-            staffList.push({ name, pin });
-            localStorage.setItem('staffList', JSON.stringify(staffList));
-            document.getElementById('newStaffName').value = '';
-            document.getElementById('newStaffPin').value = '';
-            renderStaffDropdown();
-            renderStaffListModal();
-            alert('✅ Đã thêm nhân viên mới thành công!');
+            
+            const res = await fetch('/api/staff/add', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ name, pin })
+            });
+            if(res.ok) {
+                document.getElementById('newStaffName').value = '';
+                document.getElementById('newStaffPin').value = '';
+                await fetchStaffAndInit();
+                renderStaffListModal();
+                alert('✅ Đã thêm nhân viên mới thành công!');
+            }
         }
-        function removeStaff(idx) {
-            staffList.splice(idx, 1);
-            localStorage.setItem('staffList', JSON.stringify(staffList));
-            renderStaffDropdown();
-            renderStaffListModal();
+
+        async function removeStaff(name) {
+            if(confirm(`Bạn có chắc muốn xóa nhân viên ${name} không?`)) {
+                const res = await fetch('/api/staff/remove', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ name })
+                });
+                if(res.ok) {
+                    await fetchStaffAndInit();
+                    renderStaffListModal();
+                }
+            }
         }
+
         function renderMenuPOS() {
             const menuContainer = document.getElementById('menuContainer');
             menuContainer.innerHTML = '';
@@ -364,7 +433,6 @@
                 }
                 lastCheckedCount = data.length;
 
-                // Reset toàn bộ bàn về trống, sau đó bật sáng các bàn có dữ liệu
                 for(let i=1; i<=16; i++) {
                     let tName = 'Bàn ' + (i < 10 ? '0' + i : i);
                     if(selectedTable !== tName) {
@@ -665,7 +733,7 @@
             document.getElementById('qrLinkText').innerText = currentUrl;
             document.getElementById('qrModal').style.display = 'flex';
         }
-        function openSettings() {
+        function openSettingsModal() {
             document.getElementById('bankNameSelect').value = bankConfig.bank;
             document.getElementById('bankAccInput').value = bankConfig.acc;
             document.getElementById('bankNameAccInput').value = bankConfig.name;
