@@ -1,30 +1,14 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(__dirname));
 
-const DATA_FILE = path.join(__dirname, 'orders.json');
-
-if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify({ activeOrders: [], paidHistory: [] }, null, 2));
-}
-
-function readData() {
-    try {
-        const data = fs.readFileSync(DATA_FILE, 'utf8');
-        return JSON.parse(data);
-    } catch (e) {
-        return { activeOrders: [], paidHistory: [] };
-    }
-}
-
-function saveData(data) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
+// Biến bộ nhớ toàn cục lưu trữ dữ liệu tập trung
+let globalActiveOrders = [];
+let globalPaidHistory = [];
 
 function getVietnamTime() {
     const now = new Date();
@@ -40,26 +24,26 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// API nhận yêu cầu gọi món từ điện thoại hoặc thanh toán từ máy tính
 app.post('/api/checkout', (req, res) => {
     const { tableName, items, totalAmount, staff } = req.body;
-    let db = readData();
-    let itemsText = items.map(i => `${i.name} (x${i.quantity})`).join(', ');
     let { timeStr, dateStr } = getVietnamTime();
+    let itemsText = items.map(i => `${i.name} (x${i.quantity})`).join(', ');
 
     if (staff === 'Khách tự order') {
-        let existingOrder = db.activeOrders.find(o => o.tableName === tableName);
-        if (existingOrder) {
+        let existing = globalActiveOrders.find(o => o.tableName === tableName);
+        if (existing) {
             items.forEach(newItem => {
-                let found = existingOrder.items.find(i => i.name === newItem.name);
-                if (found) {
-                    found.quantity += newItem.quantity;
+                let foundItem = existing.items.find(i => i.name === newItem.name);
+                if (foundItem) {
+                    foundItem.quantity += newItem.quantity;
                 } else {
-                    existingOrder.items.push(newItem);
+                    existing.items.push(newItem);
                 }
             });
-            existingOrder.totalAmount += totalAmount;
+            existing.totalAmount += totalAmount;
         } else {
-            db.activeOrders.unshift({
+            globalActiveOrders.unshift({
                 id: Date.now(),
                 time: timeStr,
                 tableName,
@@ -77,22 +61,20 @@ app.post('/api/checkout', (req, res) => {
             staff: staff || 'Nhân viên',
             date: dateStr
         };
-        db.paidHistory.unshift(newPaidOrder);
-        db.activeOrders = db.activeOrders.filter(o => o.tableName !== tableName);
+        globalPaidHistory.unshift(newPaidOrder);
+        globalActiveOrders = globalActiveOrders.filter(o => o.tableName !== tableName);
     }
 
-    saveData(db);
-    res.status(200).json({ success: true });
+    res.status(200).json({ success: true, activeOrders: globalActiveOrders });
 });
 
+// API cung cấp danh sách bàn đang có khách cho máy tính POS
 app.get('/api/orders', (req, res) => {
-    let db = readData();
-    res.json(db.activeOrders);
+    res.json(globalActiveOrders);
 });
 
+// Trang xem doanh thu
 app.get('/api/orders/view', (req, res) => {
-    let db = readData();
-    let paidHistory = db.paidHistory;
     res.send(`
         <!DOCTYPE html>
         <html lang="vi">
@@ -153,7 +135,7 @@ app.get('/api/orders/view', (req, res) => {
                 </table>
             </div>
             <script>
-                let data = ${JSON.stringify(paidHistory)};
+                let data = ${JSON.stringify(globalPaidHistory)};
                 const nowUtc = new Date();
                 const nowVn = new Date(nowUtc.getTime() + (nowUtc.getTimezoneOffset() * 60000) + (3600000 * 7));
                 document.getElementById('filterDate').value = nowVn.toISOString().split('T')[0];
