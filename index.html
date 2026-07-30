@@ -1038,7 +1038,7 @@
             document.getElementById('kitchenModal').style.display = 'flex';
         }
 
-        function openMoveTableModal() {
+        async function openMoveTableModal() {
             if(!selectedTable || !tableRounds[selectedTable]) { alert('Bàn hiện tại không có dữ liệu để đổi!'); return; }
             document.getElementById('moveFromTable').innerText = selectedTable;
             let select = document.getElementById('targetTableSelect');
@@ -1052,22 +1052,53 @@
             document.getElementById('moveTableModal').style.display = 'flex';
         }
 
-        function confirmMoveTable() {
+        async function confirmMoveTable() {
             let targetTable = document.getElementById('targetTableSelect').value;
             if(!targetTable) return;
-            tableRounds[targetTable] = tableRounds[selectedTable];
-            tableRoundsHistory[targetTable] = tableRoundsHistory[selectedTable];
-            let currentStatus = tableStatus[selectedTable] || 'busy';
+            let oldTable = selectedTable;
+
+            tableRounds[targetTable] = tableRounds[oldTable];
+            tableRoundsHistory[targetTable] = tableRoundsHistory[oldTable];
+            let currentStatus = tableStatus[oldTable] || 'busy';
             tableStatus[targetTable] = currentStatus;
+
             let statusText = currentStatus === 'busy' ? 'Có khách' : 'Đang order';
             let className = currentStatus === 'busy' ? 'table-busy' : 'table-ordering';
             updateTableUI(targetTable, statusText, className);
-            delete tableRounds[selectedTable];
-            delete tableRoundsHistory[selectedTable];
-            tableStatus[selectedTable] = 'empty';
-            updateTableUI(selectedTable, 'Trống', 'table-empty');
+
+            delete tableRounds[oldTable];
+            delete tableRoundsHistory[oldTable];
+            tableStatus[oldTable] = 'empty';
+            updateTableUI(oldTable, 'Trống', 'table-empty');
+
+            try {
+                await fetch('/api/checkout', {
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ 
+                        tableName: oldTable, 
+                        items: [{ name: "Đã chuyển bàn", price: 0, quantity: 1 }], 
+                        totalAmount: 0, 
+                        staff: loggedInStaff ? loggedInStaff.name : 'Nhân viên',
+                        tableStatus: 'empty'
+                    })
+                });
+
+                await fetch('/api/checkout', {
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ 
+                        tableName: targetTable, 
+                        items: tableRounds[targetTable], 
+                        totalAmount: 0, 
+                        staff: loggedInStaff ? loggedInStaff.name : 'Nhân viên',
+                        tableStatus: currentStatus
+                    })
+                });
+            } catch(e) {}
+
             document.getElementById('moveTableModal').style.display = 'none';
-            alert(`✅ Đã chuyển thành công từ ${selectedTable} sang ${targetTable}!`);
+            alert(`✅ Đã chuyển thành công từ ${oldTable} sang ${targetTable}!`);
             selectTable(targetTable);
         }
 
@@ -1274,7 +1305,7 @@
         }
 
         async function removeStaff(name) {
-            if(confirm(`Bạn có chắc muốn xóa nhân sự ${name} không?`)) {
+            if(confirm(`Mã nhân sự ${name} sẽ bị xóa?`)) {
                 const res = await fetch('/api/staff/remove', {
                     method: 'POST', headers: {'Content-Type':'application/json'},
                     body: JSON.stringify({ name })
