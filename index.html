@@ -365,6 +365,7 @@
 
         let selectedTable = '', tableRounds = {}, tableStatus = {};
         let tableRoundsHistory = {}; 
+        let tableOrderTimestamps = {}; 
         let bankConfig = JSON.parse(localStorage.getItem('bankConfig') || '{"bank":"VCB","acc":"","name":""}');
         let printerConfig = JSON.parse(localStorage.getItem('printerConfig') || '{"size":"80"}');
         let voucherList = JSON.parse(localStorage.getItem('voucherList') || '[{"code":"GIAM10", "type":"percent", "value":10}, {"code":"GIAM50K", "type":"fixed", "value":50000}]');
@@ -692,6 +693,7 @@
                     } else if (!tableRounds[tName] || tableRounds[tName].length === 0) {
                         tableStatus[tName] = 'empty';
                         delete tableRoundsHistory[tName];
+                        delete tableOrderTimestamps[tName];
                         updateTableUI(tName, 'Trống', 'table-empty');
                     }
                 }
@@ -699,8 +701,13 @@
                 data.forEach(ord => {
                     let tName = ord.tableName;
                     
+                    if(!tableOrderTimestamps[tName]) {
+                        tableOrderTimestamps[tName] = Date.now();
+                    }
+
                     if(!tableRoundsHistory[tName]) {
-                        tableRoundsHistory[tName] = [{ roundName: "Lượt 1", items: JSON.parse(JSON.stringify(ord.items)) }];
+                        let uniqueRoundId = 'round_' + Date.now();
+                        tableRoundsHistory[tName] = [{ roundId: uniqueRoundId, roundName: "Lượt 1", items: JSON.parse(JSON.stringify(ord.items)), timestamp: tableOrderTimestamps[tName] }];
                     }
 
                     if(!tableRounds[tName]) {
@@ -712,13 +719,15 @@
                                 if(newItem.quantity > exist.quantity) {
                                     let diff = newItem.quantity - exist.quantity;
                                     let roundNum = tableRoundsHistory[tName].length + 1;
-                                    tableRoundsHistory[tName].push({ roundName: `Lượt gọi mới ${roundNum}`, items: [{ name: newItem.name, price: newItem.price, quantity: diff }] });
+                                    let uniqueRoundId = 'round_' + Date.now() + '_' + Math.random();
+                                    tableRoundsHistory[tName].push({ roundId: uniqueRoundId, roundName: `Lượt gọi mới ${roundNum}`, items: [{ name: newItem.name, price: newItem.price, quantity: diff }], timestamp: Date.now() });
                                 }
                                 exist.quantity = newItem.quantity;
                             } else {
                                 tableRounds[tName].push(newItem);
                                 let roundNum = tableRoundsHistory[tName].length + 1;
-                                tableRoundsHistory[tName].push({ roundName: `Lượt gọi mới ${roundNum}`, items: [newItem] });
+                                let uniqueRoundId = 'round_' + Date.now() + '_' + Math.random();
+                                tableRoundsHistory[tName].push({ roundId: uniqueRoundId, roundName: `Lượt gọi mới ${roundNum}`, items: [newItem], timestamp: Date.now() });
                             }
                         });
                     }
@@ -893,15 +902,44 @@
                 alert('Chưa chọn bàn hoặc chưa có món để báo bếp!'); 
                 return; 
             }
-            printKitchenBill(selectedTable, tableRounds[selectedTable]);
             
-            let currentItems = JSON.parse(JSON.stringify(tableRounds[selectedTable]));
-            if(!tableRoundsHistory[selectedTable]) {
-                tableRoundsHistory[selectedTable] = [{ roundName: "Lượt 1", items: currentItems }];
-            } else {
-                let roundNum = tableRoundsHistory[selectedTable].length + 1;
-                tableRoundsHistory[selectedTable].push({ roundName: `Lượt gọi mới ${roundNum}`, items: currentItems });
+            let historyRounds = tableRoundsHistory[selectedTable] || [];
+            let confirmedItemsMap = {};
+            historyRounds.forEach(r => {
+                r.items.forEach(i => {
+                    confirmedItemsMap[i.name] = (confirmedItemsMap[i.name] || 0) + i.quantity;
+                });
+            });
+
+            let newUnsentItems = [];
+            tableRounds[selectedTable].forEach(i => {
+                let confirmedQty = confirmedItemsMap[i.name] || 0;
+                let diffQty = i.quantity - confirmedQty;
+                if(diffQty > 0) {
+                    newUnsentItems.push({ name: i.name, price: i.price, quantity: diffQty });
+                }
+            });
+
+            if(newUnsentItems.length === 0) {
+                alert('Không có món mới nào chưa báo bếp!');
+                return;
             }
+
+            printKitchenBill(selectedTable, newUnsentItems);
+            
+            let roundNum = historyRounds.length + 1;
+            let uniqueRoundId = 'round_' + Date.now();
+            
+            if(!tableRoundsHistory[selectedTable]) {
+                tableRoundsHistory[selectedTable] = [];
+            }
+            
+            tableRoundsHistory[selectedTable].push({ 
+                roundId: uniqueRoundId,
+                roundName: `Lượt gọi mới ${roundNum}`, 
+                items: JSON.parse(JSON.stringify(newUnsentItems)), 
+                timestamp: Date.now() 
+            });
 
             tableStatus[selectedTable] = 'busy';
             updateTableUI(selectedTable, 'Có khách', 'table-busy');
@@ -921,7 +959,7 @@
                 });
             } catch(e) {}
 
-            alert(`🔔 ĐÃ BÁO BẾP & GỬI DỮ LIỆU LÊN MÀN HÌNH BẾP CHO ${selectedTable}!`);
+            alert(`🔔 ĐÃ BÁO BẾP CÁC MÓN MỚI CHO ${selectedTable}!`);
             
             if(document.getElementById('kitchenModal').style.display === 'flex') {
                 openKitchenScreen(currentKitchenMode);
@@ -955,35 +993,23 @@
             window.print();
         }
 
-        async function markRoundAsDone(tName, roundIndex, type) {
+        async function markRoundAsDone(tName, roundId, type) {
             if(confirm(`Xác nhận ĐÃ LÀM XONG các món này cho ${tName}?`)) {
-                if(!tableRoundsHistory[tName] || !tableRoundsHistory[tName][roundIndex]) return;
-                let rItems = tableRoundsHistory[tName][roundIndex].items;
-                let split = getSplitItems(rItems);
-
-                if(type === 'food') {
-                    tableRoundsHistory[tName][roundIndex].items = split.drinkItems;
-                } else if(type === 'drink') {
-                    tableRoundsHistory[tName][roundIndex].items = split.foodItems;
-                }
+                if(!tableRoundsHistory[tName]) return;
                 
-                if(tableRoundsHistory[tName][roundIndex].items.length === 0) {
-                    tableRoundsHistory[tName].splice(roundIndex, 1);
-                }
+                tableRoundsHistory[tName] = tableRoundsHistory[tName].filter(r => r.roundId !== roundId);
 
                 let remainingItems = [];
-                if(tableRoundsHistory[tName]) {
-                    tableRoundsHistory[tName].forEach(r => {
-                        r.items.forEach(item => {
-                            let found = remainingItems.find(i => i.name === item.name);
-                            if(found) {
-                                found.quantity += item.quantity;
-                            } else {
-                                remainingItems.push(JSON.parse(JSON.stringify(item)));
-                            }
-                        });
+                tableRoundsHistory[tName].forEach(r => {
+                    r.items.forEach(item => {
+                        let found = remainingItems.find(i => i.name === item.name);
+                        if(found) {
+                            found.quantity += item.quantity;
+                        } else {
+                            remainingItems.push(JSON.parse(JSON.stringify(item)));
+                        }
                     });
-                }
+                });
                 tableRounds[tName] = remainingItems;
 
                 try {
@@ -1018,6 +1044,12 @@
 
             let activeTables = Object.keys(tableRounds).filter(t => tableRounds[t] && tableRounds[t].length > 0);
 
+            activeTables.sort((a, b) => {
+                let timeA = tableOrderTimestamps[a] || Date.now();
+                let timeB = tableOrderTimestamps[b] || Date.now();
+                return timeA - timeB;
+            });
+
             if(activeTables.length === 0) {
                 container.innerHTML = `<p style="text-align:center; color:#888; padding:40px; font-size:16px;">${mode === 'food' ? 'Bếp đang trống!' : 'Quầy bar đang trống!'}</p>`;
             } else {
@@ -1027,10 +1059,14 @@
                     if (mode === 'food') {
                         let filteredRounds = [];
                         if(tableRoundsHistory[tName]) {
-                            tableRoundsHistory[tName].forEach((r, rIdx) => {
+                            tableRoundsHistory[tName].forEach((r) => {
                                 let split = getSplitItems(r.items);
                                 if(split.foodItems.length > 0) {
-                                    filteredRounds.push({ roundName: r.roundName, items: split.foodItems, originalIndex: rIdx });
+                                    filteredRounds.push({ 
+                                        roundId: r.roundId || ('fallback_' + Math.random()), 
+                                        roundName: r.roundName, 
+                                        items: split.foodItems 
+                                    });
                                 }
                             });
                         }
@@ -1052,7 +1088,7 @@
                                     <div style="margin-bottom:10px; border:1px solid #ffccbc; padding:10px; border-radius:6px; background:#fff;">
                                         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:6px; margin-bottom:6px;">
                                             <b style="color:#e65100; font-size:15px;">📌 ${r.roundName}:</b>
-                                            <button onclick="markRoundAsDone('${tName}', ${r.originalIndex}, 'food')" style="background:#4caf50; color:white; border:none; padding:6px 14px; border-radius:4px; font-size:13px; cursor:pointer; font-weight:bold;">✅ Đã Làm Xong</button>
+                                            <button onclick="markRoundAsDone('${tName}', '${r.roundId}', 'food')" style="background:#4caf50; color:white; border:none; padding:6px 14px; border-radius:4px; font-size:13px; cursor:pointer; font-weight:bold;">✅ Đã Làm Xong</button>
                                         </div>
                                         ${rItemsHtml}
                                     </div>`;
@@ -1085,7 +1121,7 @@
                             container.innerHTML += `
                                 <div style="background:#e1f5fe; border-left: 6px solid #0288d1; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom:15px;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:18px; color:#01579b;">
-                                        <b style="font-size:18px;">🪑 ${tName}</b>
+                                        <b style="font-size:18px;">🪑 ${tName} ${idx === 0 ? '<span style="background:#d32f2f; color:#fff; font-size:11px; padding:2px 8px; border-radius:4px;">ƯU TIÊN #1</span>' : ''}</b>
                                         <button onclick="markDrinkAsDone('${tName}')" style="background:#4caf50; color:white; border:none; padding:6px 14px; border-radius:4px; font-size:13px; cursor:pointer; font-weight:bold;">✅ Hoàn Tất Đồ Uống</button>
                                     </div>
                                     <div style="background:#fff; padding:10px; border-radius:6px; border:1px solid #b3e5fc;">
@@ -1109,12 +1145,7 @@
             if(confirm(`Xác nhận quầy bar đã làm xong toàn bộ đồ uống cho ${tName}?`)) {
                 if(!tableRounds[tName]) return;
                 
-                tableRounds[tName] = tableRounds[tName].map(i => {
-                    if (i.name.includes("Combo")) {
-                        return i;
-                    }
-                    return i;
-                }).filter(i => !isDrink(i.name) && !i.name.includes("Coca"));
+                tableRounds[tName] = tableRounds[tName].filter(i => !isDrink(i.name) && !i.name.includes("Coca"));
 
                 try {
                     await fetch('/api/checkout', {
@@ -1287,6 +1318,7 @@
                 alert('✅ Thanh toán thành công! Bàn đã được làm trống.');
                 delete tableRounds[selectedTable];
                 delete tableRoundsHistory[selectedTable];
+                delete tableOrderTimestamps[selectedTable];
                 tableStatus[selectedTable] = 'empty';
                 updateTableUI(selectedTable, 'Trống', 'table-empty');
                 renderBill();
