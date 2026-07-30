@@ -6,7 +6,6 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Biến bộ nhớ toàn cục lưu trữ dữ liệu tập trung
 let globalActiveOrders = [];
 let globalPaidHistory = [];
 
@@ -14,7 +13,6 @@ function getVietnamTime() {
     const now = new Date();
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const vnTime = new Date(utc + (3600000 * 7));
-    
     let timeStr = vnTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
     let dateStr = vnTime.toISOString().split('T')[0];
     return { timeStr, dateStr };
@@ -24,7 +22,6 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// API nhận yêu cầu gọi món từ điện thoại hoặc thanh toán từ máy tính
 app.post('/api/checkout', (req, res) => {
     const { tableName, items, totalAmount, staff } = req.body;
     let { timeStr, dateStr } = getVietnamTime();
@@ -68,12 +65,10 @@ app.post('/api/checkout', (req, res) => {
     res.status(200).json({ success: true, activeOrders: globalActiveOrders });
 });
 
-// API cung cấp danh sách bàn đang có khách cho máy tính POS
 app.get('/api/orders', (req, res) => {
     res.json(globalActiveOrders);
 });
 
-// Trang xem doanh thu
 app.get('/api/orders/view', (req, res) => {
     res.send(`
         <!DOCTYPE html>

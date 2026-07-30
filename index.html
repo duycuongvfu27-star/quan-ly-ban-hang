@@ -224,6 +224,7 @@
         let pendingStaff = '';
         const urlParams = new URLSearchParams(window.location.search);
         const tableParam = urlParams.get('table');
+
         if (tableParam) {
             document.body.innerHTML = `
                 <div style="max-width:480px; margin:0 auto; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
@@ -257,8 +258,9 @@
             renderStaffDropdown();
             renderMenuPOS();
             loadTodayRevenue();
-            setInterval(syncAndCheckOrders, 3000);
+            setInterval(syncAndCheckOrders, 2000); // Quét đồng bộ mỗi 2 giây
         }
+
         function renderStaffDropdown() {
             let select = document.getElementById('currentStaffSelect');
             select.innerHTML = '';
@@ -348,49 +350,63 @@
                 window.speechSynthesis.speak(utterance);
             }
         }
+
         let lastCheckedCount = 0;
         async function syncAndCheckOrders() {
+            if (urlParams.get('table')) return; 
             try {
                 const res = await fetch('/api/orders');
                 const data = await res.json();
+                
                 if (data.length > lastCheckedCount && lastCheckedCount !== 0) {
                     let latestOrder = data[0]; 
-                    speakVoice(`${latestOrder.tableName} gọi đồ`);
+                    speakVoice(`${latestOrder.tableName} vừa gọi món`);
                 }
                 lastCheckedCount = data.length;
+
+                // Reset toàn bộ bàn về trống, sau đó bật sáng các bàn có dữ liệu
+                for(let i=1; i<=16; i++) {
+                    let tName = 'Bàn ' + (i < 10 ? '0' + i : i);
+                    if(selectedTable !== tName) {
+                        tableStatus[tName] = 'empty';
+                        updateTableUI(tName, 'Trống', 'table-empty');
+                    }
+                }
+
                 data.forEach(ord => {
                     let tName = ord.tableName;
                     if(!tableRounds[tName]) tableRounds[tName] = [];
-                    ord.items.forEach(newItem => {
-                        let existing = tableRounds[tName].find(i => i.name === newItem.name);
-                        if(existing) {
-                            existing.quantity += newItem.quantity;
-                        } else {
-                            tableRounds[tName].push({ name: newItem.name, price: newItem.price, quantity: newItem.quantity });
-                        }
-                    });
+                    tableRounds[tName] = ord.items;
                     tableStatus[tName] = 'busy';
                     updateTableUI(tName, 'Có khách', 'table-busy');
-                    if(selectedTable === tName) renderBill();
                 });
+
+                if(selectedTable && tableStatus[selectedTable] === 'busy') {
+                    renderBill();
+                }
             } catch(e) {}
         }
+
         function initCustomerView(tNum) {
             let tName = 'Bàn ' + (tNum < 10 && !tNum.startsWith('0') ? '0' + tNum : tNum);
             let cusCart = [];
             let menuDiv = document.getElementById('customerMenu');
+
             menuData.forEach((cat, catIdx) => {
                 menuDiv.innerHTML += `<div style="font-size:12px; font-weight:bold; color:#ffa726; background:#37474f; padding:4px 8px; border-radius:4px; margin:8px 0 4px 0;">${cat.cat}</div>`;
                 let grid = document.createElement('div');
                 grid.style.cssText = 'display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;';
+                
                 cat.items.forEach((item, itemIdx) => {
+                    let safeName = item.name.replace(/[^a-zA-Z0-9]/g, '');
                     grid.innerHTML += `
                         <div style="background:#fff; border:1px solid #ddd; padding:6px; border-radius:6px; text-align:center; position:relative;">
+                            <div id="cus-badge-${safeName}" class="food-badge" style="display:none;">0</div>
                             <div style="font-size:11px; font-weight:bold; height:28px; overflow:hidden; color:#222;">${item.name}</div>
                             <div style="color:#d32f2f; font-weight:bold; font-size:12px; margin-bottom:4px;">${(item.price/1000).toFixed(0)}k</div>
                             <div style="display:flex; justify-content:center; gap:4px;">
                                 <button onclick="cusChangeQty('${item.name}', ${item.price}, -1)" style="background:#ddd; border:none; width:22px; height:22px; font-weight:bold; cursor:pointer; border-radius:3px;">-</button>
-                                <span id="qty-${item.name.replace(/[^a-zA-Z0-9]/g, '')}" style="font-size:12px; font-weight:bold; line-height:22px;">0</span>
+                                <span id="qty-${safeName}" style="font-size:12px; font-weight:bold; line-height:22px;">0</span>
                                 <button onclick="cusChangeQty('${item.name}', ${item.price}, 1)" style="background:#d32f2f; color:#fff; border:none; width:22px; height:22px; font-weight:bold; cursor:pointer; border-radius:3px;">+</button>
                             </div>
                         </div>
@@ -398,6 +414,7 @@
                 });
                 menuDiv.appendChild(grid);
             });
+
             window.cusChangeQty = function(name, price, change) {
                 let f = cusCart.find(i => i.name === name);
                 if(f) {
@@ -408,12 +425,26 @@
                 } else if(change > 0) {
                     cusCart.push({ name, price, quantity: 1 });
                 }
-                let cleanName = name.replace(/[^a-zA-Z0-9]/g, '');
-                let span = document.getElementById(`qty-${cleanName}`);
+
+                let safeName = name.replace(/[^a-zA-Z0-9]/g, '');
+                let span = document.getElementById(`qty-${safeName}`);
+                let badge = document.getElementById(`cus-badge-${safeName}`);
                 let itemObj = cusCart.find(i => i.name === name);
-                if(span) span.innerText = itemObj ? itemObj.quantity : 0;
+                
+                let qtyVal = itemObj ? itemObj.quantity : 0;
+                if(span) span.innerText = qtyVal;
+                
+                if(badge) {
+                    if(qtyVal > 0) {
+                        badge.innerText = 'x' + qtyVal;
+                        badge.style.display = 'block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
                 renderCusCart();
             };
+
             function renderCusCart() {
                 if(cusCart.length === 0) { document.getElementById('customerCart').innerHTML = 'Chưa chọn món nào'; document.getElementById('cusTotal').innerText = '0đ'; return; }
                 let html = '', total = 0;
@@ -424,6 +455,7 @@
                 document.getElementById('customerCart').innerHTML = html;
                 document.getElementById('cusTotal').innerText = total.toLocaleString() + 'đ';
             }
+
             window.submitCustomerOrder = async function() {
                 if(cusCart.length === 0) { alert('Vui lòng chọn món trước khi gửi!'); return; }
                 let totalAmount = cusCart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
@@ -444,6 +476,7 @@
                 }
             }
         }
+
         function selectTable(tableName) {
             document.querySelectorAll('.table-btn').forEach(b => b.classList.remove('active'));
             let btn = document.getElementById('tbtn-' + tableName);
@@ -623,7 +656,7 @@
             window.print();
         }
         function showTableQR() {
-            if(!selectedTable) { alert('Vول lòng chọn bàn trước trên sơ đồ!'); return; }
+            if(!selectedTable) { alert('Vui lòng chọn bàn trước trên sơ đồ!'); return; }
             document.getElementById('qrModalTitle').innerText = 'Mã QR Gọi Món - ' + selectedTable;
             document.getElementById('qrcode').innerHTML = '';
             let tNum = selectedTable.replace('Bàn ', '');
