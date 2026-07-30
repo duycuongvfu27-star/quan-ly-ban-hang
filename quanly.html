@@ -41,7 +41,6 @@
         .food-badge { position: absolute; top: -5px; right: -5px; background: #d32f2f; color: white; font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 8px; display: none; border: 1px solid #fff; }
 
         .bill-items { flex: 1; overflow-y: auto; border: 1px solid #eee; padding: 6px; border-radius: 4px; margin-bottom: 8px; }
-        .round-title { font-size: 11px; font-weight: bold; color: #0288d1; background: #e1f5fe; padding: 2px 6px; margin: 6px 0 4px 0; border-radius: 3px; }
         .bill-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; font-size: 12px; }
         
         .btn-action { width: 100%; border: none; padding: 8px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 12px; margin-bottom: 5px; color: white; }
@@ -54,7 +53,6 @@
         .modal-box { background: white; padding: 20px; border-radius: 8px; text-align: center; width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .modal-box input, .modal-box select { width: 100%; padding: 8px; margin: 6px 0; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
 
-        /* KHU VỰC IN HÓA ĐƠN NHIỆT (ẨN TRÊN MÀN HÌNH CHÍNH, CHỈ HIỆN KHI IN) */
         #printArea { display: none; }
         @media print {
             body * { visibility: hidden; }
@@ -115,10 +113,8 @@
         </div>
     </div>
 
-    <!-- KHU VỰC DÙNG ĐỂ GỬI LỆNH IN RA MÁY IN NHIỆT -->
     <div id="printArea"></div>
 
-    <!-- MODAL ĐỔI BÀN -->
     <div id="moveTableModal" class="modal">
         <div class="modal-box">
             <h3 style="color: #b71c1c; margin-top:0;">🔀 Tính Năng Đổi Bàn</h3>
@@ -129,12 +125,10 @@
         </div>
     </div>
 
-    <!-- MODAL CÀI ĐẶT (TÍCH HỢP CẤU HÌNH MÁY IN VÀ NGÂN HÀNG) -->
     <div id="settingsModal" class="modal">
         <div class="modal-box" style="text-align: left;">
             <h3 style="color: #b71c1c; margin-top:0; text-align:center;">⚙️ Cài Đặt Hệ Thống Quán</h3>
-            
-            <label style="font-weight: bold; font-size: 12px;">1. Tài Khoản Ngân Hàng (VietQR):</label>
+            <label style="font-weight: bold; font-size: 12px;">Tài Khoản Ngân Hàng (VietQR):</label>
             <select id="bankNameSelect">
                 <option value="ICB">VietinBank</option>
                 <option value="VCB">Vietcombank</option>
@@ -145,22 +139,11 @@
             </select>
             <input type="text" id="bankAccInput" placeholder="Số tài khoản...">
             <input type="text" id="bankNameAccInput" placeholder="Tên chủ TK (VIẾT HOA KHÔNG DẤU)...">
-            <button onclick="saveBankConfig()" style="background:#0288d1; color:white; border:none; padding:8px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:4px;">Lưu Ngân Hàng</button>
-
-            <hr style="margin: 12px 0; border:0; border-top:1px solid #ddd;">
-
-            <label style="font-weight: bold; font-size: 12px;">2. Cấu Hình Khổ Giấy Máy In Nhiệt:</label>
-            <select id="printerSizeSelect">
-                <option value="80">Máy in nhiệt khổ 80mm (Chuẩn to)</option>
-                <option value="58">Máy in nhiệt khổ 58mm (Khổ nhỏ)</option>
-            </select>
-            <button onclick="savePrinterConfig()" style="background:#4caf50; color:white; border:none; padding:8px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:4px;">Lưu Cấu Hình Máy In</button>
-
-            <button onclick="document.getElementById('settingsModal').style.display='none'" style="background:#555; color:white; border:none; padding:8px; width:100%; border-radius:4px; cursor:pointer; margin-top:12px; font-weight:bold;">Đóng Cài Đặt</button>
+            <button onclick="saveBankConfig()" style="background:#0288d1; color:white; border:none; padding:8px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:6px;">Lưu Cấu Hình Ngân Hàng</button>
+            <button onclick="document.getElementById('settingsModal').style.display='none'" style="background:#555; color:white; border:none; padding:8px; width:100%; border-radius:4px; cursor:pointer; margin-top:10px; font-weight:bold;">Đóng Cài Đặt</button>
         </div>
     </div>
 
-    <!-- MODAL QR BÀN -->
     <div id="qrModal" class="modal">
         <div class="modal-box">
             <h3 id="qrModalTitle" style="color: #b71c1c; margin-top:0;">Mã QR Bàn</h3>
@@ -170,7 +153,6 @@
         </div>
     </div>
 
-    <!-- MODAL THANH TOÁN -->
     <div id="bankModal" class="modal">
         <div class="modal-box">
             <h3 style="color: #b71c1c; margin-top:0;">💳 Thanh Toán VietQR Tự Động</h3>
@@ -257,7 +239,7 @@
                     <div id="customerMenu"></div>
                     <div style="background:#f1f1f1; padding:10px; border-radius:8px; margin-top:15px;">
                         <div style="font-weight:bold; font-size:14px; margin-bottom:6px;">📋 Phiếu Gọi Món Của Bạn</div>
-                        <div id="customerCart" style="max-height:150px; overflow-y:auto; font-size:13px;">Chưa chọn món nào</div>
+                        <div id="customerCart" style="max-height:160px; overflow-y:auto; font-size:13px;">Chưa chọn món nào</div>
                         <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:15px; margin-top:8px; border-top:1px dashed #ccc; padding-top:6px;">
                             <span>Tổng cộng:</span><span id="cusTotal" style="color:#d32f2f;">0đ</span>
                         </div>
@@ -332,11 +314,19 @@
 
                 data.forEach(ord => {
                     let tName = ord.tableName;
-                    if(tableStatus[tName] === 'empty' && !tableRounds[tName]) {
-                        tableStatus[tName] = 'busy';
-                        updateTableUI(tName, 'Có khách', 'table-busy');
-                        tableRounds[tName] = [{ round: 1, items: ord.items }];
-                    }
+                    if(!tableRounds[tName]) tableRounds[tName] = [];
+                    ord.items.forEach(newItem => {
+                        let existing = tableRounds[tName].find(i => i.name === newItem.name);
+                        if(existing) {
+                            existing.quantity += newItem.quantity;
+                        } else {
+                            tableRounds[tName].push({ name: newItem.name, price: newItem.price, quantity: newItem.quantity });
+                        }
+                    });
+
+                    tableStatus[tName] = 'busy';
+                    updateTableUI(tName, 'Có khách', 'table-busy');
+                    if(selectedTable === tName) renderBill();
                 });
             } catch(e) {}
         }
@@ -350,29 +340,38 @@
                 let grid = document.createElement('div');
                 grid.style.cssText = 'display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;';
                 cat.items.forEach((item, itemIdx) => {
-                    let badgeId = `cus-badge-${catIdx}-${itemIdx}`;
                     grid.innerHTML += `
-                        <div onclick="cusAdd('${item.name}', ${item.price}, '${badgeId}')" style="background:#fff; border:1px solid #ddd; padding:6px; border-radius:6px; text-align:center; cursor:pointer; position:relative;">
-                            <div id="${badgeId}" style="position:absolute; top:-5px; right:-5px; background:#d32f2f; color:white; font-size:10px; font-weight:bold; padding:1px 5px; border-radius:8px; display:none; border:1px solid #fff;">0</div>
+                        <div style="background:#fff; border:1px solid #ddd; padding:6px; border-radius:6px; text-align:center; position:relative;">
                             <div style="font-size:11px; font-weight:bold; height:28px; overflow:hidden; color:#222;">${item.name}</div>
-                            <div style="color:#d32f2f; font-weight:bold; font-size:12px;">${(item.price/1000).toFixed(0)}k</div>
+                            <div style="color:#d32f2f; font-weight:bold; font-size:12px; margin-bottom:4px;">${(item.price/1000).toFixed(0)}k</div>
+                            <div style="display:flex; justify-content:center; gap:4px;">
+                                <button onclick="cusChangeQty('${item.name}', ${item.price}, -1)" style="background:#ddd; border:none; width:22px; height:22px; font-weight:bold; cursor:pointer; border-radius:3px;">-</button>
+                                <span id="qty-${item.name.replace(/[^a-zA-Z0-9]/g, '')}" style="font-size:12px; font-weight:bold; line-height:22px;">0</span>
+                                <button onclick="cusChangeQty('${item.name}', ${item.price}, 1)" style="background:#d32f2f; color:#fff; border:none; width:22px; height:22px; font-weight:bold; cursor:pointer; border-radius:3px;">+</button>
+                            </div>
                         </div>
                     `;
                 });
                 menuDiv.appendChild(grid);
             });
 
-            window.cusAdd = function(name, price, badgeId) {
+            window.cusChangeQty = function(name, price, change) {
                 let f = cusCart.find(i => i.name === name);
-                if(f) f.quantity++; else cusCart.push({name, price, quantity:1});
-                renderCusCart();
-
-                let badge = document.getElementById(badgeId);
-                let itemObj = cusCart.find(i => i.name === name);
-                if(badge && itemObj) {
-                    badge.innerText = 'x' + itemObj.quantity;
-                    badge.style.display = 'block';
+                if(f) {
+                    f.quantity += change;
+                    if(f.quantity <= 0) {
+                        cusCart = cusCart.filter(i => i.name !== name);
+                    }
+                } else if(change > 0) {
+                    cusCart.push({ name, price, quantity: 1 });
                 }
+
+                let cleanName = name.replace(/[^a-zA-Z0-9]/g, '');
+                let span = document.getElementById(`qty-${cleanName}`);
+                let itemObj = cusCart.find(i => i.name === name);
+                if(span) span.innerText = itemObj ? itemObj.quantity : 0;
+
+                renderCusCart();
             };
 
             function renderCusCart() {
@@ -412,16 +411,17 @@
 
         function addFood(name, price) {
             if(!selectedTable) { alert('⚠️ Vui lòng chọn bàn trên sơ đồ trước!'); return; }
-            if(!tableRounds[selectedTable]) tableRounds[selectedTable] = [{ round: 1, items: [] }];
-            let rounds = tableRounds[selectedTable];
-            let activeRound = rounds[rounds.length - 1];
-            let found = activeRound.items.find(i => i.name === name);
-            if(found) found.quantity++; else activeRound.items.push({name, price, quantity: 1});
+            if(!tableRounds[selectedTable]) tableRounds[selectedTable] = [];
             
-            if(tableStatus[selectedTable] === 'empty') {
-                tableStatus[selectedTable] = 'ordering';
-                updateTableUI(selectedTable, 'Đang order', 'table-ordering');
+            let existing = tableRounds[selectedTable].find(i => i.name === name);
+            if(existing) {
+                existing.quantity++;
+            } else {
+                tableRounds[selectedTable].push({ name, price, quantity: 1 });
             }
+            
+            tableStatus[selectedTable] = 'busy';
+            updateTableUI(selectedTable, 'Có khách', 'table-busy');
             renderBill();
             updateFoodBadges();
         }
@@ -436,10 +436,8 @@
             if(!selectedTable || !tableRounds[selectedTable]) return;
 
             let totalMap = {};
-            tableRounds[selectedTable].forEach(r => {
-                r.items.forEach(i => {
-                    totalMap[i.name] = (totalMap[i.name] || 0) + i.quantity;
-                });
+            tableRounds[selectedTable].forEach(i => {
+                totalMap[i.name] = (totalMap[i.name] || 0) + i.quantity;
             });
 
             menuData.forEach((cat, cIdx) => {
@@ -466,49 +464,34 @@
 
         function renderBill() {
             const container = document.getElementById('billItemsContainer');
-            if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].every(r => r.items.length === 0)) {
+            if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].length === 0) {
                 container.innerHTML = '<p style="color: #888; text-align: center; margin-top: 60px; font-size: 12px;">Bàn chưa có món</p>';
                 document.getElementById('totalPrice').innerText = '0đ';
                 return;
             }
             let html = '', total = 0;
-            tableRounds[selectedTable].forEach(r => {
-                if(r.items.length > 0) {
-                    html += `<div class="round-title">Lượt ${r.round}</div>`;
-                    r.items.forEach(i => {
-                        let sub = i.price * i.quantity; total += sub;
-                        html += `<div class="bill-row"><span>${i.name} x${i.quantity}</span><b>${sub.toLocaleString()}đ</b></div>`;
-                    });
-                }
+            tableRounds[selectedTable].forEach(i => {
+                let sub = i.price * i.quantity; total += sub;
+                html += `<div class="bill-row"><span>${i.name} x${i.quantity}</span><b>${sub.toLocaleString()}đ</b></div>`;
             });
             container.innerHTML = html;
             document.getElementById('totalPrice').innerText = total.toLocaleString() + 'đ';
         }
 
-        // HÀM IN BẾP / GỬI LƯỢT MỚI
         function sendToKitchen() {
-            if(!selectedTable || !tableRounds[selectedTable]) { alert('Chưa chọn bàn hoặc chưa có món để báo bếp!'); return; }
-            let rounds = tableRounds[selectedTable];
-            let activeRound = rounds[rounds.length - 1];
-            if(activeRound.items.length === 0) { alert('Lượt hiện tại đang trống!'); return; }
-
-            // In phiếu báo bếp ra máy in nhiệt
-            printKitchenBill(selectedTable, activeRound.round, activeRound.items);
-
-            alert(`🔔 ĐÃ BÁO BẾP & IN PHIẾU CHO ${selectedTable} (LƯỢT ${activeRound.round})!`);
+            if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].length === 0) { alert('Chưa chọn bàn hoặc chưa có món để báo bếp!'); return; }
+            printKitchenBill(selectedTable, tableRounds[selectedTable]);
+            alert(`🔔 ĐÃ BÁO BẾP & IN PHIẾU CHO ${selectedTable}!`);
             tableStatus[selectedTable] = 'busy';
             updateTableUI(selectedTable, 'Có khách', 'table-busy');
             speakVoice(`${selectedTable} gọi đồ`);
-
-            rounds.push({ round: rounds.length + 1, items: [] });
-            renderBill();
         }
 
-        function printKitchenBill(tableName, roundNum, items) {
+        function printKitchenBill(tableName, items) {
             let widthStyle = printerConfig.size === '58' ? 'width: 58mm;' : 'width: 80mm;';
             let html = `<div style="${widthStyle} font-size: 12px; padding: 5px;">`;
             html += `<h3 style="text-align:center; margin:0;">PHIẾU BÁO BẾP</h3>`;
-            html += `<p style="text-align:center; margin:2px 0;"><b>${tableName}</b> - Lượt ${roundNum}</p>`;
+            html += `<p style="text-align:center; margin:2px 0;"><b>${tableName}</b></p>`;
             html += `<p style="text-align:center; margin:2px 0; font-size:10px;">${new Date().toLocaleTimeString('vi-VN')} - ${new Date().toLocaleDateString('vi-VN')}</p>`;
             html += `<hr style="border-top:1px dashed #000; margin:5px 0;">`;
             items.forEach(i => {
@@ -536,23 +519,25 @@
         function confirmMoveTable() {
             let targetTable = document.getElementById('targetTableSelect').value;
             if(!targetTable) return;
+
+            // Chuyển toàn bộ dữ liệu món sang bàn đích
             tableRounds[targetTable] = tableRounds[selectedTable];
-            tableStatus[targetTable] = tableStatus[selectedTable];
+            tableStatus[targetTable] = 'busy';
+            updateTableUI(targetTable, 'Có khách', 'table-busy');
+
+            // Xóa sạch dữ liệu bàn cũ và cập nhật bàn cũ về màu xanh (Trống)
             delete tableRounds[selectedTable];
             tableStatus[selectedTable] = 'empty';
             updateTableUI(selectedTable, 'Trống', 'table-empty');
-            let newStatusText = tableStatus[targetTable] === 'busy' ? 'Có khách' : 'Đang order';
-            let newClassName = tableStatus[targetTable] === 'busy' ? 'table-busy' : 'table-ordering';
-            updateTableUI(targetTable, newStatusText, newClassName);
+
             document.getElementById('moveTableModal').style.display = 'none';
-            alert(`✅ Đã chuyển thành công sang ${targetTable}!`);
+            alert(`✅ Đã chuyển thành công từ ${selectedTable} sang ${targetTable}!`);
             selectTable(targetTable);
         }
 
         function openBankQRModal() {
             if(!selectedTable || !tableRounds[selectedTable]) { alert('Không có hóa đơn thanh toán!'); return; }
-            let allItems = [];
-            tableRounds[selectedTable].forEach(r => { allItems = allItems.concat(r.items); });
+            let allItems = tableRounds[selectedTable];
             if(allItems.length === 0) { alert('Hóa đơn trống!'); return; }
             let totalAmount = allItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
             document.getElementById('bankTotalPay').innerText = totalAmount.toLocaleString() + 'đ';
@@ -569,8 +554,7 @@
         }
 
         async function confirmCheckout() {
-            let allItems = [];
-            tableRounds[selectedTable].forEach(r => { allItems = allItems.concat(r.items); });
+            let allItems = tableRounds[selectedTable];
             let totalAmount = allItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
 
             const res = await fetch('/api/checkout', {
@@ -578,9 +562,7 @@
                 body: JSON.stringify({ tableName: selectedTable, items: allItems, totalAmount })
             });
             if(res.ok) {
-                // In hóa đơn thanh toán ra máy in
                 printCheckoutBill(selectedTable, allItems, totalAmount);
-
                 alert('✅ Thanh toán thành công! Bàn đã được làm trống.');
                 delete tableRounds[selectedTable];
                 tableStatus[selectedTable] = 'empty';
@@ -640,14 +622,6 @@
             };
             localStorage.setItem('bankConfig', JSON.stringify(bankConfig));
             alert('✅ Đã lưu cấu hình ngân hàng thành công!');
-        }
-
-        function savePrinterConfig() {
-            printerConfig = {
-                size: document.getElementById('printerSizeSelect').value
-            };
-            localStorage.setItem('printerConfig', JSON.stringify(printerConfig));
-            alert('✅ Đã lưu cấu hình máy in thành công!');
         }
 
         async function loadTodayRevenue() {
