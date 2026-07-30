@@ -10,7 +10,8 @@
         
         header { background: #b71c1c; color: white; padding: 10px 20px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         header h1 { margin: 0; font-size: 18px; }
-        .header-right button { background: #ffa000; border: none; padding: 6px 12px; font-weight: bold; color: #fff; border-radius: 4px; cursor: pointer; margin-left: 5px; }
+        .header-right { display: flex; align-items: center; gap: 8px; }
+        .header-right button { background: #ffa000; border: none; padding: 6px 12px; font-weight: bold; color: #fff; border-radius: 4px; cursor: pointer; }
 
         .revenue-box { background: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; gap: 20px; align-items: center; }
         .rev-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
@@ -50,7 +51,7 @@
         .qr-btn { background: #0288d1; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-box { background: white; padding: 20px; border-radius: 8px; text-align: center; width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .modal-box { background: white; padding: 20px; border-radius: 8px; text-align: center; width: 420px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .modal-box input, .modal-box select { width: 100%; padding: 8px; margin: 6px 0; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
 
         #printArea { display: none; }
@@ -66,7 +67,9 @@
     <header>
         <h1>🔥 QUÁN NƯỚNG TUỔI TRẺ - HỆ THỐNG POS 🔥</h1>
         <div class="header-right">
-            <span style="font-size: 12px;">Hotline: 0842.163.333</span>
+            <div style="font-size: 12px; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px;">
+                👤 NV Trực: <select id="currentStaffSelect" onchange="changeActiveStaff()" style="background:transparent; color:#fff; border:none; font-weight:bold; cursor:pointer; outline:none;"></select>
+            </div>
             <button onclick="window.location.href='/api/orders/view'">📊 Doanh Thu</button>
             <button onclick="openSettings()">⚙️ Cài Đặt</button>
         </div>
@@ -125,11 +128,19 @@
         </div>
     </div>
 
+    <!-- MODAL CÀI ĐẶT (TÍCH HỢP QUẢN LÝ NHÂN VIÊN) -->
     <div id="settingsModal" class="modal">
         <div class="modal-box" style="text-align: left;">
             <h3 style="color: #b71c1c; margin-top:0; text-align:center;">⚙️ Cài Đặt Hệ Thống Quán</h3>
             
-            <label style="font-weight: bold; font-size: 12px;">1. Tài Khoản Ngân Hàng (VietQR):</label>
+            <label style="font-weight: bold; font-size: 12px;">1. Quản Lý Nhân Viên:</label>
+            <div style="display:flex; gap:6px; margin:6px 0;">
+                <input type="text" id="newStaffName" placeholder="Tên nhân viên mới..." style="margin:0; flex:1;">
+                <button onclick="addStaff()" style="background:#4caf50; color:white; border:none; padding:8px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">Thêm</button>
+            </div>
+            <div id="staffListContainer" style="max-height:90px; overflow-y:auto; border:1px solid #ddd; padding:4px; border-radius:4px; margin-bottom:10px; font-size:12px;"></div>
+
+            <label style="font-weight: bold; font-size: 12px;">2. Tài Khoản Ngân Hàng (VietQR):</label>
             <select id="bankNameSelect">
                 <option value="ICB">VietinBank</option>
                 <option value="VCB">Vietcombank</option>
@@ -142,16 +153,16 @@
             <input type="text" id="bankNameAccInput" placeholder="Tên chủ TK (VIẾT HOA KHÔNG DẤU)...">
             <button onclick="saveBankConfig()" style="background:#0288d1; color:white; border:none; padding:8px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:4px;">Lưu Ngân Hàng</button>
 
-            <hr style="margin: 12px 0; border:0; border-top:1px solid #ddd;">
+            <hr style="margin: 10px 0; border:0; border-top:1px solid #ddd;">
 
-            <label style="font-weight: bold; font-size: 12px;">2. Cấu Hình Khổ Giấy Máy In Nhiệt:</label>
+            <label style="font-weight: bold; font-size: 12px;">3. Khổ Giấy Máy In Nhiệt:</label>
             <select id="printerSizeSelect">
-                <option value="80">Máy in nhiệt khổ 80mm (Chuẩn to)</option>
-                <option value="58">Máy in nhiệt khổ 58mm (Khổ nhỏ)</option>
+                <option value="80">Khổ 80mm (To)</option>
+                <option value="58">Khổ 58mm (Nhỏ)</option>
             </select>
-            <button onclick="savePrinterConfig()" style="background:#4caf50; color:white; border:none; padding:8px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:4px;">Lưu Cấu Hình Máy In</button>
+            <button onclick="savePrinterConfig()" style="background:#4caf50; color:white; border:none; padding:8px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:4px;">Lưu Máy In</button>
 
-            <button onclick="document.getElementById('settingsModal').style.display='none'" style="background:#555; color:white; border:none; padding:8px; width:100%; border-radius:4px; cursor:pointer; margin-top:12px; font-weight:bold;">Đóng Cài Đặt</button>
+            <button onclick="document.getElementById('settingsModal').style.display='none'" style="background:#555; color:white; border:none; padding:8px; width:100%; border-radius:4px; cursor:pointer; margin-top:10px; font-weight:bold;">Đóng Cài Đặt</button>
         </div>
     </div>
 
@@ -236,12 +247,14 @@
         let tableStatus = {}; 
         let bankConfig = JSON.parse(localStorage.getItem('bankConfig') || '{"bank":"VCB","acc":"","name":""}');
         let printerConfig = JSON.parse(localStorage.getItem('printerConfig') || '{"size":"80"}');
+        let staffList = JSON.parse(localStorage.getItem('staffList') || '["Quản Lý", "Nhân Viên 1", "Nhân Viên 2"]');
+        let currentStaff = localStorage.getItem('currentStaff') || staffList[0];
 
         const urlParams = new URLSearchParams(window.location.search);
         const tableParam = urlParams.get('table');
 
         if (tableParam) {
-            // GIAO DIỆN KHÁCH HÀNG QUÉT QR TRÊN ĐIỆN THOẠI (KHÔNG CẦN ĐĂNG NHẬP)
+            // GIAO DIỆN KHÁCH HÀNG QUÉT QR
             document.body.innerHTML = `
                 <div style="max-width:480px; margin:0 auto; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
                     <div style="text-align:center; color:#d32f2f; font-weight:bold; font-size:20px;">🔥 QUÁN NƯỚNG TUỔI TRẺ 🔥</div>
@@ -272,9 +285,52 @@
                 btn.onclick = () => selectTable(tName);
                 tableGrid.appendChild(btn);
             }
+            renderStaffDropdown();
             renderMenuPOS();
             loadTodayRevenue();
             setInterval(syncAndCheckOrders, 3000);
+        }
+
+        function renderStaffDropdown() {
+            let select = document.getElementById('currentStaffSelect');
+            select.innerHTML = '';
+            staffList.forEach(s => {
+                select.innerHTML += `<option value="${s}" ${s === currentStaff ? 'selected' : ''}>${s}</option>`;
+            });
+        }
+
+        function changeActiveStaff() {
+            currentStaff = document.getElementById('currentStaffSelect').value;
+            localStorage.setItem('currentStaff', currentStaff);
+        }
+
+        function renderStaffListModal() {
+            let container = document.getElementById('staffListContainer');
+            container.innerHTML = '';
+            staffList.forEach((s, idx) => {
+                container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px solid #eee;">
+                    <span><b>${s}</b></span>
+                    ${staffList.length > 1 ? `<button onclick="removeStaff(${idx})" style="background:#d32f2f; color:#fff; border:none; padding:2px 6px; border-radius:3px; cursor:pointer; font-size:10px;">Xóa</button>` : ''}
+                </div>`;
+            });
+        }
+
+        function addStaff() {
+            let name = document.getElementById('newStaffName').value.trim();
+            if(!name) { alert('Vui lòng nhập tên nhân viên!'); return; }
+            staffList.push(name);
+            localStorage.setItem('staffList', JSON.stringify(staffList));
+            document.getElementById('newStaffName').value = '';
+            renderStaffDropdown();
+            renderStaffListModal();
+            alert('✅ Đã thêm nhân viên thành công!');
+        }
+
+        function removeStaff(idx) {
+            staffList.splice(idx, 1);
+            localStorage.setItem('staffList', JSON.stringify(staffList));
+            renderStaffDropdown();
+            renderStaffListModal();
         }
 
         function renderMenuPOS() {
@@ -431,7 +487,6 @@
                 tableRounds[selectedTable].push({ name, price, quantity: 1 });
             }
             
-            // Khi chọn món thì bàn chuyển sang màu cam (Đang order)
             if(tableStatus[selectedTable] === 'empty') {
                 tableStatus[selectedTable] = 'ordering';
                 updateTableUI(selectedTable, 'Đang order', 'table-ordering');
@@ -492,7 +547,6 @@
             document.getElementById('totalPrice').innerText = total.toLocaleString() + 'đ';
         }
 
-        // Khi bấm báo bếp thì bàn chính thức chuyển sang màu đỏ (Có khách)
         function sendToKitchen() {
             if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].length === 0) { alert('Chưa chọn bàn hoặc chưa có món để báo bếp!'); return; }
             printKitchenBill(selectedTable, tableRounds[selectedTable]);
@@ -508,7 +562,7 @@
             let widthStyle = printerConfig.size === '58' ? 'width: 58mm;' : 'width: 80mm;';
             let html = `<div style="${widthStyle} font-size: 12px; padding: 5px;">`;
             html += `<h3 style="text-align:center; margin:0;">PHIẾU BÁO BẾP</h3>`;
-            html += `<p style="text-align:center; margin:2px 0;"><b>${tableName}</b></p>`;
+            html += `<p style="text-align:center; margin:2px 0;"><b>${tableName}</b> (NV: ${currentStaff})</p>`;
             html += `<p style="text-align:center; margin:2px 0; font-size:10px;">${new Date().toLocaleTimeString('vi-VN')} - ${new Date().toLocaleDateString('vi-VN')}</p>`;
             html += `<hr style="border-top:1px dashed #000; margin:5px 0;">`;
             items.forEach(i => {
@@ -598,7 +652,7 @@
             html += `<h3 style="text-align:center; margin:0;">QUÁN NƯỚNG TUỔI TRẺ</h3>`;
             html += `<p style="text-align:center; margin:2px 0; font-size:10px;">Hotline: 0842.163.333</p>`;
             html += `<h4 style="text-align:center; margin:5px 0;">HÓA ĐƠN THANH TOÁN</h4>`;
-            html += `<p style="margin:2px 0;">Bàn: <b>${tableName}</b></p>`;
+            html += `<p style="margin:2px 0;">Bàn: <b>${tableName}</b> | NV: ${currentStaff}</p>`;
             html += `<p style="margin:2px 0; font-size:10px;">Giờ: ${new Date().toLocaleTimeString('vi-VN')} - ${new Date().toLocaleDateString('vi-VN')}</p>`;
             html += `<hr style="border-top:1px dashed #000; margin:5px 0;">`;
             items.forEach(i => {
@@ -618,7 +672,6 @@
             document.getElementById('qrModalTitle').innerText = 'Mã QR Gọi Món - ' + selectedTable;
             document.getElementById('qrcode').innerHTML = '';
             let tNum = selectedTable.replace('Bàn ', '');
-            // Đảm bảo đường dẫn QR trỏ thẳng về trang chủ (không dính quanly.html) để khách quét không bị hỏi mật khẩu
             let currentUrl = window.location.origin + '/?table=' + tNum;
             new QRCode(document.getElementById("qrcode"), { text: currentUrl, width: 150, height: 150 });
             document.getElementById('qrLinkText').innerText = currentUrl;
@@ -630,6 +683,7 @@
             document.getElementById('bankAccInput').value = bankConfig.acc;
             document.getElementById('bankNameAccInput').value = bankConfig.name;
             document.getElementById('printerSizeSelect').value = printerConfig.size;
+            renderStaffListModal();
             document.getElementById('settingsModal').style.display = 'flex';
         }
 
