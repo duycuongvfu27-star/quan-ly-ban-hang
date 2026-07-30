@@ -38,7 +38,7 @@
         .checkout-btn { background: #d32f2f; font-size: 13px; padding: 10px; }
         .qr-btn { background: #0288d1; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-box { background: white; padding: 20px; border-radius: 8px; text-align: center; width: 420px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .modal-box { background: white; padding: 20px; border-radius: 8px; text-align: center; width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .modal-box input, .modal-box select { width: 100%; padding: 8px; margin: 6px 0; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
         #printArea { display: none; }
         @media print {
@@ -183,10 +183,17 @@
             <button onclick="document.getElementById('qrModal').style.display='none'" style="background:#555; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; margin-top:10px;">Đóng</button>
         </div>
     </div>
+
+    <!-- MODAL THANH TOÁN (ĐÃ TÍCH HỢP BẢNG MÓN ĂN + NÚT CỘNG TRỪ + TỔNG TIỀN) -->
     <div id="bankModal" class="modal">
-        <div class="modal-box">
-            <h3 style="color: #b71c1c; margin-top:0;">💳 Thanh Toán & Mã Giảm Giá</h3>
-            <div style="display:flex; justify-content:space-between; font-size:13px; margin:4px 0;"><span>Tạm tính:</span><b id="bankSubTotal">0đ</b></div>
+        <div class="modal-box" style="width: 520px;">
+            <h3 style="color: #b71c1c; margin-top:0;">💳 Thanh Toán & Kiểm Tra Đồ - <span id="modalCheckoutTableName" style="color:#ff9800;"></span></h3>
+            
+            <!-- Danh sách món ăn kèm nút cộng trừ để kiểm đồ và trả đồ thừa -->
+            <div style="font-size:12px; font-weight:bold; text-align:left; color:#555; margin-bottom:4px;">📋 Danh sách món khách đã gọi (Có thể bấm + - nếu khách trả đồ thừa):</div>
+            <div id="checkoutItemsList" style="max-height: 180px; overflow-y: auto; border: 1px solid #ddd; padding: 6px; border-radius: 4px; margin-bottom: 10px; background: #fff;"></div>
+
+            <div style="display:flex; justify-content:space-between; font-size:14px; margin:6px 0;"><span>Tạm tính:</span><b id="bankSubTotal" style="color:#d32f2f;">0đ</b></div>
             
             <div style="display:flex; gap:6px; margin:8px 0;">
                 <input type="text" id="inputVoucherCode" placeholder="Nhập mã giảm giá..." style="margin:0; text-transform:uppercase;">
@@ -797,6 +804,32 @@
             } catch(e) {}
         }
 
+        // --- HÀM THAY ĐỔI SỐ LƯỢNG TRỰC TIẾP TRONG MODAL THANH TOÁN (KHI KHÁCH TRẢ ĐỒ THỪA) ---
+        function changeCheckoutItemQty(name, change) {
+            if(!selectedTable || !tableRounds[selectedTable]) return;
+            let item = tableRounds[selectedTable].find(i => i.name === name);
+            if(item) {
+                item.quantity += change;
+                if(item.quantity <= 0) {
+                    tableRounds[selectedTable] = tableRounds[selectedTable].filter(i => i.name !== name);
+                }
+            }
+            renderBill();
+            updateFoodBadges();
+            
+            // Cập nhật lại giao diện modal thanh toán ngay lập tức
+            let subTotal = tableRounds[selectedTable].reduce((sum, i) => sum + (i.price * i.quantity), 0);
+            document.getElementById('bankSubTotal').innerText = subTotal.toLocaleString() + 'đ';
+            updateBankModalQR(subTotal);
+            renderCheckoutItemsList();
+
+            // Đồng bộ về server
+            fetch('/api/checkout', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ tableName: selectedTable, items: tableRounds[selectedTable], totalAmount: 0, staff: loggedInStaff.name, tableStatus: tableStatus[selectedTable] })
+            }).catch(e => {});
+        }
+
         function updateFoodBadges() {
             menuData.forEach((cat, cIdx) => {
                 cat.items.forEach((item, iIdx) => {
@@ -1229,10 +1262,14 @@
             selectTable(targetTable);
         }
 
+        // --- MỞ MODAL THANH TOÁN (HIỂN THỊ DANH SÁCH MÓN ĂN KÈM NÚT CỘNG TRỪ ĐỂ KIỂM ĐỒ) ---
         function openBankQRModal() {
             if(!selectedTable || !tableRounds[selectedTable]) { alert('Không có hóa đơn thanh toán!'); return; }
             let allItems = tableRounds[selectedTable];
             if(allItems.length === 0) { alert('Hóa đơn trống!'); return; }
+            
+            document.getElementById('modalCheckoutTableName').innerText = selectedTable;
+            renderCheckoutItemsList();
             
             let subTotal = allItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
             if(subTotal <= 0) { alert('Bàn này không có món hoặc tổng tiền bằng 0!'); return; }
@@ -1247,6 +1284,33 @@
 
             updateBankModalQR(subTotal);
             document.getElementById('bankModal').style.display = 'flex';
+        }
+
+        // Render danh sách món trong bảng thanh toán kèm nút +-
+        function renderCheckoutItemsList() {
+            let container = document.getElementById('checkoutItemsList');
+            container.innerHTML = '';
+            let allItems = tableRounds[selectedTable] || [];
+            
+            if(allItems.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#888; font-size:12px;">Không có món nào</p>';
+                return;
+            }
+
+            allItems.forEach(i => {
+                let sub = i.price * i.quantity;
+                container.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px dashed #eee; font-size:12px;">
+                        <span style="font-weight:bold; flex:1;">${i.name} <span style="color:#d32f2f; font-weight:normal;">(${(i.price).toLocaleString()}đ)</span></span>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <button onclick="changeCheckoutItemQty('${i.name}', -1)" style="background:#ddd; border:none; width:20px; height:20px; font-weight:bold; cursor:pointer; border-radius:3px;">-</button>
+                            <b style="font-size:13px; min-width:20px; text-align:center;">x${i.quantity}</b>
+                            <button onclick="changeCheckoutItemQty('${i.name}', 1)" style="background:#d32f2f; color:#fff; border:none; width:20px; height:20px; font-weight:bold; cursor:pointer; border-radius:3px;">+</button>
+                            <b style="min-width:70px; text-align:right; color:#d32f2f;">${sub.toLocaleString()}đ</b>
+                        </div>
+                    </div>
+                `;
+            });
         }
 
         function applyVoucher() {
