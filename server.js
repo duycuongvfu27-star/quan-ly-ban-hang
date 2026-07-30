@@ -99,6 +99,9 @@ app.post('/api/checkout', (req, res) => {
                 totalAmount: 0
             });
         }
+    } else if (totalAmount === 0 && tableStatus === 'empty') {
+        globalActiveOrders = globalActiveOrders.filter(o => o.tableName !== tableName);
+        delete globalTableStatus[tableName];
     } else {
         let discountText = discount > 0 ? ` (Giảm: -${discount.toLocaleString()}đ [${voucherCode}])` : '';
         const newPaidOrder = {
