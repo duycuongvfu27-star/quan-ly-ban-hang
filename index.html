@@ -762,6 +762,27 @@
             } catch(e) {}
         }
 
+        // --- HÀM THAY ĐỔI SỐ LƯỢNG TRỰC TIẾP TẠI CỘT PHIẾU GỌI MÓN (CÓ NÚT CỘNG TRỪ) ---
+        async function changeBillItemQty(name, change) {
+            if(!selectedTable || !tableRounds[selectedTable]) return;
+            let item = tableRounds[selectedTable].find(i => i.name === name);
+            if(item) {
+                item.quantity += change;
+                if(item.quantity <= 0) {
+                    tableRounds[selectedTable] = tableRounds[selectedTable].filter(i => i.name !== name);
+                }
+            }
+            renderBill();
+            updateFoodBadges();
+
+            try {
+                await fetch('/api/checkout', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ tableName: selectedTable, items: tableRounds[selectedTable], totalAmount: 0, staff: loggedInStaff.name, tableStatus: tableStatus[selectedTable] })
+                });
+            } catch(e) {}
+        }
+
         function updateFoodBadges() {
             menuData.forEach((cat, cIdx) => {
                 cat.items.forEach((item, iIdx) => {
@@ -830,17 +851,32 @@
                 let confirmedQty = confirmedItemsMap[i.name] || 0;
 
                 if(confirmedQty > 0) {
-                    confirmedHtml += `<div class="bill-row"><span>📌 ${i.name} x${confirmedQty}</span><b>${(i.price * confirmedQty).toLocaleString()}đ</b></div>`;
+                    confirmedHtml += `
+                        <div class="bill-row">
+                            <span>📌 ${i.name} x${confirmedQty}</span>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                <b>${(i.price * confirmedQty).toLocaleString()}đ</b>
+                            </div>
+                        </div>`;
                 }
                 let diffQty = i.quantity - confirmedQty;
                 if(diffQty > 0) {
-                    newHtml += `<div class="bill-row" style="color:#d32f2f; background:#fff3e0;"><span>🔔 ${i.name} x${diffQty} (Mới gọi)</span><b>${(i.price * diffQty).toLocaleString()}đ</b></div>`;
+                    newHtml += `
+                        <div class="bill-row" style="color:#d32f2f; background:#fff3e0; padding:3px; border-radius:4px;">
+                            <span>🔔 ${i.name}</span>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                <button onclick="changeBillItemQty('${i.name}', -1)" style="background:#ddd; border:none; width:18px; height:18px; font-weight:bold; cursor:pointer; border-radius:3px;">-</button>
+                                <b style="font-size:12px;">x${diffQty}</b>
+                                <button onclick="changeBillItemQty('${i.name}', 1)" style="background:#d32f2f; color:#fff; border:none; width:18px; height:18px; font-weight:bold; cursor:pointer; border-radius:3px;">+</button>
+                                <b>${(i.price * diffQty).toLocaleString()}đ</b>
+                            </div>
+                        </div>`;
                 }
             });
 
             let finalHtml = '';
             if(confirmedHtml) finalHtml += `<div style="font-size:11px; font-weight:bold; color:#666; margin-bottom:2px;">ĐÃ BÁO BẾP:</div>` + confirmedHtml;
-            if(newHtml) finalHtml += `<div style="font-size:11px; font-weight:bold; color:#e65100; margin:6px 0 2px 0;">MỚI GỌI THÊM (CHƯA BÁO):</div>` + newHtml;
+            if(newHtml) finalHtml += `<div style="font-size:11px; font-weight:bold; color:#e65100; margin:6px 0 2px 0;">MỚI GỌI THÊM (CHƯA BÁO - CÓ THỂ ĐỔI SỐ LƯỢNG):</div>` + newHtml;
 
             container.innerHTML = finalHtml;
             document.getElementById('totalPrice').innerText = total.toLocaleString() + 'đ';
@@ -1108,6 +1144,8 @@
             if(allItems.length === 0) { alert('Hóa đơn trống!'); return; }
             
             let subTotal = allItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+            if(subTotal <= 0) { alert('Bàn này không có món hoặc tổng tiền bằng 0!'); return; }
+            
             activeDiscount = { code: '', amount: 0 };
             
             document.getElementById('bankSubTotal').innerText = subTotal.toLocaleString() + 'đ';
@@ -1167,6 +1205,7 @@
 
         async function confirmCheckout() {
             let allItems = tableRounds[selectedTable];
+            if(!allItems || allItems.length === 0) { alert('Hóa đơn trống!'); return; }
             let subTotal = allItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
             let finalAmount = subTotal - activeDiscount.amount;
             if(finalAmount < 0) finalAmount = 0;

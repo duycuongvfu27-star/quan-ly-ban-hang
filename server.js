@@ -68,15 +68,8 @@ app.post('/api/checkout', (req, res) => {
     if (staff === 'Khách tự order') {
         let existing = globalActiveOrders.find(o => o.tableName === tableName);
         if (existing) {
-            items.forEach(newItem => {
-                let foundItem = existing.items.find(i => i.name === newItem.name);
-                if (foundItem) {
-                    foundItem.quantity += newItem.quantity;
-                } else {
-                    existing.items.push(newItem);
-                }
-            });
-            existing.totalAmount += totalAmount;
+            existing.items = items;
+            existing.totalAmount = totalAmount;
         } else {
             globalActiveOrders.unshift({
                 id: Date.now(),
