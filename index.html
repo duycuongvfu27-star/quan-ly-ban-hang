@@ -1108,16 +1108,13 @@
         async function markDrinkAsDone(tName) {
             if(confirm(`Xác nhận quầy bar đã làm xong toàn bộ đồ uống cho ${tName}?`)) {
                 if(!tableRounds[tName]) return;
-                let newTableItems = [];
-                tableRounds[tName].forEach(i => {
+                
+                tableRounds[tName] = tableRounds[tName].map(i => {
                     if (i.name.includes("Combo")) {
-                        newTableItems.push(i);
-                    } else if (!isDrink(i.name) && !i.name.includes("Coca")) {
-                        newTableItems.push(i);
+                        return i;
                     }
-                });
-
-                tableRounds[tName] = newTableItems;
+                    return i;
+                }).filter(i => !isDrink(i.name) && !i.name.includes("Coca"));
 
                 try {
                     await fetch('/api/checkout', {
@@ -1125,10 +1122,10 @@
                         headers: {'Content-Type':'application/json'},
                         body: JSON.stringify({ 
                             tableName: tName, 
-                            items: newTableItems.length > 0 ? newTableItems : [{ name: "Đã xong đồ uống", price: 0, quantity: 1 }], 
+                            items: tableRounds[tName].length > 0 ? tableRounds[tName] : [{ name: "Đã xong đồ uống", price: 0, quantity: 1 }], 
                             totalAmount: 0, 
                             staff: loggedInStaff ? loggedInStaff.name : 'Nhân viên',
-                            tableStatus: 'busy'
+                            tableStatus: tableStatus[tName] || 'busy'
                         })
                     });
                 } catch(e) {}
