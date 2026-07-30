@@ -1,30 +1,14 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(__dirname));
 
-const DATA_FILE = path.join(__dirname, 'orders.json');
-
-if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify({ activeOrders: [], paidHistory: [] }, null, 2));
-}
-
-function readData() {
-    try {
-        const data = fs.readFileSync(DATA_FILE, 'utf8');
-        return JSON.parse(data);
-    } catch (e) {
-        return { activeOrders: [], paidHistory: [] };
-    }
-}
-
-function saveData(data) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
+// Lưu trữ dữ liệu trực tiếp trên RAM của Server để tốc độ phản hồi tức thì 100%
+let globalActiveOrders = [];
+let globalPaidHistory = [];
 
 let globalStaffList = [
     { name: "Quản Lý 1", pin: "1234", role: "manager" },
@@ -74,12 +58,11 @@ app.post('/api/staff/remove', (req, res) => {
 
 app.post('/api/checkout', (req, res) => {
     const { tableName, items, totalAmount, discount, voucherCode, staff } = req.body;
-    let db = readData();
     let { timeStr, dateStr } = getVietnamTime();
     let itemsText = items.map(i => `${i.name} (x${i.quantity})`).join(', ');
 
     if (staff === 'Khách tự order' || totalAmount === 0) {
-        let existing = db.activeOrders.find(o => o.tableName === tableName);
+        let existing = globalActiveOrders.find(o => o.tableName === tableName);
         if (existing) {
             items.forEach(newItem => {
                 let foundItem = existing.items.find(i => i.name === newItem.name);
@@ -91,7 +74,7 @@ app.post('/api/checkout', (req, res) => {
             });
             existing.totalAmount += totalAmount;
         } else {
-            db.activeOrders.unshift({
+            globalActiveOrders.unshift({
                 id: Date.now(),
                 time: timeStr,
                 tableName,
@@ -110,22 +93,18 @@ app.post('/api/checkout', (req, res) => {
             staff: staff || 'Nhân viên',
             date: dateStr
         };
-        db.paidHistory.unshift(newPaidOrder);
-        db.activeOrders = db.activeOrders.filter(o => o.tableName !== tableName);
+        globalPaidHistory.unshift(newPaidOrder);
+        globalActiveOrders = globalActiveOrders.filter(o => o.tableName !== tableName);
     }
 
-    saveData(db);
-    res.status(200).json({ success: true, activeOrders: db.activeOrders });
+    res.status(200).json({ success: true, activeOrders: globalActiveOrders });
 });
 
 app.get('/api/orders', (req, res) => {
-    let db = readData();
-    res.json(db.activeOrders);
+    res.json(globalActiveOrders);
 });
 
 app.get('/api/orders/view', (req, res) => {
-    let db = readData();
-    let paidHistory = db.paidHistory;
     res.send(`
         <!DOCTYPE html>
         <html lang="vi">
@@ -186,7 +165,7 @@ app.get('/api/orders/view', (req, res) => {
                 </table>
             </div>
             <script>
-                let data = ${JSON.stringify(paidHistory)};
+                let data = ${JSON.stringify(globalPaidHistory)};
                 const nowUtc = new Date();
                 const nowVn = new Date(nowUtc.getTime() + (nowUtc.getTimezoneOffset() * 60000) + (3600000 * 7));
                 document.getElementById('filterDate').value = nowVn.toISOString().split('T')[0];
@@ -206,11 +185,11 @@ app.get('/api/orders/view', (req, res) => {
                         totalRev += ord.totalAmount;
                         tbody.innerHTML += \`
                             <tr>
-                                <td>\${ord.time}</td>
-                                <td><b>\${ord.tableName}</b></td>
-                                <td>\${ord.itemsText}</td>
-                                <td><span style="background:#e0f2f1; color:#00695c; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:11px;">\${ord.staff}</span></td>
-                                <td style="text-align: right; font-weight: bold; color: #d32f2f;">\${ord.totalAmount.toLocaleString()} đ</td>
+                                \<td>\${ord.time}</td>
+                                \<td><b>\${ord.tableName}</b></td>
+                                \<td>\${ord.itemsText}</td>
+                                \<td><span style="background:#e0f2f1; color:#00695c; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:11px;">\${ord.staff}</span></td>
+                                \<td style="text-align: right; font-weight: bold; color: #d32f2f;">\${ord.totalAmount.toLocaleString()} đ</td>
                             </tr>
                         \`;
                     });
