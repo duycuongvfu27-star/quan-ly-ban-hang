@@ -38,7 +38,7 @@
         .checkout-btn { background: #d32f2f; font-size: 13px; padding: 10px; }
         .qr-btn { background: #0288d1; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-box { background: white; padding: 20px; border-radius: 8px; text-align: center; width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .modal-box { background: white; padding: 20px; border-radius: 8px; text-align: center; width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .modal-box input, .modal-box select { width: 100%; padding: 8px; margin: 6px 0; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
         #printArea { display: none; }
         @media print {
@@ -120,19 +120,32 @@
             <button onclick="document.getElementById('moveTableModal').style.display='none'" style="background:#555; color:white; border:none; padding:6px; width:100%; border-radius:4px; margin-top:6px; cursor:pointer;">Hủy</button>
         </div>
     </div>
+
+    <!-- MODAL CÀI ĐẶT HỆ THỐNG (CÓ QUẢN LÝ THỰC ĐƠN) -->
     <div id="settingsModal" class="modal">
-        <div class="modal-box" style="text-align: left;">
-            <h3 style="color: #b71c1c; margin-top:0; text-align:center;">⚙️ Cài Đặt Hệ Thống Quán</h3>
-            <label style="font-weight: bold; font-size: 12px;">1. Quản Lý Nhân Sự & Đổi Mã PIN:</label>
+        <div class="modal-box" style="text-align: left; width: 600px;">
+            <h3 style="color: #b71c1c; margin-top:0; text-align:center;">⚙️ Cài Đặt Hệ Thống & Thực Đơn Quán</h3>
+            
+            <label style="font-weight: bold; font-size: 12px; color: #b71c1c;">1. Quản Lý Thực Đơn & Giá Tiền:</label>
+            <div style="display:flex; gap:6px; margin:6px 0;">
+                <select id="menuCatSelect" style="margin:0; width:140px;"></select>
+                <input type="text" id="newFoodName" placeholder="Tên món ăn mới..." style="margin:0; flex:1;">
+                <input type="number" id="newFoodPrice" placeholder="Giá (VNĐ)..." style="margin:0; width:100px;">
+                <button onclick="addNewFoodItem()" style="background:#4caf50; color:white; border:none; padding:8px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">Thêm Món</button>
+            </div>
+            <div id="menuEditorContainer" style="max-height:160px; overflow-y:auto; border:1px solid #ddd; padding:6px; border-radius:4px; margin-bottom:10px; font-size:12px; background:#fafafa;"></div>
+            <hr style="margin: 8px 0; border:0; border-top:1px solid #ddd;">
+
+            <label style="font-weight: bold; font-size: 12px;">2. Quản Lý Nhân Sự & Đổi Mã PIN:</label>
             <div style="display:flex; gap:6px; margin:6px 0;">
                 <input type="text" id="newStaffName" placeholder="Tên nhân sự..." style="margin:0; flex:1;">
                 <input type="password" id="newStaffPin" placeholder="Mã PIN..." style="margin:0; width:70px;" maxlength="6">
                 <select id="newStaffRole" style="margin:0; width:95px;"><option value="staff">Nhân Viên</option><option value="manager">Quản Lý</option></select>
                 <button onclick="addStaff()" style="background:#4caf50; color:white; border:none; padding:8px 10px; border-radius:4px; font-weight:bold; cursor:pointer;">Thêm</button>
             </div>
-            <div id="staffListContainer" style="max-height:120px; overflow-y:auto; border:1px solid #ddd; padding:4px; border-radius:4px; margin-bottom:10px; font-size:12px;"></div>
+            <div id="staffListContainer" style="max-height:100px; overflow-y:auto; border:1px solid #ddd; padding:4px; border-radius:4px; margin-bottom:10px; font-size:12px;"></div>
             
-            <label style="font-weight: bold; font-size: 12px;">2. Quản Lý Mã Giảm Giá (Voucher):</label>
+            <label style="font-weight: bold; font-size: 12px;">3. Quản Lý Mã Giảm Giá (Voucher):</label>
             <div style="display:flex; gap:6px; margin:6px 0;">
                 <input type="text" id="newVoucherCode" placeholder="Mã (VD: GIAM10)..." style="margin:0; flex:1; text-transform:uppercase;">
                 <select id="newVoucherType" style="margin:0; width:90px;">
@@ -142,9 +155,9 @@
                 <input type="number" id="newVoucherVal" placeholder="Giá trị..." style="margin:0; width:80px;">
                 <button onclick="addVoucher()" style="background:#ff9800; color:white; border:none; padding:8px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">Thêm</button>
             </div>
-            <div id="voucherListContainer" style="max-height:90px; overflow-y:auto; border:1px solid #ddd; padding:4px; border-radius:4px; margin-bottom:10px; font-size:12px;"></div>
+            <div id="voucherListContainer" style="max-height:80px; overflow-y:auto; border:1px solid #ddd; padding:4px; border-radius:4px; margin-bottom:10px; font-size:12px;"></div>
 
-            <label style="font-weight: bold; font-size: 12px;">3. Tài Khoản Ngân Hàng (VietQR):</label>
+            <label style="font-weight: bold; font-size: 12px;">4. Tài Khoản Ngân Hàng (VietQR):</label>
             <select id="bankNameSelect">
                 <option value="ICB">VietinBank</option>
                 <option value="VCB">Vietcombank</option>
@@ -156,8 +169,8 @@
             <input type="text" id="bankAccInput" placeholder="Số tài khoản...">
             <input type="text" id="bankNameAccInput" placeholder="Tên chủ TK (VIẾT HOA KHÔNG DẤU)...">
             <button onclick="saveBankConfig()" style="background:#0288d1; color:white; border:none; padding:8px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:4px;">Lưu Ngân Hàng</button>
-            <hr style="margin: 10px 0; border:0; border-top:1px solid #ddd;">
-            <label style="font-weight: bold; font-size: 12px;">4. Khổ Giấy Máy In Nhiệt:</label>
+            <hr style="margin: 8px 0; border:0; border-top:1px solid #ddd;">
+            <label style="font-weight: bold; font-size: 12px;">5. Khổ Giấy Máy In Nhiệt:</label>
             <select id="printerSizeSelect">
                 <option value="80">Khổ 80mm (To)</option>
                 <option value="58">Khổ 58mm (Nhỏ)</option>
@@ -166,6 +179,7 @@
             <button onclick="document.getElementById('settingsModal').style.display='none'" style="background:#555; color:white; border:none; padding:8px; width:100%; border-radius:4px; cursor:pointer; margin-top:10px; font-weight:bold;">Đóng Cài Đặt</button>
         </div>
     </div>
+
     <div id="pinModal" class="modal">
         <div class="modal-box" style="width: 320px;">
             <h3 style="color: #b71c1c; margin-top:0;">🔒 Xác Thực Quản Lý</h3>
@@ -213,7 +227,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
-        const menuData = [
+        const defaultMenuData = [
             { cat: "CÁC COMBO NƯỚNG", items: [
                 { name: "Combo 1 (Dành cho 2-3 người)", price: 319000 },
                 { name: "Combo 2 (Dành cho 3-4 người)", price: 459000 },
@@ -267,6 +281,12 @@
                 { name: "Nước ngọt các loại", price: 13000 }
             ]}
         ];
+
+        let menuData = JSON.parse(localStorage.getItem('posMenuData') || JSON.stringify(defaultMenuData));
+
+        function saveMenuToStorage() {
+            localStorage.setItem('posMenuData', JSON.stringify(menuData));
+        }
 
         function getComboDetails(comboName, qty) {
             let details = [];
@@ -411,12 +431,9 @@
                     <div id="customerMenu"></div>
 
                     <button onclick="submitCustomerOrder('${tName}')" style="width:100%; background:#d32f2f; color:white; border:none; padding:12px; font-weight:bold; border-radius:6px; margin-top:12px; font-size:15px; cursor:pointer;">🚀 GỬI YÊU CẦU GỌI MÓN</button>
-                    
-                    <!-- NÚT TỰ THANH TOÁN QUA MÃ QR CHO KHÁCH -->
                     <button onclick="openCustomerQRCheckout('${tName}')" style="width:100%; background:#0288d1; color:white; border:none; padding:12px; font-weight:bold; border-radius:6px; margin-top:8px; font-size:15px; cursor:pointer;">💳 TỰ THANH TOÁN QUA MÃ QR</button>
                 </div>
 
-                <!-- MODAL HIỂN THỊ MÃ QR THANH TOÁN CHO KHÁCH -->
                 <div id="customerQrModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000;">
                     <div style="background:white; padding:20px; border-radius:8px; text-align:center; width:360px; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
                         <h3 style="color: #b71c1c; margin-top:0;">💳 Quét Mã QR Để Thanh Toán</h3>
@@ -433,6 +450,7 @@
 
         async function initCustomerView(tName, cusCart) {
             let menuDiv = document.getElementById('customerMenu');
+            menuDiv.innerHTML = '';
 
             menuData.forEach((cat) => {
                 menuDiv.innerHTML += `<div style="font-size:12px; font-weight:bold; color:#ffa726; background:#37474f; padding:4px 8px; border-radius:4px; margin:8px 0 4px 0;">${cat.cat}</div>`;
@@ -1512,7 +1530,7 @@
         }
 
         function showTableQR() {
-            if(!selectedTable) { alert('Vuint lòng chọn bàn trước trên sơ đồ!'); return; }
+            if(!selectedTable) { alert('Vui lòng chọn bàn trước trên sơ đồ!'); return; }
             document.getElementById('qrModalTitle').innerText = 'Mã QR Gọi Món - ' + selectedTable;
             document.getElementById('qrcode').innerHTML = '';
             let tNum = selectedTable.replace('Bàn ', '');
@@ -1528,7 +1546,54 @@
             document.getElementById('bankNameAccInput').value = bankConfig.name;
             document.getElementById('printerSizeSelect').value = printerConfig.size;
             renderStaffListModal();
+            renderMenuEditorModal();
             document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function renderMenuEditorModal() {
+            let catSelect = document.getElementById('menuCatSelect');
+            catSelect.innerHTML = '';
+            menuData.forEach((cat, idx) => {
+                catSelect.innerHTML += `<option value="${idx}">${cat.cat}</option>`;
+            });
+
+            let container = document.getElementById('menuEditorContainer');
+            container.innerHTML = '';
+            menuData.forEach((cat, cIdx) => {
+                container.innerHTML += `<div style="font-weight:bold; color:#b71c1c; margin-top:4px;">📂 ${cat.cat}</div>`;
+                cat.items.forEach((item, iIdx) => {
+                    container.innerHTML += `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:2px 0 2px 10px; border-bottom:1px solid #eee;">
+                            <span>${item.name} - <b style="color:#d32f2f;">${item.price.toLocaleString()}đ</b></span>
+                            <button onclick="removeFoodItem(${cIdx}, ${iIdx})" style="background:#d32f2f; color:#fff; border:none; padding:1px 6px; border-radius:3px; cursor:pointer; font-size:10px;">Xóa</button>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function addNewFoodItem() {
+            let cIdx = parseInt(document.getElementById('menuCatSelect').value);
+            let name = document.getElementById('newFoodName').value.trim();
+            let price = parseFloat(document.getElementById('newFoodPrice').value);
+            if(!name || isNaN(price)) { alert('Vui lòng nhập đầy đủ tên món và giá tiền!'); return; }
+            
+            menuData[cIdx].items.push({ name, price });
+            saveMenuToStorage();
+            document.getElementById('newFoodName').value = '';
+            document.getElementById('newFoodPrice').value = '';
+            renderMenuEditorModal();
+            renderMenuPOS();
+            alert('✅ Đã thêm món mới vào thực đơn thành công!');
+        }
+
+        function removeFoodItem(cIdx, iIdx) {
+            if(confirm(`Bạn có chắc muốn xóa món này khỏi thực đơn?`)) {
+                menuData[cIdx].items.splice(iIdx, 1);
+                saveMenuToStorage();
+                renderMenuEditorModal();
+                renderMenuPOS();
+            }
         }
 
         function renderStaffListModal() {
