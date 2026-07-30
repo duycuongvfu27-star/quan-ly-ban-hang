@@ -65,7 +65,7 @@
         <h1>🔥 QUÁN NƯỚNG TUỔI TRẺ - POS PRO</h1>
         <div class="header-right">
             <span style="font-size: 12px; opacity: 0.9;">📞 Hotline: 0842.163.333</span>
-            <button onclick="window.location.href='/api/orders'">📊 Doanh Thu</button>
+            <button onclick="window.location.href='/api/orders/view'">📊 Doanh Thu</button>
             <button onclick="openSettings()">⚙️ Cài Đặt</button>
         </div>
     </header>
@@ -164,7 +164,6 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
-        // Thực đơn chuẩn 100% khớp với ảnh menu gốc của quán
         const menuData = [
             { cat: "CÁC COMBO NƯỚNG", items: [
                 { name: "Combo 1 (Dành cho 2-3 người)", price: 319000 },
@@ -177,23 +176,23 @@
                 { name: "Ngô chiên", price: 35000 },
                 { name: "Bánh mỳ nướng bơ", price: 19000 },
                 { name: "Khoai tây chiên", price: 35000 },
-                { name: "Salad rau tổng hợp (mới)", price: 29000 },
-                { name: "Salad hoa quả (Hót)", price: 39000 },
+                { name: "Salad rau tổng hợp", price: 29000 },
+                { name: "Salad hoa quả", price: 39000 },
                 { name: "Kim chi Hàn Quốc", price: 29000 }
             ]},
             { cat: "CÁC MÓN NƯỚNG", items: [
                 { name: "Ba chỉ", price: 65000 },
                 { name: "Sụn non ướp ngũ vị", price: 69000 },
-                { name: "Nầm tươi ứa sữa (Hót)", price: 75000 },
+                { name: "Nầm tươi ứa sữa", price: 75000 },
                 { name: "Bò cuộn nấm kim", price: 59000 },
-                { name: "Thịt dải heo (mới)", price: 69000 },
-                { name: "Má đào heo (Đỉnh)", price: 79000 },
-                { name: "Nọng má tươi (giòn ngon)", price: 79000 },
-                { name: "Chân gà rút xương (Best seller)", price: 99000 },
+                { name: "Thịt dải heo", price: 69000 },
+                { name: "Má đào heo", price: 79000 },
+                { name: "Nọng má tươi", price: 79000 },
+                { name: "Chân gà rút xương", price: 99000 },
                 { name: "Chân gà rút xương (đĩa nhỏ)", price: 59000 },
-                { name: "Lòng non (Best seller)", price: 59000 },
-                { name: "Khâu đuôi giòn sần sật (Hót)", price: 69000 },
-                { name: "Lòng già mũm mĩm (Béo nhất quán)", price: 59000 },
+                { name: "Lòng non", price: 59000 },
+                { name: "Khâu đuôi giòn sần sật", price: 69000 },
+                { name: "Lòng già mũm mĩm", price: 59000 },
                 { name: "Dạ dày nướng xa tê", price: 69000 },
                 { name: "Tôm tươi", price: 89000 },
                 { name: "Mực rụng trứng", price: 89000 },
@@ -201,20 +200,20 @@
                 { name: "Xúc xích ướp ngũ vị", price: 59000 },
                 { name: "Dồi sụn ướp ngũ vị", price: 59000 },
                 { name: "Lạp xưởng nướng thượng hạng", price: 59000 },
-                { name: "Dải thăn bò nướng tảng (Best seller)", price: 79000 },
-                { name: "Nạc vai nướng tảng (mới)", price: 69000 },
-                { name: "Bò ăn dỏi lăn (phải thử 1 lần)", price: 79000 },
-                { name: "U bò nướng (Hót)", price: 89000 },
+                { name: "Dải thăn bò nướng tảng", price: 79000 },
+                { name: "Nạc vai nướng tảng", price: 69000 },
+                { name: "Bò ăn dỏi lăn", price: 79000 },
+                { name: "U bò nướng", price: 89000 },
                 { name: "Rẻ sườn nướng xa tê", price: 69000 },
                 { name: "Bắp bò ướp ngũ vị", price: 79000 }
             ]},
             { cat: "ĐỒ UỐNG", items: [
-                { name: "Rượu ngô non, táo mèo, mơ, men lá", price: 40000 },
+                { name: "Rượu ngô non, táo mèo", price: 40000 },
                 { name: "Bia Sài Gòn, bia 333", price: 15000 },
                 { name: "Bia Tiger", price: 22000 },
                 { name: "Bò húc", price: 17000 },
                 { name: "Nước lọc", price: 7000 },
-                { name: "Trà đá (ca), thuốc lá", price: 20000 },
+                { name: "Trà đá, thuốc lá", price: 20000 },
                 { name: "Rượu dừa", price: 65000 },
                 { name: "Nước ngọt các loại", price: 13000 }
             ]}
@@ -248,7 +247,7 @@
             `;
             initCustomerView(tableParam);
         } else {
-            // GIAO DIỆN POS MÁY TÍNH (16 BÀN)
+            // GIAO DIỆN POS MÁY TÍNH
             const tableGrid = document.getElementById('tableGrid');
             for(let i=1; i<=16; i++) {
                 let tName = 'Bàn ' + (i < 10 ? '0' + i : i);

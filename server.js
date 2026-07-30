@@ -1,61 +1,45 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const path = require('path');
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-const mongoURI = process.env.MONGO_URI;
-if (mongoURI) {
-  mongoose.connect(mongoURI)
-    .then(() => console.log('✅ Kết nối MongoDB Atlas thành công!'))
-    .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
-}
+// Bộ nhớ lưu trữ đơn hàng tạm thời trên server
+let activeOrders = [];
 
-const orderSchema = new mongoose.Schema({
-  tableName: String,
-  items: Array,
-  totalAmount: Number,
-  createdAt: { type: Date, default: Date.now }
-});
-const Order = mongoose.model('Order', orderSchema);
-
-app.post('/api/login', (req, res) => {
-  const { pin } = req.body;
-  if (pin === '1234' || pin === '5555') {
-    return res.json({ success: true });
-  }
-  res.status(400).json({ success: false, message: 'Sai mã PIN!' });
-});
-
-app.post('/api/checkout', async (req, res) => {
-  try {
+// API nhận order từ điện thoại khách hàng hoặc máy POS
+app.post('/api/checkout', (req, res) => {
     const { tableName, items, totalAmount } = req.body;
-    const newOrder = new Order({ tableName, items, totalAmount });
-    await newOrder.save();
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false });
-  }
+    const newOrder = {
+        id: Date.now(),
+        tableName,
+        items,
+        totalAmount,
+        time: new Date().toLocaleTimeString('vi-VN')
+    };
+    
+    // Thêm vào đầu danh sách đơn hàng
+    activeOrders.unshift(newOrder);
+    res.status(200).json({ success: true, message: "Order thành công", order: newOrder });
 });
 
-// API lấy lịch sử hóa đơn cho bảng Doanh Thu
-app.get('/api/orders', async (req, res) => {
-  try {
-    const orders = await Order.find().sort({ createdAt: -1 });
-    res.json(orders);
-  } catch (err) {
-    res.status(500).json([]);
-  }
+// API trả về danh sách đơn hàng cho máy POS thu ngân
+app.get('/api/orders', (req, res) => {
+    res.json(activeOrders);
 });
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+// Giao diện quản lý doanh thu
+app.get('/api/orders/view', (req, res) => {
+    let html = `<h2>Danh sách đơn hàng hôm nay</h2><ul>`;
+    activeOrders.forEach(ord => {
+        html += `<li><b>${ord.tableName}</b> - Tổng tiền: ${ord.totalAmount.toLocaleString()}đ lúc ${ord.time}</li>`;
+    });
+    html += `</ul><a href="/quanly.html">Quay lại POS</a>`;
+    res.send(html);
 });
 
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server đang chạy cổng ${PORT}`);
+    console.log(`Server đang chạy tại cổng ${PORT}`);
 });
