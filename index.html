@@ -467,7 +467,9 @@
             if (urlParams.get('table')) return; 
             try {
                 const res = await fetch('/api/orders');
-                const data = await res.json();
+                const responseData = await res.json();
+                const data = responseData.activeOrders || [];
+                const serverTableStatus = responseData.tableStatus || {};
                 
                 if (data.length > lastCheckedCount && lastCheckedCount !== 0) {
                     let latestOrder = data[0]; 
@@ -475,16 +477,17 @@
                 }
                 lastCheckedCount = data.length;
 
-                let activeTableNames = data.map(ord => ord.tableName);
-                
                 for(let i=1; i<=16; i++) {
                     let tName = 'Bàn ' + (i < 10 ? '0' + i : i);
-                    if(!activeTableNames.includes(tName) && selectedTable !== tName) {
-                        if(!tableRounds[tName] || tableRounds[tName].length === 0) {
-                            tableStatus[tName] = 'empty';
-                            delete tableRoundsHistory[tName]; 
-                            updateTableUI(tName, 'Trống', 'table-empty');
-                        }
+                    if (serverTableStatus[tName]) {
+                        tableStatus[tName] = serverTableStatus[tName];
+                        let statusText = serverTableStatus[tName] === 'busy' ? 'Có khách' : (serverTableStatus[tName] === 'ordering' ? 'Đang order' : 'Trống');
+                        let className = serverTableStatus[tName] === 'busy' ? 'table-busy' : (serverTableStatus[tName] === 'ordering' ? 'table-ordering' : 'table-empty');
+                        updateTableUI(tName, statusText, className);
+                    } else if (!tableRounds[tName] || tableRounds[tName].length === 0) {
+                        tableStatus[tName] = 'empty';
+                        delete tableRoundsHistory[tName];
+                        updateTableUI(tName, 'Trống', 'table-empty');
                     }
                 }
 
@@ -513,11 +516,6 @@
                                 tableRoundsHistory[tName].push({ roundName: `Lượt gọi thêm ${roundNum}`, items: [newItem] });
                             }
                         });
-                    }
-
-                    if(tableStatus[tName] !== 'busy') {
-                        tableStatus[tName] = 'ordering';
-                        updateTableUI(tName, 'Đang order', 'table-ordering');
                     }
                 });
 
@@ -606,7 +604,7 @@
                     const response = await fetch(window.location.origin + '/api/checkout', {
                         method: 'POST', 
                         headers: {'Content-Type':'application/json'},
-                        body: JSON.stringify({ tableName: tName, items: cusCart, totalAmount, staff: 'Khách tự order' })
+                        body: JSON.stringify({ tableName: tName, items: cusCart, totalAmount, staff: 'Khách tự order', tableStatus: 'ordering' })
                     });
                     if(response.ok) { 
                         alert('🎉 Gửi yêu cầu gọi món thành công!'); 
@@ -630,7 +628,7 @@
             updateFoodBadges();
         }
 
-        function addFood(name, price) {
+        async function addFood(name, price) {
             if(!selectedTable) { alert('⚠️ Vui lòng chọn bàn trên sơ đồ trước!'); return; }
             if(!tableRounds[selectedTable]) tableRounds[selectedTable] = [];
             let existing = tableRounds[selectedTable].find(i => i.name === name);
@@ -645,6 +643,13 @@
             }
             renderBill();
             updateFoodBadges();
+
+            try {
+                await fetch('/api/checkout', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ tableName: selectedTable, items: tableRounds[selectedTable], totalAmount: 0, staff: loggedInStaff.name, tableStatus: 'ordering' })
+                });
+            } catch(e) {}
         }
 
         function updateFoodBadges() {
@@ -724,7 +729,8 @@
                         tableName: selectedTable, 
                         items: tableRounds[selectedTable], 
                         totalAmount: 0, 
-                        staff: loggedInStaff.name 
+                        staff: loggedInStaff.name,
+                        tableStatus: 'busy'
                     })
                 });
             } catch(e) {}

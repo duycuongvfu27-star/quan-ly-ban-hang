@@ -6,9 +6,9 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Lưu trữ dữ liệu trực tiếp trên RAM của Server để tốc độ phản hồi tức thì 100%
 let globalActiveOrders = [];
 let globalPaidHistory = [];
+let globalTableStatus = {}; // Lưu trạng thái màu sắc bàn trên server để đồng bộ mọi máy
 
 let globalStaffList = [
     { name: "Quản Lý 1", pin: "1234", role: "manager" },
@@ -57,9 +57,13 @@ app.post('/api/staff/remove', (req, res) => {
 });
 
 app.post('/api/checkout', (req, res) => {
-    const { tableName, items, totalAmount, discount, voucherCode, staff } = req.body;
+    const { tableName, items, totalAmount, discount, voucherCode, staff, tableStatus } = req.body;
     let { timeStr, dateStr } = getVietnamTime();
     let itemsText = items.map(i => `${i.name} (x${i.quantity})`).join(', ');
+
+    if (tableStatus) {
+        globalTableStatus[tableName] = tableStatus;
+    }
 
     if (staff === 'Khách tự order' || totalAmount === 0) {
         let existing = globalActiveOrders.find(o => o.tableName === tableName);
@@ -95,13 +99,14 @@ app.post('/api/checkout', (req, res) => {
         };
         globalPaidHistory.unshift(newPaidOrder);
         globalActiveOrders = globalActiveOrders.filter(o => o.tableName !== tableName);
+        delete globalTableStatus[tableName]; // Thanh toán xong xóa trạng thái bàn
     }
 
-    res.status(200).json({ success: true, activeOrders: globalActiveOrders });
+    res.status(200).json({ success: true, activeOrders: globalActiveOrders, tableStatus: globalTableStatus });
 });
 
 app.get('/api/orders', (req, res) => {
-    res.json(globalActiveOrders);
+    res.json({ activeOrders: globalActiveOrders, tableStatus: globalTableStatus });
 });
 
 app.get('/api/orders/view', (req, res) => {
@@ -185,11 +190,11 @@ app.get('/api/orders/view', (req, res) => {
                         totalRev += ord.totalAmount;
                         tbody.innerHTML += \`
                             <tr>
-                                \<td>\${ord.time}</td>
-                                \<td><b>\${ord.tableName}</b></td>
-                                \<td>\${ord.itemsText}</td>
-                                \<td><span style="background:#e0f2f1; color:#00695c; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:11px;">\${ord.staff}</span></td>
-                                \<td style="text-align: right; font-weight: bold; color: #d32f2f;">\${ord.totalAmount.toLocaleString()} đ</td>
+                                <td>\${ord.time}</td>
+                                <td><b>\${ord.tableName}</b></td>
+                                <td>\${ord.itemsText}</td>
+                                <td><span style="background:#e0f2f1; color:#00695c; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:11px;">\${ord.staff}</span></td>
+                                <td style="text-align: right; font-weight: bold; color: #d32f2f;">\${ord.totalAmount.toLocaleString()} đ</td>
                             </tr>
                         \`;
                     });
