@@ -13,13 +13,17 @@ let paidHistory = [];
 function getVietnamTime() {
     const now = new Date();
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    // Múi giờ Việt Nam UTC+7
     const vnTime = new Date(utc + (3600000 * 7));
     
     let timeStr = vnTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
     let dateStr = vnTime.toISOString().split('T')[0];
     return { timeStr, dateStr };
 }
+
+// Định tuyến trang chủ trỏ thẳng vào index.html
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // API nhận order hoặc thanh toán từ POS / Khách hàng
 app.post('/api/checkout', (req, res) => {
@@ -81,7 +85,7 @@ app.get('/api/orders/view', (req, res) => {
         <body>
             <header>
                 <h1>📊 QUÁN NƯỚNG TUỔI TRẺ - QUẢN LÝ DOANH THU</h1>
-                <button onclick="window.location.href='/quanly.html'">⬅ Quay lại màn hình POS</button>
+                <button onclick="window.location.href='/'">⬅ Quay lại màn hình POS</button>
             </header>
 
             <div class="filter-box">
