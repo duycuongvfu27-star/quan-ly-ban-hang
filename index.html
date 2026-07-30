@@ -98,7 +98,7 @@
         </div>
     </div>
 
-    <!-- MÀN HÌNH BẾP TO (CHỌN RIÊNG BIỆT BẾP HOẶC ĐỒ UỐNG ĐỂ XEM TO) -->
+    <!-- MÀN HÌNH BẾP TO (CHỌN RIÊNG BIỆT BẾP HOẶC ĐỒ UỐNG) -->
     <div id="kitchenModal" class="modal">
         <div class="modal-box" style="width: 750px; max-width: 98vw; text-align: left; background: #f8f9fa; padding: 25px;">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #b71c1c; padding-bottom:10px; margin-bottom:15px;">
@@ -262,7 +262,60 @@
             ]}
         ];
 
-        // --- HÀM TÁCH ĐỒ ĂN VÀ ĐỒ UỐNG (BAO GỒM CẢ TÁCH LON COCA TRONG COMBO) ---
+        // --- ĐỊNH NGHĨA CHI TIẾT CÁC MÓN NẰM TRONG TỪNG COMBO ---
+        function getComboDetails(comboName, qty) {
+            let details = [];
+            if (comboName.includes("Combo 1")) {
+                details = [
+                    { name: "Ba chỉ", qty: 1 * qty },
+                    { name: "Sụn non ướp ngũ vị", qty: 1 * qty },
+                    { name: "Nầm tươi ứa sữa", qty: 1 * qty },
+                    { name: "Bò cuộn nấm kim", qty: 1 * qty },
+                    { name: "Hoa quả thập cẩm", qty: 1 * qty },
+                    { name: "Bánh mỳ nướng bơ", qty: 2 * qty }
+                ];
+            } else if (comboName.includes("Combo 2")) {
+                details = [
+                    { name: "Ba chỉ", qty: 2 * qty },
+                    { name: "Sụn non ướp ngũ vị", qty: 1 * qty },
+                    { name: "Nầm tươi ứa sữa", qty: 1 * qty },
+                    { name: "Chân gà rút xương (đĩa nhỏ)", qty: 1 * qty },
+                    { name: "Bò cuộn nấm kim", qty: 1 * qty }
+                ];
+            } else if (comboName.includes("Combo 3")) {
+                details = [
+                    { name: "Ba chỉ", qty: 2 * qty },
+                    { name: "Sụn non ướp ngũ vị", qty: 2 * qty },
+                    { name: "Nầm tươi ứa sữa", qty: 2 * qty },
+                    { name: "Bò cuộn nấm kim", qty: 1 * qty },
+                    { name: "Dồi sụn ướp ngũ vị", qty: 1 * qty },
+                    { name: "Hoa quả thập cẩm", qty: 1 * qty },
+                    { name: "Bánh mỳ nướng bơ", qty: 2 * qty }
+                ];
+            } else if (comboName.includes("Combo 4")) {
+                details = [
+                    { name: "Ba chỉ", qty: 2 * qty },
+                    { name: "Sụn non ướp ngũ vị", qty: 2 * qty },
+                    { name: "Nầm tươi ứa sữa", qty: 2 * qty },
+                    { name: "Bò cuộn nấm kim", qty: 1 * qty },
+                    { name: "Thịt dải heo", qty: 1 * qty },
+                    { name: "Má đào heo", qty: 1 * qty },
+                    { name: "Dạ dày nướng xa tê", qty: 1 * qty },
+                    { name: "Lòng non", qty: 1 * qty },
+                    { name: "Tôm tươi", qty: 1 * qty },
+                    { name: "Bạch tuộc nướng xa tê", qty: 1 * qty },
+                    { name: "Dải thăn bò nướng tảng", qty: 1 * qty },
+                    { name: "Xúc xích ướp ngũ vị", qty: 1 * qty },
+                    { name: "Lạp xưởng nướng thượng hạng", qty: 1 * qty },
+                    { name: "Kim chi Hàn Quốc", qty: 2 * qty },
+                    { name: "Hoa quả thập cẩm", qty: 2 * qty },
+                    { name: "Bánh mỳ nướng bơ", qty: 2 * qty }
+                ];
+            }
+            return details;
+        }
+
+        // --- HÀM TÁCH ĐỒ ĂN VÀ ĐỒ UỐNG (BAO GỒM CẢ TÁCH COCA TRONG COMBO) ---
         function getSplitItems(items) {
             let foodItems = [];
             let drinkItems = [];
@@ -271,16 +324,22 @@
                 if (i.name.includes("Combo")) {
                     let comboMatch = i.name.match(/Combo\s+(\d+)/);
                     let comboNum = comboMatch ? comboMatch[1] : "";
-                    let drinkQty = 2; // Mặc định Combo 1 có 2 lon
+                    let drinkQty = 2; 
                     if (comboNum === "2" || comboNum === "3") drinkQty = 5;
                     if (comboNum === "4") drinkQty = 8;
 
                     let totalDrink = drinkQty * i.quantity;
                     drinkItems.push({ name: "Coca lon (Theo Combo)", price: 0, quantity: totalDrink });
 
-                    // Tạo tên món ăn lược bớt phần coca để bếp làm đồ nướng không bị nhầm
-                    let cleanFoodName = i.name.replace(/\+\s*\d+\s*lon\s*coca/gi, "").trim();
-                    foodItems.push({ name: cleanFoodName, price: i.price, quantity: i.quantity });
+                    // Lấy chi tiết các món trong combo để hiển thị cho bếp
+                    let subDetails = getComboDetails(i.name, i.quantity);
+                    if (subDetails.length > 0) {
+                        subDetails.forEach(sub => {
+                            foodItems.push({ name: "   └ " + sub.name, price: 0, quantity: sub.qty });
+                        });
+                    } else {
+                        foodItems.push({ name: i.name, price: i.price, quantity: i.quantity });
+                    }
                 } else if (isDrink(i.name) || i.name.includes("Coca")) {
                     drinkItems.push(i);
                 } else {
@@ -310,7 +369,7 @@
         let staffList = [];
         let loggedInStaff = JSON.parse(localStorage.getItem('loggedInStaff') || 'null');
         let currentPinAction = '';
-        let currentKitchenMode = 'food'; // 'food' hoặc 'drink'
+        let currentKitchenMode = 'food'; 
         const urlParams = new URLSearchParams(window.location.search);
         const tableParam = urlParams.get('table');
 
@@ -865,10 +924,8 @@
                 let split = getSplitItems(rItems);
 
                 if(type === 'food') {
-                    // Giữ lại phần đồ uống, bỏ đồ ăn
                     tableRoundsHistory[tName][roundIndex].items = split.drinkItems;
                 } else if(type === 'drink') {
-                    // Giữ lại phần đồ ăn, bỏ đồ uống
                     tableRoundsHistory[tName][roundIndex].items = split.foodItems;
                 }
                 
@@ -879,7 +936,6 @@
             }
         }
 
-        // --- MÀN HÌNH BẾP HOẶC ĐỒ UỐNG (PHÓNG TO TOÀN MÀN HÌNH CHỌN 1 TRONG 2) ---
         function openKitchenScreen(mode) {
             currentKitchenMode = mode;
             let container = document.getElementById('singleKitchenContainer');
@@ -887,7 +943,7 @@
             
             let titleEl = document.getElementById('kitchenModalTitle');
             if(mode === 'food') {
-                titleEl.innerText = "🍳 MÀN HÌNH BẾP (ĐỒ ĂN NƯỚNG)";
+                titleEl.innerText = "🍳 MÀN HÌNH BẾP (ĐỒ ĂN NƯỚNG & CHI TIẾT COMBO)";
             } else {
                 titleEl.innerText = "🍹 MÀN HÌNH QUẦY BAR (ĐỒ UỐNG)";
             }
@@ -917,9 +973,11 @@
                         filteredRounds.forEach(r => {
                             let rItemsHtml = '';
                             r.items.forEach(i => {
-                                rItemsHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #ddd; font-size:16px;">
-                                    <span style="font-weight:bold; color:#222;">${i.name}</span>
-                                    <span style="color:${mode === 'food' ? '#d32f2f' : '#0288d1'}; font-weight:bold; font-size:18px;">x${i.quantity}</span>
+                                let isSubItem = i.name.startsWith("   └");
+                                let styleItem = isSubItem ? "font-size:14px; color:#555; padding-left:15px;" : "font-weight:bold; color:#222; font-size:16px;";
+                                rItemsHtml += `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed #ddd; ${styleItem}">
+                                    <span>${i.name}</span>
+                                    <span style="color:${mode === 'food' ? '#d32f2f' : '#0288d1'}; font-weight:bold; font-size:16px;">x${i.quantity}</span>
                                 </div>`;
                             });
                             roundsHtml += `
