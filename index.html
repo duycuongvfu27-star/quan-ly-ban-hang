@@ -72,7 +72,7 @@
     </header>
 
     <div class="section">
-        <h2>🪑 Sơ Đồ Bàn Trực Quan (Xanh: Trống | Cam: Đang order | Đỏ: Có khách)</h2>
+        <h2>🪑 Sơ Đồ Bàn Trực Quan (Xanh: Trống | Cam: Đang order / Có món mới | Đỏ: Có khách)</h2>
         <div class="table-grid" id="tableGrid"></div>
     </div>
 
@@ -779,7 +779,20 @@
 
                 for(let i=1; i<=16; i++) {
                     let tName = 'Bàn ' + (i < 10 ? '0' + i : i);
-                    if (serverTableStatus[tName]) {
+                    
+                    let hasUnsentNewItems = false;
+                    if (tableRounds[tName] && tableRoundsHistory[tName]) {
+                        let confirmedMap = {};
+                        tableRoundsHistory[tName].forEach(r => {
+                            r.items.forEach(ci => { confirmedMap[ci.name] = (confirmedMap[ci.name] || 0) + ci.quantity; });
+                        });
+                        hasUnsentNewItems = tableRounds[tName].some(ti => ti.quantity > (confirmedMap[ti.name] || 0));
+                    }
+
+                    if (hasUnsentNewItems) {
+                        tableStatus[tName] = 'ordering';
+                        updateTableUI(tName, 'Đang order', 'table-ordering');
+                    } else if (serverTableStatus[tName]) {
                         tableStatus[tName] = serverTableStatus[tName];
                         let statusText = serverTableStatus[tName] === 'busy' ? 'Có khách' : (serverTableStatus[tName] === 'ordering' ? 'Đang order' : 'Trống');
                         let className = serverTableStatus[tName] === 'busy' ? 'table-busy' : (serverTableStatus[tName] === 'ordering' ? 'table-ordering' : 'table-empty');
@@ -1499,7 +1512,7 @@
         }
 
         function showTableQR() {
-            if(!selectedTable) { alert('Vui lòng chọn bàn trước trên sơ đồ!'); return; }
+            if(!selectedTable) { alert('Vuint lòng chọn bàn trước trên sơ đồ!'); return; }
             document.getElementById('qrModalTitle').innerText = 'Mã QR Gọi Món - ' + selectedTable;
             document.getElementById('qrcode').innerHTML = '';
             let tNum = selectedTable.replace('Bàn ', '');
