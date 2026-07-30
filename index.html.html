@@ -7,53 +7,42 @@
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f4f6f9; color: #333; margin: 0; padding: 10px; }
-        
         header { background: #b71c1c; color: white; padding: 10px 20px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         header h1 { margin: 0; font-size: 18px; }
         .header-right { display: flex; align-items: center; gap: 8px; }
         .header-right button { background: #ffa000; border: none; padding: 6px 12px; font-weight: bold; color: #fff; border-radius: 4px; cursor: pointer; }
-
         .revenue-box { background: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; gap: 20px; align-items: center; }
         .rev-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
         .rev-item h3 { margin: 0; font-size: 12px; color: #555; font-weight: normal; }
         .rev-item p { margin: 0; font-size: 15px; font-weight: bold; color: #2e7d32; }
-
         .section { background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .section h2 { margin: 0 0 10px 0; font-size: 14px; color: #b71c1c; border-bottom: 2px solid #ffccbc; padding-bottom: 5px; }
         .table-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
         .table-btn { padding: 8px 4px; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; text-align: center; font-size: 12px; }
-        
         .table-empty { background: #4caf50; } 
         .table-ordering { background: #ff9800; } 
         .table-busy { background: #d32f2f; } 
         .table-btn.active { border: 2px solid #000; transform: scale(1.03); }
-
         .main-container { display: flex; gap: 10px; }
         .menu-col { flex: 2; height: 500px; overflow-y: auto; }
         .bill-col { flex: 1; background: white; padding: 12px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 500px; display: flex; flex-direction: column; }
-
         .category-title { font-size: 12px; font-weight: bold; color: #fff; background: #37474f; padding: 5px 8px; border-radius: 4px; margin: 8px 0 4px 0; text-transform: uppercase; }
         .food-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-        .food-card { background: #fff; border: 1px solid #ddd; padding: 6px; border-radius: 6px; text-align: center; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; transition: 0.1s; }
+        .food-card { background: #fff; border: 1px solid #ddd; padding: 6px; border-radius: 6px; text-align: center; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; }
         .food-card:hover { border-color: #b71c1c; background: #ffebee; }
         .food-name { font-size: 11px; font-weight: bold; margin-bottom: 3px; height: 26px; overflow: hidden; color: #222; }
         .food-price { color: #d32f2f; font-weight: bold; font-size: 12px; }
-        
         .food-badge { position: absolute; top: -5px; right: -5px; background: #d32f2f; color: white; font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 8px; display: none; border: 1px solid #fff; }
-
         .bill-items { flex: 1; overflow-y: auto; border: 1px solid #eee; padding: 6px; border-radius: 4px; margin-bottom: 8px; }
         .bill-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; font-size: 12px; }
-        
         .btn-action { width: 100%; border: none; padding: 8px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 12px; margin-bottom: 5px; color: white; }
         .kitchen-btn { background: #ff9800; }
         .move-btn { background: #673ab7; }
         .checkout-btn { background: #d32f2f; font-size: 13px; padding: 10px; }
         .qr-btn { background: #0288d1; }
-
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
         .modal-box { background: white; padding: 20px; border-radius: 8px; text-align: center; width: 420px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .modal-box input, .modal-box select { width: 100%; padding: 8px; margin: 6px 0; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
-
         #printArea { display: none; }
         @media print {
             body * { visibility: hidden; }
@@ -63,7 +52,6 @@
     </style>
 </head>
 <body>
-
     <header>
         <h1>🔥 QUÁN NƯỚNG TUỔI TRẺ - HỆ THỐNG POS 🔥</h1>
         <div class="header-right">
@@ -74,30 +62,20 @@
             <button onclick="openSettings()">⚙️ Cài Đặt</button>
         </div>
     </header>
-
     <div class="revenue-box">
-        <div class="rev-item">
-            <h3>Tổng doanh thu hôm nay:</h3>
-            <p id="todayRev">0 VNĐ</p>
-        </div>
+        <div class="rev-item"><h3>Tổng doanh thu hôm nay:</h3><p id="todayRev">0 VNĐ</p></div>
         <div style="width: 1px; height: 20px; background: #ddd;"></div>
-        <div class="rev-item">
-            <h3>Số đơn đã thanh toán:</h3>
-            <p id="totalOrdersCount" style="color: #0288d1;">0 đơn</p>
-        </div>
+        <div class="rev-item"><h3>Số đơn đã thanh toán:</h3><p id="totalOrdersCount" style="color: #0288d1;">0 đơn</p></div>
     </div>
-
     <div class="section">
         <h2>🪑 Sơ Đồ Bàn Trực Quan (Xanh: Trống | Cam: Đang order | Đỏ: Có khách)</h2>
         <div class="table-grid" id="tableGrid"></div>
     </div>
-
     <div class="main-container">
         <div class="section menu-col" style="margin-bottom:0;">
             <h2>🥩 Danh Mục Thực Đơn Món Nướng</h2>
             <div id="menuContainer"></div>
         </div>
-
         <div class="bill-col">
             <h2 style="margin: 0 0 8px 0; font-size: 13px; color: #b71c1c; border-bottom: 2px solid #ffccbc; padding-bottom: 4px;">
                 🛒 Phiếu Gọi Món: <span id="currentTableLabel" style="color: #ff9800; font-weight:bold;">Chưa chọn bàn</span>
@@ -106,8 +84,7 @@
                 <p style="color: #888; text-align: center; margin-top: 60px; font-size: 12px;">Vui lòng chọn bàn trên sơ đồ phía trên</p>
             </div>
             <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 8px;">
-                <span>Tổng cộng:</span>
-                <span id="totalPrice" style="color: #d32f2f;">0đ</span>
+                <span>Tổng cộng:</span><span id="totalPrice" style="color: #d32f2f;">0đ</span>
             </div>
             <button class="btn-action kitchen-btn" onclick="sendToKitchen()">🔔 Báo Bếp / Gửi Lượt Mới & In Bếp</button>
             <button class="btn-action move-btn" onclick="openMoveTableModal()">🔀 Đổi Bàn / Chuyển Bàn</button>
@@ -115,9 +92,7 @@
             <button class="btn-action qr-btn" onclick="showTableQR()">📱 Xem Mã QR Cho Khách Order</button>
         </div>
     </div>
-
     <div id="printArea"></div>
-
     <div id="moveTableModal" class="modal">
         <div class="modal-box">
             <h3 style="color: #b71c1c; margin-top:0;">🔀 Tính Năng Đổi Bàn</h3>
@@ -127,12 +102,9 @@
             <button onclick="document.getElementById('moveTableModal').style.display='none'" style="background:#555; color:white; border:none; padding:6px; width:100%; border-radius:4px; margin-top:6px; cursor:pointer;">Hủy</button>
         </div>
     </div>
-
-    <!-- MODAL CÀI ĐẶT & QUẢN LÝ NHÂN VIÊN MÃ PIN -->
     <div id="settingsModal" class="modal">
         <div class="modal-box" style="text-align: left;">
             <h3 style="color: #b71c1c; margin-top:0; text-align:center;">⚙️ Cài Đặt Hệ Thống Quán</h3>
-            
             <label style="font-weight: bold; font-size: 12px;">1. Quản Lý Nhân Viên & Mã PIN:</label>
             <div style="display:flex; gap:6px; margin:6px 0;">
                 <input type="text" id="newStaffName" placeholder="Tên NV..." style="margin:0; flex:1;">
@@ -140,7 +112,6 @@
                 <button onclick="addStaff()" style="background:#4caf50; color:white; border:none; padding:8px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">Thêm</button>
             </div>
             <div id="staffListContainer" style="max-height:100px; overflow-y:auto; border:1px solid #ddd; padding:4px; border-radius:4px; margin-bottom:10px; font-size:12px;"></div>
-
             <label style="font-weight: bold; font-size: 12px;">2. Tài Khoản Ngân Hàng (VietQR):</label>
             <select id="bankNameSelect">
                 <option value="ICB">VietinBank</option>
@@ -153,21 +124,16 @@
             <input type="text" id="bankAccInput" placeholder="Số tài khoản...">
             <input type="text" id="bankNameAccInput" placeholder="Tên chủ TK (VIẾT HOA KHÔNG DẤU)...">
             <button onclick="saveBankConfig()" style="background:#0288d1; color:white; border:none; padding:8px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:4px;">Lưu Ngân Hàng</button>
-
             <hr style="margin: 10px 0; border:0; border-top:1px solid #ddd;">
-
             <label style="font-weight: bold; font-size: 12px;">3. Khổ Giấy Máy In Nhiệt:</label>
             <select id="printerSizeSelect">
                 <option value="80">Khổ 80mm (To)</option>
                 <option value="58">Khổ 58mm (Nhỏ)</option>
             </select>
             <button onclick="savePrinterConfig()" style="background:#4caf50; color:white; border:none; padding:8px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:4px;">Lưu Máy In</button>
-
             <button onclick="document.getElementById('settingsModal').style.display='none'" style="background:#555; color:white; border:none; padding:8px; width:100%; border-radius:4px; cursor:pointer; margin-top:10px; font-weight:bold;">Đóng Cài Đặt</button>
         </div>
     </div>
-
-    <!-- MODAL NHẬP PIN XÁC THỰC -->
     <div id="pinModal" class="modal">
         <div class="modal-box" style="width: 320px;">
             <h3 style="color: #b71c1c; margin-top:0;">🔒 Xác Thực Nhân Viên</h3>
@@ -177,7 +143,6 @@
             <button onclick="document.getElementById('pinModal').style.display='none'; renderStaffDropdown();" style="background:#555; color:white; border:none; padding:6px; width:100%; border-radius:4px; cursor:pointer; margin-top:6px;">Hủy</button>
         </div>
     </div>
-
     <div id="qrModal" class="modal">
         <div class="modal-box">
             <h3 id="qrModalTitle" style="color: #b71c1c; margin-top:0;">Mã QR Bàn</h3>
@@ -186,7 +151,6 @@
             <button onclick="document.getElementById('qrModal').style.display='none'" style="background:#555; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; margin-top:10px;">Đóng</button>
         </div>
     </div>
-
     <div id="bankModal" class="modal">
         <div class="modal-box">
             <h3 style="color: #b71c1c; margin-top:0;">💳 Thanh Toán VietQR Tự Động</h3>
@@ -196,7 +160,6 @@
             <button onclick="document.getElementById('bankModal').style.display='none'" style="background:#555; color:white; border:none; padding:6px; width:100%; border-radius:4px; margin-top:5px; cursor:pointer;">Hủy</button>
         </div>
     </div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         const menuData = [
@@ -253,22 +216,15 @@
                 { name: "Nước ngọt các loại", price: 13000 }
             ]}
         ];
-
-        let selectedTable = '';
-        let tableRounds = {}; 
-        let tableStatus = {}; 
+        let selectedTable = '', tableRounds = {}, tableStatus = {};
         let bankConfig = JSON.parse(localStorage.getItem('bankConfig') || '{"bank":"VCB","acc":"","name":""}');
         let printerConfig = JSON.parse(localStorage.getItem('printerConfig') || '{"size":"80"}');
-        
         let staffList = JSON.parse(localStorage.getItem('staffList') || '[{"name":"Quản Lý", "pin":"1234"}, {"name":"Nhân Viên 1", "pin":"1111"}, {"name":"Nhân Viên 2", "pin":"2222"}]');
         let currentStaff = localStorage.getItem('currentStaff') || staffList[0].name;
         let pendingStaff = '';
-
         const urlParams = new URLSearchParams(window.location.search);
         const tableParam = urlParams.get('table');
-
         if (tableParam) {
-            // GIAO DIỆN KHÁCH HÀNG QUÉT QR
             document.body.innerHTML = `
                 <div style="max-width:480px; margin:0 auto; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
                     <div style="text-align:center; color:#d32f2f; font-weight:bold; font-size:20px;">🔥 QUÁN NƯỚNG TUỔI TRẺ 🔥</div>
@@ -287,7 +243,6 @@
             `;
             initCustomerView(tableParam);
         } else {
-            // GIAO DIỆN POS MÁY TÍNH
             const tableGrid = document.getElementById('tableGrid');
             for(let i=1; i<=16; i++) {
                 let tName = 'Bàn ' + (i < 10 ? '0' + i : i);
@@ -304,7 +259,6 @@
             loadTodayRevenue();
             setInterval(syncAndCheckOrders, 3000);
         }
-
         function renderStaffDropdown() {
             let select = document.getElementById('currentStaffSelect');
             select.innerHTML = '';
@@ -312,7 +266,6 @@
                 select.innerHTML += `<option value="${s.name}" ${s.name === currentStaff ? 'selected' : ''}>${s.name}</option>`;
             });
         }
-
         function promptStaffPin() {
             pendingStaff = document.getElementById('currentStaffSelect').value;
             document.getElementById('pinModalLabel').innerText = `Nhập mã PIN của [${pendingStaff}]:`;
@@ -320,7 +273,6 @@
             document.getElementById('pinModal').style.display = 'flex';
             document.getElementById('inputStaffPin').focus();
         }
-
         function verifyStaffPin() {
             let pinInput = document.getElementById('inputStaffPin').value;
             let staffObj = staffList.find(s => s.name === pendingStaff);
@@ -335,7 +287,6 @@
                 document.getElementById('pinModal').style.display = 'none';
             }
         }
-
         function renderStaffListModal() {
             let container = document.getElementById('staffListContainer');
             container.innerHTML = '';
@@ -346,7 +297,6 @@
                 </div>`;
             });
         }
-
         function addStaff() {
             let name = document.getElementById('newStaffName').value.trim();
             let pin = document.getElementById('newStaffPin').value.trim();
@@ -359,14 +309,12 @@
             renderStaffListModal();
             alert('✅ Đã thêm nhân viên mới thành công!');
         }
-
         function removeStaff(idx) {
             staffList.splice(idx, 1);
             localStorage.setItem('staffList', JSON.stringify(staffList));
             renderStaffDropdown();
             renderStaffListModal();
         }
-
         function renderMenuPOS() {
             const menuContainer = document.getElementById('menuContainer');
             menuContainer.innerHTML = '';
@@ -393,7 +341,6 @@
             });
             updateFoodBadges();
         }
-
         function speakVoice(text) {
             if ('speechSynthesis' in window) {
                 let utterance = new SpeechSynthesisUtterance(text);
@@ -401,7 +348,6 @@
                 window.speechSynthesis.speak(utterance);
             }
         }
-
         let lastCheckedCount = 0;
         async function syncAndCheckOrders() {
             try {
@@ -412,7 +358,6 @@
                     speakVoice(`${latestOrder.tableName} gọi đồ`);
                 }
                 lastCheckedCount = data.length;
-
                 data.forEach(ord => {
                     let tName = ord.tableName;
                     if(!tableRounds[tName]) tableRounds[tName] = [];
@@ -424,14 +369,12 @@
                             tableRounds[tName].push({ name: newItem.name, price: newItem.price, quantity: newItem.quantity });
                         }
                     });
-
                     tableStatus[tName] = 'busy';
                     updateTableUI(tName, 'Có khách', 'table-busy');
                     if(selectedTable === tName) renderBill();
                 });
             } catch(e) {}
         }
-
         function initCustomerView(tNum) {
             let tName = 'Bàn ' + (tNum < 10 && !tNum.startsWith('0') ? '0' + tNum : tNum);
             let cusCart = [];
@@ -455,7 +398,6 @@
                 });
                 menuDiv.appendChild(grid);
             });
-
             window.cusChangeQty = function(name, price, change) {
                 let f = cusCart.find(i => i.name === name);
                 if(f) {
@@ -466,15 +408,12 @@
                 } else if(change > 0) {
                     cusCart.push({ name, price, quantity: 1 });
                 }
-
                 let cleanName = name.replace(/[^a-zA-Z0-9]/g, '');
                 let span = document.getElementById(`qty-${cleanName}`);
                 let itemObj = cusCart.find(i => i.name === name);
                 if(span) span.innerText = itemObj ? itemObj.quantity : 0;
-
                 renderCusCart();
             };
-
             function renderCusCart() {
                 if(cusCart.length === 0) { document.getElementById('customerCart').innerHTML = 'Chưa chọn món nào'; document.getElementById('cusTotal').innerText = '0đ'; return; }
                 let html = '', total = 0;
@@ -485,7 +424,6 @@
                 document.getElementById('customerCart').innerHTML = html;
                 document.getElementById('cusTotal').innerText = total.toLocaleString() + 'đ';
             }
-
             window.submitCustomerOrder = async function() {
                 if(cusCart.length === 0) { alert('Vui lòng chọn món trước khi gửi!'); return; }
                 let totalAmount = cusCart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
@@ -499,7 +437,6 @@
                 }
             }
         }
-
         function selectTable(tableName) {
             document.querySelectorAll('.table-btn').forEach(b => b.classList.remove('active'));
             let btn = document.getElementById('tbtn-' + tableName);
@@ -509,18 +446,15 @@
             renderBill();
             updateFoodBadges();
         }
-
         function addFood(name, price) {
             if(!selectedTable) { alert('⚠️ Vui lòng chọn bàn trên sơ đồ trước!'); return; }
             if(!tableRounds[selectedTable]) tableRounds[selectedTable] = [];
-            
             let existing = tableRounds[selectedTable].find(i => i.name === name);
             if(existing) {
                 existing.quantity++;
             } else {
                 tableRounds[selectedTable].push({ name, price, quantity: 1 });
             }
-            
             if(tableStatus[selectedTable] === 'empty') {
                 tableStatus[selectedTable] = 'ordering';
                 updateTableUI(selectedTable, 'Đang order', 'table-ordering');
@@ -528,7 +462,6 @@
             renderBill();
             updateFoodBadges();
         }
-
         function updateFoodBadges() {
             for(let cIdx=0; cIdx<menuData.length; cIdx++) {
                 for(let iIdx=0; iIdx<menuData[cIdx].items.length; iIdx++) {
@@ -537,12 +470,10 @@
                 }
             }
             if(!selectedTable || !tableRounds[selectedTable]) return;
-
             let totalMap = {};
             tableRounds[selectedTable].forEach(i => {
                 totalMap[i.name] = (totalMap[i.name] || 0) + i.quantity;
             });
-
             menuData.forEach((cat, cIdx) => {
                 cat.items.forEach((item, iIdx) => {
                     if(totalMap[item.name]) {
@@ -555,7 +486,6 @@
                 });
             });
         }
-
         function updateTableUI(tName, statusText, className) {
             let btn = document.getElementById('tbtn-' + tName);
             if(!btn) return;
@@ -564,7 +494,6 @@
             let statusSpan = document.getElementById('tstatus-' + tName);
             if(statusSpan) statusSpan.innerText = statusText;
         }
-
         function renderBill() {
             const container = document.getElementById('billItemsContainer');
             if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].length === 0) {
@@ -580,18 +509,14 @@
             container.innerHTML = html;
             document.getElementById('totalPrice').innerText = total.toLocaleString() + 'đ';
         }
-
         function sendToKitchen() {
             if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].length === 0) { alert('Chưa chọn bàn hoặc chưa có món để báo bếp!'); return; }
             printKitchenBill(selectedTable, tableRounds[selectedTable]);
-            
             tableStatus[selectedTable] = 'busy';
             updateTableUI(selectedTable, 'Có khách', 'table-busy');
-            
             alert(`🔔 ĐÃ BÁO BẾP & IN PHIẾU CHO ${selectedTable}!`);
             speakVoice(`${selectedTable} gọi đồ`);
         }
-
         function printKitchenBill(tableName, items) {
             let widthStyle = printerConfig.size === '58' ? 'width: 58mm;' : 'width: 80mm;';
             let html = `<div style="${widthStyle} font-size: 12px; padding: 5px;">`;
@@ -606,7 +531,6 @@
             document.getElementById('printArea').innerHTML = html;
             window.print();
         }
-
         function openMoveTableModal() {
             if(!selectedTable || !tableRounds[selectedTable]) { alert('Bàn hiện tại không có dữ liệu để đổi!'); return; }
             document.getElementById('moveFromTable').innerText = selectedTable;
@@ -620,34 +544,28 @@
             }
             document.getElementById('moveTableModal').style.display = 'flex';
         }
-
         function confirmMoveTable() {
             let targetTable = document.getElementById('targetTableSelect').value;
             if(!targetTable) return;
-
             tableRounds[targetTable] = tableRounds[selectedTable];
             let currentStatus = tableStatus[selectedTable] || 'busy';
             tableStatus[targetTable] = currentStatus;
             let statusText = currentStatus === 'busy' ? 'Có khách' : 'Đang order';
             let className = currentStatus === 'busy' ? 'table-busy' : 'table-ordering';
             updateTableUI(targetTable, statusText, className);
-
             delete tableRounds[selectedTable];
             tableStatus[selectedTable] = 'empty';
             updateTableUI(selectedTable, 'Trống', 'table-empty');
-
             document.getElementById('moveTableModal').style.display = 'none';
             alert(`✅ Đã chuyển thành công từ ${selectedTable} sang ${targetTable}!`);
             selectTable(targetTable);
         }
-
         function openBankQRModal() {
             if(!selectedTable || !tableRounds[selectedTable]) { alert('Không có hóa đơn thanh toán!'); return; }
             let allItems = tableRounds[selectedTable];
             if(allItems.length === 0) { alert('Hóa đơn trống!'); return; }
             let totalAmount = allItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
             document.getElementById('bankTotalPay').innerText = totalAmount.toLocaleString() + 'đ';
-            
             let container = document.getElementById('bankQrContainer');
             container.innerHTML = '';
             if(bankConfig.acc && bankConfig.name) {
@@ -658,11 +576,9 @@
             }
             document.getElementById('bankModal').style.display = 'flex';
         }
-
         async function confirmCheckout() {
             let allItems = tableRounds[selectedTable];
             let totalAmount = allItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-
             const res = await fetch('/api/checkout', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
                 body: JSON.stringify({ tableName: selectedTable, items: allItems, totalAmount, staff: currentStaff })
@@ -679,7 +595,6 @@
                 loadTodayRevenue();
             }
         }
-
         function printCheckoutBill(tableName, items, totalAmount) {
             let widthStyle = printerConfig.size === '58' ? 'width: 58mm;' : 'width: 80mm;';
             let html = `<div style="${widthStyle} font-size: 12px; padding: 5px;">`;
@@ -700,7 +615,6 @@
             document.getElementById('printArea').innerHTML = html;
             window.print();
         }
-
         function showTableQR() {
             if(!selectedTable) { alert('Vui lòng chọn bàn trước trên sơ đồ!'); return; }
             document.getElementById('qrModalTitle').innerText = 'Mã QR Gọi Món - ' + selectedTable;
@@ -711,7 +625,6 @@
             document.getElementById('qrLinkText').innerText = currentUrl;
             document.getElementById('qrModal').style.display = 'flex';
         }
-
         function openSettings() {
             document.getElementById('bankNameSelect').value = bankConfig.bank;
             document.getElementById('bankAccInput').value = bankConfig.acc;
@@ -720,17 +633,15 @@
             renderStaffListModal();
             document.getElementById('settingsModal').style.display = 'flex';
         }
-
         function saveBankConfig() {
             bankConfig = {
                 bank: document.getElementById('bankNameSelect').value,
                 acc: document.getElementById('bankAccInput').value,
-                name: document.getElementById('bankNameAccInput').value
+                name: document.getElementById('bankNameAccInput'].value
             };
             localStorage.setItem('bankConfig', JSON.stringify(bankConfig));
             alert('✅ Đã lưu cấu hình ngân hàng thành công!');
         }
-
         function savePrinterConfig() {
             printerConfig = {
                 size: document.getElementById('printerSizeSelect').value
@@ -738,7 +649,6 @@
             localStorage.setItem('printerConfig', JSON.stringify(printerConfig));
             alert('✅ Đã lưu cấu hình máy in thành công!');
         }
-
         async function loadTodayRevenue() {
             try {
                 const res = await fetch('/api/orders');
