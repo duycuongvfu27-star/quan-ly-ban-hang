@@ -1,13 +1,30 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(__dirname));
 
-let activeOrders = [];
-let paidHistory = [];
+const DATA_FILE = path.join(__dirname, 'orders.json');
+
+if (!fs.existsSync(DATA_FILE)) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify({ activeOrders: [], paidHistory: [] }, null, 2));
+}
+
+function readData() {
+    try {
+        const data = fs.readFileSync(DATA_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (e) {
+        return { activeOrders: [], paidHistory: [] };
+    }
+}
+
+function saveData(data) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+}
 
 function getVietnamTime() {
     const now = new Date();
@@ -25,29 +42,57 @@ app.get('/', (req, res) => {
 
 app.post('/api/checkout', (req, res) => {
     const { tableName, items, totalAmount, staff } = req.body;
+    let db = readData();
     let itemsText = items.map(i => `${i.name} (x${i.quantity})`).join(', ');
     let { timeStr, dateStr } = getVietnamTime();
 
-    const newPaidOrder = {
-        id: Date.now(),
-        time: timeStr,
-        tableName,
-        itemsText,
-        totalAmount,
-        staff: staff || 'Nhân viên',
-        date: dateStr
-    };
-    
-    paidHistory.unshift(newPaidOrder);
-    activeOrders = activeOrders.filter(o => o.tableName !== tableName);
-    res.status(200).json({ success: true, order: newPaidOrder });
+    if (staff === 'Khách tự order') {
+        let existingOrder = db.activeOrders.find(o => o.tableName === tableName);
+        if (existingOrder) {
+            items.forEach(newItem => {
+                let found = existingOrder.items.find(i => i.name === newItem.name);
+                if (found) {
+                    found.quantity += newItem.quantity;
+                } else {
+                    existingOrder.items.push(newItem);
+                }
+            });
+            existingOrder.totalAmount += totalAmount;
+        } else {
+            db.activeOrders.unshift({
+                id: Date.now(),
+                time: timeStr,
+                tableName,
+                items,
+                totalAmount
+            });
+        }
+    } else {
+        const newPaidOrder = {
+            id: Date.now(),
+            time: timeStr,
+            tableName,
+            itemsText,
+            totalAmount,
+            staff: staff || 'Nhân viên',
+            date: dateStr
+        };
+        db.paidHistory.unshift(newPaidOrder);
+        db.activeOrders = db.activeOrders.filter(o => o.tableName !== tableName);
+    }
+
+    saveData(db);
+    res.status(200).json({ success: true });
 });
 
 app.get('/api/orders', (req, res) => {
-    res.json(activeOrders);
+    let db = readData();
+    res.json(db.activeOrders);
 });
 
 app.get('/api/orders/view', (req, res) => {
+    let db = readData();
+    let paidHistory = db.paidHistory;
     res.send(`
         <!DOCTYPE html>
         <html lang="vi">
@@ -71,7 +116,6 @@ app.get('/api/orders/view', (req, res) => {
                 th, td { padding: 10px 15px; text-align: left; border-bottom: 1px solid #eee; }
                 th { background: #f8f9fa; color: #333; font-weight: bold; }
                 tr:hover { background: #fdfdfd; }
-                .btn-del { background: #d32f2f; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
             </style>
         </head>
         <body>
@@ -103,7 +147,6 @@ app.get('/api/orders/view', (req, res) => {
                             <th>Chi Tiết Món Mua</th>
                             <th style="width: 110px;">Thu Ngân</th>
                             <th style="width: 130px; text-align: right;">Tổng Tiền</th>
-                            <th style="width: 70px; text-align: center;">Thao Tác</th>
                         </tr>
                     </thead>
                     <tbody id="orderTableBody"></tbody>
@@ -123,7 +166,7 @@ app.get('/api/orders/view', (req, res) => {
                     let totalRev = 0;
 
                     if(filtered.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888; padding:30px;">Không có dữ liệu doanh thu trong ngày này</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#888; padding:30px;">Không có dữ liệu doanh thu trong ngày này</td></tr>';
                     }
 
                     filtered.forEach(ord => {
@@ -135,20 +178,12 @@ app.get('/api/orders/view', (req, res) => {
                                 <td>\${ord.itemsText}</td>
                                 <td><span style="background:#e0f2f1; color:#00695c; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:11px;">\${ord.staff}</span></td>
                                 <td style="text-align: right; font-weight: bold; color: #d32f2f;">\${ord.totalAmount.toLocaleString()} đ</td>
-                                <td style="text-align: center;"><button class="btn-del" onclick="deleteOrder(\${ord.id})">Xóa</button></td>
                             </tr>
                         \`;
                     });
 
                     document.getElementById('sumRev').innerText = totalRev.toLocaleString() + ' VNĐ';
                     document.getElementById('sumCount').innerText = filtered.length + ' đơn';
-                }
-
-                function deleteOrder(id) {
-                    if(confirm('Bạn có chắc muốn xóa hóa đơn này không?')) {
-                        data = data.filter(o => o.id !== id);
-                        filterData();
-                    }
                 }
 
                 filterData();

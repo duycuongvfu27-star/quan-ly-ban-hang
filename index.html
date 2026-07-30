@@ -427,13 +427,20 @@
             window.submitCustomerOrder = async function() {
                 if(cusCart.length === 0) { alert('Vui lòng chọn món trước khi gửi!'); return; }
                 let totalAmount = cusCart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-                const res = await fetch('/api/checkout', {
-                    method: 'POST', headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({ tableName: tName, items: cusCart, totalAmount, staff: 'Khách tự order' })
-                });
-                if(res.ok) { 
-                    alert('🎉 Gửi yêu cầu gọi món thành công!'); 
-                    location.reload(); 
+                try {
+                    const response = await fetch(window.location.origin + '/api/checkout', {
+                        method: 'POST', 
+                        headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({ tableName: tName, items: cusCart, totalAmount, staff: 'Khách tự order' })
+                    });
+                    if(response.ok) { 
+                        alert('🎉 Gửi yêu cầu gọi món thành công!'); 
+                        location.reload(); 
+                    } else {
+                        alert('❌ Gửi món thất bại, vui lòng thử lại!');
+                    }
+                } catch (err) {
+                    alert('❌ Không kết nối được với máy chủ quán!');
                 }
             }
         }
@@ -616,7 +623,7 @@
             window.print();
         }
         function showTableQR() {
-            if(!selectedTable) { alert('Vui lòng chọn bàn trước trên sơ đồ!'); return; }
+            if(!selectedTable) { alert('Vول lòng chọn bàn trước trên sơ đồ!'); return; }
             document.getElementById('qrModalTitle').innerText = 'Mã QR Gọi Món - ' + selectedTable;
             document.getElementById('qrcode').innerHTML = '';
             let tNum = selectedTable.replace('Bàn ', '');
