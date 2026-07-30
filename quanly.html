@@ -54,7 +54,7 @@
         .qr-btn { background: #0284c7; } .qr-btn:hover { background: #0369a1; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-box { background: #1e293b; border: 1px solid #334155; padding: 24px; border-radius: 14px; text-align: center; width: 420px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); color: #f8fafc; }
+        .modal-box { background: #1e293b; border: 1px solid #334155; padding: 24px; border-radius: 14px; text-align: center; width: 400px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); color: #f8fafc; }
         .modal-box input, .modal-box select { width: 100%; padding: 10px; margin: 8px 0; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px; font-size: 13px; }
         .modal-box button { width: 100%; padding: 10px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; margin-top: 8px; transition: 0.2s; color: white; }
     </style>
@@ -121,12 +121,11 @@
         </div>
     </div>
 
-    <!-- MODAL CÀI ĐẶT (TÍCH HỢP QUẢN LÝ NGÂN HÀNG & THÊM/SỬA MÓN ĂN) -->
+    <!-- MODAL CÀI ĐẶT -->
     <div id="settingsModal" class="modal">
         <div class="modal-box" style="text-align: left;">
             <h3 style="color: #38bdf8; margin-top:0; text-align:center;">⚙️ Cài Đặt Hệ Thống</h3>
-            
-            <label style="font-weight: 600; font-size: 12px; color:#cbd5e1;">1. Tài Khoản Ngân Hàng (VietQR):</label>
+            <label style="font-weight: 600; font-size: 12px; color:#cbd5e1;">Tài Khoản Ngân Hàng (VietQR):</label>
             <select id="bankNameSelect">
                 <option value="ICB">VietinBank</option>
                 <option value="VCB">Vietcombank</option>
@@ -138,21 +137,7 @@
             <input type="text" id="bankAccInput" placeholder="Số tài khoản...">
             <input type="text" id="bankNameAccInput" placeholder="Tên chủ TK (VIẾT HOA KHÔNG DẤU)...">
             <button onclick="saveBankConfig()" style="background:#0284c7;">Lưu Cấu Hình Ngân Hàng</button>
-
-            <hr style="margin: 14px 0; border:0; border-top:1px solid #334155;">
-
-            <label style="font-weight: 600; font-size: 12px; color:#cbd5e1;">2. Thêm Món Mới / Sửa Giá Thực Đơn:</label>
-            <select id="settingCatSelect">
-                <option value="0">CÁC COMBO NƯỚNG</option>
-                <option value="1">ĐỒ ĂN NHẸ</option>
-                <option value="2">CÁC MÓN NƯỚNG</option>
-                <option value="3">ĐỒ UỐNG</option>
-            </select>
-            <input type="text" id="newFoodName" placeholder="Tên món mới...">
-            <input type="number" id="newFoodPrice" placeholder="Giá tiền (VNĐ)...">
-            <button onclick="addNewFood()" style="background:#059669;">➕ Thêm Món Vào Thực Đơn</button>
-
-            <button onclick="document.getElementById('settingsModal').style.display='none'" style="background:#334155; color:#cbd5e1; margin-top:14px;">Đóng Cài Đặt</button>
+            <button onclick="document.getElementById('settingsModal').style.display='none'" style="background:#334155; color:#cbd5e1; margin-top:12px;">Đóng Cài Đặt</button>
         </div>
     </div>
 
@@ -179,7 +164,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
-        let menuData = JSON.parse(localStorage.getItem('customMenuData') || JSON.stringify([
+        // Thực đơn chuẩn 100% khớp với ảnh menu gốc của quán
+        const menuData = [
             { cat: "CÁC COMBO NƯỚNG", items: [
                 { name: "Combo 1 (Dành cho 2-3 người)", price: 319000 },
                 { name: "Combo 2 (Dành cho 3-4 người)", price: 459000 },
@@ -191,22 +177,23 @@
                 { name: "Ngô chiên", price: 35000 },
                 { name: "Bánh mỳ nướng bơ", price: 19000 },
                 { name: "Khoai tây chiên", price: 35000 },
-                { name: "Salad rau tổng hợp", price: 29000 },
-                { name: "Salad hoa quả", price: 39000 },
+                { name: "Salad rau tổng hợp (mới)", price: 29000 },
+                { name: "Salad hoa quả (Hót)", price: 39000 },
                 { name: "Kim chi Hàn Quốc", price: 29000 }
             ]},
             { cat: "CÁC MÓN NƯỚNG", items: [
                 { name: "Ba chỉ", price: 65000 },
                 { name: "Sụn non ướp ngũ vị", price: 69000 },
-                { name: "Nầm tươi ứa sữa", price: 75000 },
+                { name: "Nầm tươi ứa sữa (Hót)", price: 75000 },
                 { name: "Bò cuộn nấm kim", price: 59000 },
-                { name: "Thịt dải heo", price: 69000 },
-                { name: "Má đào heo", price: 79000 },
-                { name: "Nọng má tươi", price: 79000 },
-                { name: "Chân gà rút xương", price: 99000 },
-                { name: "Lòng non", price: 59000 },
-                { name: "Khâu đuôi giòn sần sật", price: 69000 },
-                { name: "Lòng già mũm mĩm", price: 59000 },
+                { name: "Thịt dải heo (mới)", price: 69000 },
+                { name: "Má đào heo (Đỉnh)", price: 79000 },
+                { name: "Nọng má tươi (giòn ngon)", price: 79000 },
+                { name: "Chân gà rút xương (Best seller)", price: 99000 },
+                { name: "Chân gà rút xương (đĩa nhỏ)", price: 59000 },
+                { name: "Lòng non (Best seller)", price: 59000 },
+                { name: "Khâu đuôi giòn sần sật (Hót)", price: 69000 },
+                { name: "Lòng già mũm mĩm (Béo nhất quán)", price: 59000 },
                 { name: "Dạ dày nướng xa tê", price: 69000 },
                 { name: "Tôm tươi", price: 89000 },
                 { name: "Mực rụng trứng", price: 89000 },
@@ -214,24 +201,24 @@
                 { name: "Xúc xích ướp ngũ vị", price: 59000 },
                 { name: "Dồi sụn ướp ngũ vị", price: 59000 },
                 { name: "Lạp xưởng nướng thượng hạng", price: 59000 },
-                { name: "Dải thăn bò nướng tảng", price: 79000 },
-                { name: "Nạc vai nướng tảng", price: 69000 },
-                { name: "Bò ăn dỏi lăn", price: 79000 },
-                { name: "U bò nướng", price: 89000 },
+                { name: "Dải thăn bò nướng tảng (Best seller)", price: 79000 },
+                { name: "Nạc vai nướng tảng (mới)", price: 69000 },
+                { name: "Bò ăn dỏi lăn (phải thử 1 lần)", price: 79000 },
+                { name: "U bò nướng (Hót)", price: 89000 },
                 { name: "Rẻ sườn nướng xa tê", price: 69000 },
                 { name: "Bắp bò ướp ngũ vị", price: 79000 }
             ]},
             { cat: "ĐỒ UỐNG", items: [
-                { name: "Rượu ngô non, táo mèo", price: 40000 },
-                { name: "Bia Sài Gòn / 333", price: 15000 },
+                { name: "Rượu ngô non, táo mèo, mơ, men lá", price: 40000 },
+                { name: "Bia Sài Gòn, bia 333", price: 15000 },
                 { name: "Bia Tiger", price: 22000 },
                 { name: "Bò húc", price: 17000 },
                 { name: "Nước lọc", price: 7000 },
-                { name: "Trà đá / Thuốc lá", price: 20000 },
+                { name: "Trà đá (ca), thuốc lá", price: 20000 },
                 { name: "Rượu dừa", price: 65000 },
                 { name: "Nước ngọt các loại", price: 13000 }
             ]}
-        ]));
+        ];
 
         let selectedTable = '';
         let tableRounds = {}; 
@@ -261,7 +248,7 @@
             `;
             initCustomerView(tableParam);
         } else {
-            // GIAO DIỆN POS MÁY TÍNH
+            // GIAO DIỆN POS MÁY TÍNH (16 BÀN)
             const tableGrid = document.getElementById('tableGrid');
             for(let i=1; i<=16; i++) {
                 let tName = 'Bàn ' + (i < 10 ? '0' + i : i);
@@ -586,26 +573,13 @@
 
         function saveBankConfig() {
             bankConfig = {
-                bank: document.getElementById('bankNameSelect'].value,
+                bank: document.getElementById('bankNameSelect').value,
                 acc: document.getElementById('bankAccInput').value,
                 name: document.getElementById('bankNameAccInput').value
             };
             localStorage.setItem('bankConfig', JSON.stringify(bankConfig));
             alert('✅ Đã lưu cấu hình ngân hàng thành công!');
-        }
-
-        function addNewFood() {
-            let catIndex = parseInt(document.getElementById('settingCatSelect').value);
-            let name = document.getElementById('newFoodName').value.trim();
-            let price = parseInt(document.getElementById('newFoodPrice').value);
-            if(!name || isNaN(price)) { alert('Vui lòng nhập tên món và giá tiền hợp lệ!'); return; }
-            
-            menuData[catIndex].items.push({ name, price });
-            localStorage.setItem('customMenuData', JSON.stringify(menuData));
-            document.getElementById('newFoodName').value = '';
-            document.getElementById('newFoodPrice').value = '';
-            renderMenuPOS();
-            alert('✅ Đã thêm món mới vào thực đơn thành công!');
+            document.getElementById('settingsModal').style.display = 'none';
         }
 
         async function loadTodayRevenue() {
