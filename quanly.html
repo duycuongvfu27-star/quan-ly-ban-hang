@@ -128,7 +128,8 @@
     <div id="settingsModal" class="modal">
         <div class="modal-box" style="text-align: left;">
             <h3 style="color: #b71c1c; margin-top:0; text-align:center;">⚙️ Cài Đặt Hệ Thống Quán</h3>
-            <label style="font-weight: bold; font-size: 12px;">Tài Khoản Ngân Hàng (VietQR):</label>
+            
+            <label style="font-weight: bold; font-size: 12px;">1. Tài Khoản Ngân Hàng (VietQR):</label>
             <select id="bankNameSelect">
                 <option value="ICB">VietinBank</option>
                 <option value="VCB">Vietcombank</option>
@@ -139,8 +140,18 @@
             </select>
             <input type="text" id="bankAccInput" placeholder="Số tài khoản...">
             <input type="text" id="bankNameAccInput" placeholder="Tên chủ TK (VIẾT HOA KHÔNG DẤU)...">
-            <button onclick="saveBankConfig()" style="background:#0288d1; color:white; border:none; padding:8px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:6px;">Lưu Cấu Hình Ngân Hàng</button>
-            <button onclick="document.getElementById('settingsModal').style.display='none'" style="background:#555; color:white; border:none; padding:8px; width:100%; border-radius:4px; cursor:pointer; margin-top:10px; font-weight:bold;">Đóng Cài Đặt</button>
+            <button onclick="saveBankConfig()" style="background:#0288d1; color:white; border:none; padding:8px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:4px;">Lưu Ngân Hàng</button>
+
+            <hr style="margin: 12px 0; border:0; border-top:1px solid #ddd;">
+
+            <label style="font-weight: bold; font-size: 12px;">2. Cấu Hình Khổ Giấy Máy In Nhiệt:</label>
+            <select id="printerSizeSelect">
+                <option value="80">Máy in nhiệt khổ 80mm (Chuẩn to)</option>
+                <option value="58">Máy in nhiệt khổ 58mm (Khổ nhỏ)</option>
+            </select>
+            <button onclick="savePrinterConfig()" style="background:#4caf50; color:white; border:none; padding:8px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:4px;">Lưu Cấu Hình Máy In</button>
+
+            <button onclick="document.getElementById('settingsModal').style.display='none'" style="background:#555; color:white; border:none; padding:8px; width:100%; border-radius:4px; cursor:pointer; margin-top:12px; font-weight:bold;">Đóng Cài Đặt</button>
         </div>
     </div>
 
@@ -230,7 +241,7 @@
         const tableParam = urlParams.get('table');
 
         if (tableParam) {
-            // GIAO DIỆN KHÁCH HÀNG QUÉT QR TRÊN ĐIỆN THOẠI
+            // GIAO DIỆN KHÁCH HÀNG QUÉT QR TRÊN ĐIỆN THOẠI (KHÔNG CẦN ĐĂNG NHẬP)
             document.body.innerHTML = `
                 <div style="max-width:480px; margin:0 auto; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
                     <div style="text-align:center; color:#d32f2f; font-weight:bold; font-size:20px;">🔥 QUÁN NƯỚNG TUỔI TRẺ 🔥</div>
@@ -324,7 +335,6 @@
                         }
                     });
 
-                    // Khi khách quét QR order, bàn lập tức chuyển sang màu đỏ (Có khách)
                     tableStatus[tName] = 'busy';
                     updateTableUI(tName, 'Có khách', 'table-busy');
                     if(selectedTable === tName) renderBill();
@@ -421,7 +431,7 @@
                 tableRounds[selectedTable].push({ name, price, quantity: 1 });
             }
             
-            // 1. KHI CHỌN MÓN THÌ BÀN CHUYỂN SANG MÀU CAM (ĐANG ORDER)
+            // Khi chọn món thì bàn chuyển sang màu cam (Đang order)
             if(tableStatus[selectedTable] === 'empty') {
                 tableStatus[selectedTable] = 'ordering';
                 updateTableUI(selectedTable, 'Đang order', 'table-ordering');
@@ -482,7 +492,7 @@
             document.getElementById('totalPrice').innerText = total.toLocaleString() + 'đ';
         }
 
-        // 2. KHI BẤM BÁO BẾP THÌ BÀN CHÍNH THỨC CHUYỂN SANG MÀU ĐỎ (CÓ KHÁCH)
+        // Khi bấm báo bếp thì bàn chính thức chuyển sang màu đỏ (Có khách)
         function sendToKitchen() {
             if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].length === 0) { alert('Chưa chọn bàn hoặc chưa có món để báo bếp!'); return; }
             printKitchenBill(selectedTable, tableRounds[selectedTable]);
@@ -608,6 +618,7 @@
             document.getElementById('qrModalTitle').innerText = 'Mã QR Gọi Món - ' + selectedTable;
             document.getElementById('qrcode').innerHTML = '';
             let tNum = selectedTable.replace('Bàn ', '');
+            // Đảm bảo đường dẫn QR trỏ thẳng về trang chủ (không dính quanly.html) để khách quét không bị hỏi mật khẩu
             let currentUrl = window.location.origin + '/?table=' + tNum;
             new QRCode(document.getElementById("qrcode"), { text: currentUrl, width: 150, height: 150 });
             document.getElementById('qrLinkText').innerText = currentUrl;
@@ -630,6 +641,14 @@
             };
             localStorage.setItem('bankConfig', JSON.stringify(bankConfig));
             alert('✅ Đã lưu cấu hình ngân hàng thành công!');
+        }
+
+        function savePrinterConfig() {
+            printerConfig = {
+                size: document.getElementById('printerSizeSelect').value
+            };
+            localStorage.setItem('printerConfig', JSON.stringify(printerConfig));
+            alert('✅ Đã lưu cấu hình máy in thành công!');
         }
 
         async function loadTodayRevenue() {
