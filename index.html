@@ -9,8 +9,8 @@
         body { background-color: #f4f6f9; color: #333; margin: 0; padding: 10px; }
         header { background: #b71c1c; color: white; padding: 10px 20px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         header h1 { margin: 0; font-size: 18px; }
-        .header-right { display: flex; align-items: center; gap: 8px; }
-        .header-right button { background: #ffa000; border: none; padding: 6px 12px; font-weight: bold; color: #fff; border-radius: 4px; cursor: pointer; }
+        .header-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .header-right button { background: #ffa000; border: none; padding: 6px 10px; font-weight: bold; color: #fff; border-radius: 4px; cursor: pointer; font-size: 12px; }
         .section { background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .section h2 { margin: 0 0 10px 0; font-size: 14px; color: #b71c1c; border-bottom: 2px solid #ffccbc; padding-bottom: 5px; }
         .table-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
@@ -64,7 +64,8 @@
             <div style="font-size: 12px; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px;">
                 👤 NV: <b id="currentStaffNameDisplay"></b> <button onclick="logoutSystem()" style="background:#d32f2f; border:none; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px; margin-left:6px; cursor:pointer;">Đăng xuất</button>
             </div>
-            <button onclick="openKitchenScreen()" style="background:#ff9800; color:#fff; font-weight:bold;">🍳 Màn Hình Bếp & Đồ Uống</button>
+            <button onclick="openKitchenScreen('food')" style="background:#ff9800; color:#fff; font-weight:bold;">🍳 Xem Màn Hình Bếp</button>
+            <button onclick="openKitchenScreen('drink')" style="background:#0288d1; color:#fff; font-weight:bold;">🍹 Xem Quầy Đồ Uống</button>
             <button id="btnRevenue" onclick="requestManagerAction('revenue')" style="display:none;">📊 Doanh Thu</button>
             <button id="btnSettings" onclick="requestManagerAction('settings')" style="display:none;">⚙️ Cài Đặt</button>
         </div>
@@ -97,24 +98,14 @@
         </div>
     </div>
 
-    <!-- MÀN HÌNH BẾP & ĐỒ UỐNG -->
+    <!-- MÀN HÌNH BẾP TO (CHỌN RIÊNG BIỆT BẾP HOẶC ĐỒ UỐNG ĐỂ XEM TO) -->
     <div id="kitchenModal" class="modal">
-        <div class="modal-box" style="width: 1000px; max-width: 98vw; text-align: left; background: #f8f9fa; padding: 20px;">
+        <div class="modal-box" style="width: 750px; max-width: 98vw; text-align: left; background: #f8f9fa; padding: 25px;">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #b71c1c; padding-bottom:10px; margin-bottom:15px;">
-                <h2 style="color: #b71c1c; margin:0; font-size:20px;">🍳 MÀN HÌNH BẾP & ĐỒ UỐNG (PHÂN TÁCH THEO LƯỢT)</h2>
-                <button onclick="document.getElementById('kitchenModal').style.display='none'" style="background:#555; color:white; border:none; padding:6px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">Đóng ✖</button>
+                <h2 id="kitchenModalTitle" style="color: #b71c1c; margin:0; font-size:20px;">🍳 MÀN HÌNH BẾP</h2>
+                <button onclick="document.getElementById('kitchenModal').style.display='none'" style="background:#555; color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:14px;">Đóng ✖</button>
             </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-height: 72vh; overflow-y: auto;">
-                <div style="background:#fff; padding:15px; border-radius:8px; border:2px solid #ff9800; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-                    <h3 style="color:#e65100; margin-top:0; border-bottom:2px solid #ffe0b2; padding-bottom:6px;">🍳 KHU VỰC BẾP (ĐỒ ĂN)</h3>
-                    <div id="kitchenFoodContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
-                </div>
-                <div style="background:#fff; padding:15px; border-radius:8px; border:2px solid #0288d1; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-                    <h3 style="color:#01579b; margin-top:0; border-bottom:2px solid #b3e5fc; padding-bottom:6px;">🍹 KHU VỰC ĐỒ UỐNG</h3>
-                    <div id="kitchenDrinkContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
-                </div>
-            </div>
+            <div id="singleKitchenContainer" style="display:flex; flex-direction:column; gap:15px; max-height: 72vh; overflow-y: auto;"></div>
         </div>
     </div>
 
@@ -271,14 +262,43 @@
             ]}
         ];
 
+        // --- HÀM TÁCH ĐỒ ĂN VÀ ĐỒ UỐNG (BAO GỒM CẢ TÁCH LON COCA TRONG COMBO) ---
+        function getSplitItems(items) {
+            let foodItems = [];
+            let drinkItems = [];
+
+            items.forEach(i => {
+                if (i.name.includes("Combo")) {
+                    let comboMatch = i.name.match(/Combo\s+(\d+)/);
+                    let comboNum = comboMatch ? comboMatch[1] : "";
+                    let drinkQty = 2; // Mặc định Combo 1 có 2 lon
+                    if (comboNum === "2" || comboNum === "3") drinkQty = 5;
+                    if (comboNum === "4") drinkQty = 8;
+
+                    let totalDrink = drinkQty * i.quantity;
+                    drinkItems.push({ name: "Coca lon (Theo Combo)", price: 0, quantity: totalDrink });
+
+                    // Tạo tên món ăn lược bớt phần coca để bếp làm đồ nướng không bị nhầm
+                    let cleanFoodName = i.name.replace(/\+\s*\d+\s*lon\s*coca/gi, "").trim();
+                    foodItems.push({ name: cleanFoodName, price: i.price, quantity: i.quantity });
+                } else if (isDrink(i.name) || i.name.includes("Coca")) {
+                    drinkItems.push(i);
+                } else {
+                    foodItems.push(i);
+                }
+            });
+
+            return { foodItems, drinkItems };
+        }
+
         function isDrink(itemName) {
             let drinkCats = ["ĐỒ UỐNG"];
             for(let cat of menuData) {
                 if(drinkCats.includes(cat.cat)) {
-                    if(cat.items.some(i => i.name === itemName)) return true;
+                    if(cat.items.some(m => m.name === itemName)) return true;
                 }
             }
-            return false;
+            return itemName.toLowerCase().includes("coca") || itemName.toLowerCase().includes("nước") || itemName.toLowerCase().includes("bia") || itemName.toLowerCase().includes("rượu");
         }
 
         let selectedTable = '', tableRounds = {}, tableStatus = {};
@@ -290,6 +310,7 @@
         let staffList = [];
         let loggedInStaff = JSON.parse(localStorage.getItem('loggedInStaff') || 'null');
         let currentPinAction = '';
+        let currentKitchenMode = 'food'; // 'food' hoặc 'drink'
         const urlParams = new URLSearchParams(window.location.search);
         const tableParam = urlParams.get('table');
 
@@ -299,7 +320,6 @@
             initApp();
         }
 
-        // --- GIAO DIỆN KHÁCH HÀNG (HIỂN THỊ RÕ TỪNG MÓN VÀ TỔNG TIỀN) ---
         function loadCustomerOrderScreen(tNum) {
             let tName = 'Bàn ' + (tNum < 10 && !tNum.startsWith('0') ? '0' + tNum : tNum);
             let cusCart = [];
@@ -647,7 +667,7 @@
                 }
 
                 if(document.getElementById('kitchenModal').style.display === 'flex') {
-                    openKitchenScreen();
+                    openKitchenScreen(currentKitchenMode);
                 }
             } catch(e) {}
         }
@@ -727,7 +747,6 @@
             if(statusSpan) statusSpan.innerText = statusText;
         }
 
-        // --- PHIẾU GỌI MÓN (PHÂN TÁCH RÕ: ĐÃ BÁO BẾP & MỚI GỌI THÊM) ---
         function renderBill() {
             const container = document.getElementById('billItemsContainer');
             if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].length === 0) {
@@ -808,7 +827,7 @@
             alert(`🔔 ĐÃ BÁO BẾP & GỬI DỮ LIỆU LÊN MÀN HÌNH BẾP CHO ${selectedTable}!`);
             
             if(document.getElementById('kitchenModal').style.display === 'flex') {
-                openKitchenScreen();
+                openKitchenScreen(currentKitchenMode);
             }
         }
 
@@ -819,119 +838,104 @@
             html += `<p style="text-align:center; margin:2px 0;"><b>${tableName}</b> (NV: ${loggedInStaff.name})</p>`;
             html += `<p style="text-align:center; margin:2px 0; font-size:10px;">${new Date().toLocaleTimeString('vi-VN')} - ${new Date().toLocaleDateString('vi-VN')}</p>`;
             html += `<hr style="border-top:1px dashed #000; margin:5px 0;">`;
-            items.forEach(i => {
+            
+            let split = getSplitItems(items);
+            split.foodItems.forEach(i => {
                 html += `<div style="display:flex; justify-content:space-between; margin:3px 0;"><span>${i.name}</span> <b>x${i.quantity}</b></div>`;
             });
             html += `</div>`;
-            document.getElementById('printArea').innerHTML = html;
+
+            let drinkHtml = `<div style="${widthStyle} font-size: 12px; padding: 5px;">`;
+            drinkHtml += `<h3 style="text-align:center; margin:0;">PHIẾU QUẦY BAR (ĐỒ UỐNG)</h3>`;
+            drinkHtml += `<p style="text-align:center; margin:2px 0;"><b>${tableName}</b></p>`;
+            drinkHtml += `<hr style="border-top:1px dashed #000; margin:5px 0;">`;
+            split.drinkItems.forEach(i => {
+                drinkHtml += `<div style="display:flex; justify-content:space-between; margin:3px 0;"><span>${i.name}</span> <b>x${i.quantity}</b></div>`;
+            });
+            drinkHtml += `</div>`;
+
+            document.getElementById('printArea').innerHTML = html + (split.drinkItems.length > 0 ? drinkHtml : '');
             window.print();
         }
 
         function markRoundAsDone(tName, roundIndex, type) {
             if(confirm(`Xác nhận ĐÃ LÀM XONG các món này cho ${tName}?`)) {
+                if(!tableRoundsHistory[tName] || !tableRoundsHistory[tName][roundIndex]) return;
+                let rItems = tableRoundsHistory[tName][roundIndex].items;
+                let split = getSplitItems(rItems);
+
                 if(type === 'food') {
-                    tableRoundsHistory[tName][roundIndex].items = tableRoundsHistory[tName][roundIndex].items.filter(i => isDrink(i.name));
+                    // Giữ lại phần đồ uống, bỏ đồ ăn
+                    tableRoundsHistory[tName][roundIndex].items = split.drinkItems;
                 } else if(type === 'drink') {
-                    tableRoundsHistory[tName][roundIndex].items = tableRoundsHistory[tName][roundIndex].items.filter(i => !isDrink(i.name));
+                    // Giữ lại phần đồ ăn, bỏ đồ uống
+                    tableRoundsHistory[tName][roundIndex].items = split.foodItems;
                 }
                 
                 if(tableRoundsHistory[tName][roundIndex].items.length === 0) {
                     tableRoundsHistory[tName].splice(roundIndex, 1);
                 }
-                openKitchenScreen();
+                openKitchenScreen(currentKitchenMode);
             }
         }
 
-        function openKitchenScreen() {
-            let foodContainer = document.getElementById('kitchenFoodContainer');
-            let drinkContainer = document.getElementById('kitchenDrinkContainer');
-            foodContainer.innerHTML = '';
-            drinkContainer.innerHTML = '';
+        // --- MÀN HÌNH BẾP HOẶC ĐỒ UỐNG (PHÓNG TO TOÀN MÀN HÌNH CHỌN 1 TRONG 2) ---
+        function openKitchenScreen(mode) {
+            currentKitchenMode = mode;
+            let container = document.getElementById('singleKitchenContainer');
+            container.innerHTML = '';
             
+            let titleEl = document.getElementById('kitchenModalTitle');
+            if(mode === 'food') {
+                titleEl.innerText = "🍳 MÀN HÌNH BẾP (ĐỒ ĂN NƯỚNG)";
+            } else {
+                titleEl.innerText = "🍹 MÀN HÌNH QUẦY BAR (ĐỒ UỐNG)";
+            }
+
             let activeTables = Object.keys(tableRounds).filter(t => tableRounds[t] && tableRounds[t].length > 0);
 
             if(activeTables.length === 0) {
-                foodContainer.innerHTML = '<p style="text-align:center; color:#888; padding:30px;">Bếp đang trống!</p>';
-                drinkContainer.innerHTML = '<p style="text-align:center; color:#888; padding:30px;">Quầy bar đang trống!</p>';
+                container.innerHTML = `<p style="text-align:center; color:#888; padding:40px; font-size:16px;">${mode === 'food' ? 'Bếp đang trống!' : 'Quầy bar đang trống!'}</p>`;
             } else {
-                let hasFood = false;
-                let hasDrink = false;
+                let hasData = false;
 
                 activeTables.forEach((tName, idx) => {
-                    let foodRounds = [];
+                    let filteredRounds = [];
                     if(tableRoundsHistory[tName]) {
                         tableRoundsHistory[tName].forEach((r, rIdx) => {
-                            let fItems = r.items.filter(i => !isDrink(i.name));
-                            if(fItems.length > 0) foodRounds.push({ roundName: r.roundName, items: fItems, originalIndex: rIdx });
+                            let split = getSplitItems(r.items);
+                            let targetItems = (mode === 'food') ? split.foodItems : split.drinkItems;
+                            if(targetItems.length > 0) {
+                                filteredRounds.push({ roundName: r.roundName, items: targetItems, originalIndex: rIdx });
+                            }
                         });
                     }
 
-                    if(foodRounds.length > 0) {
-                        hasFood = true;
+                    if(filteredRounds.length > 0) {
+                        hasData = true;
                         let roundsHtml = '';
-                        foodRounds.forEach(r => {
+                        filteredRounds.forEach(r => {
                             let rItemsHtml = '';
                             r.items.forEach(i => {
-                                rItemsHtml += `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #eee; font-size:14px;">
-                                    <span><b>${i.name}</b></span>
-                                    <span style="color:#d32f2f; font-weight:bold;">x${i.quantity}</span>
+                                rItemsHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #ddd; font-size:16px;">
+                                    <span style="font-weight:bold; color:#222;">${i.name}</span>
+                                    <span style="color:${mode === 'food' ? '#d32f2f' : '#0288d1'}; font-weight:bold; font-size:18px;">x${i.quantity}</span>
                                 </div>`;
                             });
                             roundsHtml += `
-                                <div style="margin-bottom:8px; border:1px solid #ffccbc; padding:6px; border-radius:4px; background:#fff;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:4px;">
-                                        <b style="color:#e65100; font-size:12px;">📌 ${r.roundName}:</b>
-                                        <button onclick="markRoundAsDone('${tName}', ${r.originalIndex}, 'food')" style="background:#4caf50; color:white; border:none; padding:3px 8px; border-radius:3px; font-size:10px; cursor:pointer; font-weight:bold;">✅ Đã Xong</button>
+                                <div style="margin-bottom:10px; border:1px solid ${mode === 'food' ? '#ffccbc' : '#b3e5fc'}; padding:10px; border-radius:6px; background:#fff;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:6px; margin-bottom:6px;">
+                                        <b style="color:${mode === 'food' ? '#e65100' : '#01579b'}; font-size:15px;">📌 ${r.roundName}:</b>
+                                        <button onclick="markRoundAsDone('${tName}', ${r.originalIndex}, '${mode}')" style="background:#4caf50; color:white; border:none; padding:6px 14px; border-radius:4px; font-size:13px; cursor:pointer; font-weight:bold;">✅ Đã Làm Xong</button>
                                     </div>
                                     ${rItemsHtml}
                                 </div>`;
                         });
 
-                        foodContainer.innerHTML += `
-                            <div style="background:#fff8e1; border-left: 5px solid ${idx === 0 ? '#d32f2f' : '#ff9800'}; padding: 12px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:6px; font-size:14px; color:#b71c1c;">
-                                    <span>🪑 ${tName} ${idx === 0 ? '<span style="background:#d32f2f; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px;">ƯU TIÊN #1</span>' : ''}</span>
-                                </div>
-                                <div>
-                                    ${roundsHtml}
-                                </div>
-                            </div>
-                        `;
-                    }
-
-                    let drinkRounds = [];
-                    if(tableRoundsHistory[tName]) {
-                        tableRoundsHistory[tName].forEach((r, rIdx) => {
-                            let dItems = r.items.filter(i => isDrink(i.name));
-                            if(dItems.length > 0) drinkRounds.push({ roundName: r.roundName, items: dItems, originalIndex: rIdx });
-                        });
-                    }
-
-                    if(drinkRounds.length > 0) {
-                        hasDrink = true;
-                        let roundsHtml = '';
-                        drinkRounds.forEach(r => {
-                            let rItemsHtml = '';
-                            r.items.forEach(i => {
-                                rItemsHtml += `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #eee; font-size:14px;">
-                                    <span><b>${i.name}</b></span>
-                                    <span style="color:#0288d1; font-weight:bold;">x${i.quantity}</span>
-                                </div>`;
-                            });
-                            roundsHtml += `
-                                <div style="margin-bottom:8px; border:1px solid #b3e5fc; padding:6px; border-radius:4px; background:#fff;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:4px;">
-                                        <b style="color:#01579b; font-size:12px;">📌 ${r.roundName}:</b>
-                                        <button onclick="markRoundAsDone('${tName}', ${r.originalIndex}, 'drink')" style="background:#4caf50; color:white; border:none; padding:3px 8px; border-radius:3px; font-size:10px; cursor:pointer; font-weight:bold;">✅ Đã Pha Xong</button>
-                                    </div>
-                                    ${rItemsHtml}
-                                </div>`;
-                        });
-
-                        drinkContainer.innerHTML += `
-                            <div style="background:#e1f5fe; border-left: 5px solid #0288d1; padding: 12px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:6px; font-size:14px; color:#01579b;">
-                                    <span>🪑 ${tName}</span>
+                        container.innerHTML += `
+                            <div style="background:${mode === 'food' ? '#fff8e1' : '#e1f5fe'}; border-left: 6px solid ${mode === 'food' ? '#ff9800' : '#0288d1'}; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                                <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:10px; font-size:18px; color:${mode === 'food' ? '#b71c1c' : '#01579b'};">
+                                    <span>🪑 ${tName} ${idx === 0 ? '<span style="background:#d32f2f; color:#fff; font-size:11px; padding:2px 8px; border-radius:4px;">ƯU TIÊN #1</span>' : ''}</span>
                                 </div>
                                 <div>
                                     ${roundsHtml}
@@ -941,8 +945,9 @@
                     }
                 });
 
-                if(!hasFood) foodContainer.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">Không có đồ ăn nào đang chờ!</p>';
-                if(!hasDrink) drinkContainer.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">Không có đồ uống nào đang chờ!</p>';
+                if(!hasData) {
+                    container.innerHTML = `<p style="text-align:center; color:#888; padding:40px; font-size:16px;">${mode === 'food' ? 'Không có đồ ăn nào đang chờ bếp!' : 'Không có đồ uống nào đang chờ quầy bar!'}</p>`;
+                }
             }
 
             document.getElementById('kitchenModal').style.display = 'flex';
