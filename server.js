@@ -9,7 +9,6 @@ app.use(express.static(__dirname));
 let globalActiveOrders = [];
 let globalPaidHistory = [];
 
-// Phân định rõ tài khoản Quản Lý (role: manager) và Nhân Viên (role: staff)
 let globalStaffList = [
     { name: "Quản Lý 1", pin: "1234", role: "manager" },
     { name: "Quản Lý 2", pin: "8888", role: "manager" },
@@ -39,7 +38,6 @@ app.post('/api/staff/add', (req, res) => {
     const { name, pin } = req.body;
     if (name && pin) {
         if (!globalStaffList.some(s => s.name === name)) {
-            // Mặc định nhân viên thêm mới là staff, trừ khi tên có chữ "Quản Lý"
             let role = name.toLowerCase().includes('quản lý') ? 'manager' : 'staff';
             globalStaffList.push({ name, pin, role });
         }
@@ -56,7 +54,7 @@ app.post('/api/staff/remove', (req, res) => {
 });
 
 app.post('/api/checkout', (req, res) => {
-    const { tableName, items, totalAmount, staff } = req.body;
+    const { tableName, items, totalAmount, discount, voucherCode, staff } = req.body;
     let { timeStr, dateStr } = getVietnamTime();
     let itemsText = items.map(i => `${i.name} (x${i.quantity})`).join(', ');
 
@@ -82,11 +80,12 @@ app.post('/api/checkout', (req, res) => {
             });
         }
     } else {
+        let discountText = discount > 0 ? ` (Giảm: -${discount.toLocaleString()}đ [${voucherCode}])` : '';
         const newPaidOrder = {
             id: Date.now(),
             time: timeStr,
             tableName,
-            itemsText,
+            itemsText: itemsText + discountText,
             totalAmount,
             staff: staff || 'Nhân viên',
             date: dateStr
@@ -154,7 +153,7 @@ app.get('/api/orders/view', (req, res) => {
                         <tr>
                             <th style="width: 70px;">Giờ</th>
                             <th style="width: 80px;">Bàn</th>
-                            <th>Chi Tiết Món Mua</th>
+                            <th>Chi Tiết Món Mua & Giảm Giá</th>
                             <th style="width: 110px;">Thu Ngân</th>
                             <th style="width: 130px; text-align: right;">Tổng Tiền</th>
                         </tr>

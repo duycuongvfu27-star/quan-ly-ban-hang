@@ -111,8 +111,21 @@
                 <input type="password" id="newStaffPin" placeholder="Mã PIN..." style="margin:0; width:90px;" maxlength="6">
                 <button onclick="addStaff()" style="background:#4caf50; color:white; border:none; padding:8px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">Thêm</button>
             </div>
-            <div id="staffListContainer" style="max-height:120px; overflow-y:auto; border:1px solid #ddd; padding:4px; border-radius:4px; margin-bottom:10px; font-size:12px;"></div>
-            <label style="font-weight: bold; font-size: 12px;">2. Tài Khoản Ngân Hàng (VietQR):</label>
+            <div id="staffListContainer" style="max-height:100px; overflow-y:auto; border:1px solid #ddd; padding:4px; border-radius:4px; margin-bottom:10px; font-size:12px;"></div>
+            
+            <label style="font-weight: bold; font-size: 12px;">2. Quản Lý Mã Giảm Giá (Voucher):</label>
+            <div style="display:flex; gap:6px; margin:6px 0;">
+                <input type="text" id="newVoucherCode" placeholder="Mã (VD: GIAM10)..." style="margin:0; flex:1; text-transform:uppercase;">
+                <select id="newVoucherType" style="margin:0; width:90px;">
+                    <option value="percent">Giảm %</option>
+                    <option value="fixed">Giảm VNĐ</option>
+                </select>
+                <input type="number" id="newVoucherVal" placeholder="Giá trị..." style="margin:0; width:80px;">
+                <button onclick="addVoucher()" style="background:#ff9800; color:white; border:none; padding:8px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">Thêm</button>
+            </div>
+            <div id="voucherListContainer" style="max-height:90px; overflow-y:auto; border:1px solid #ddd; padding:4px; border-radius:4px; margin-bottom:10px; font-size:12px;"></div>
+
+            <label style="font-weight: bold; font-size: 12px;">3. Tài Khoản Ngân Hàng (VietQR):</label>
             <select id="bankNameSelect">
                 <option value="ICB">VietinBank</option>
                 <option value="VCB">Vietcombank</option>
@@ -125,7 +138,7 @@
             <input type="text" id="bankNameAccInput" placeholder="Tên chủ TK (VIẾT HOA KHÔNG DẤU)...">
             <button onclick="saveBankConfig()" style="background:#0288d1; color:white; border:none; padding:8px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:4px;">Lưu Ngân Hàng</button>
             <hr style="margin: 10px 0; border:0; border-top:1px solid #ddd;">
-            <label style="font-weight: bold; font-size: 12px;">3. Khổ Giấy Máy In Nhiệt:</label>
+            <label style="font-weight: bold; font-size: 12px;">4. Khổ Giấy Máy In Nhiệt:</label>
             <select id="printerSizeSelect">
                 <option value="80">Khổ 80mm (To)</option>
                 <option value="58">Khổ 58mm (Nhỏ)</option>
@@ -153,10 +166,22 @@
     </div>
     <div id="bankModal" class="modal">
         <div class="modal-box">
-            <h3 style="color: #b71c1c; margin-top:0;">💳 Thanh Toán VietQR Tự Động</h3>
-            <p style="font-size: 13px;">Tổng tiền: <b id="bankTotalPay" style="color:#d32f2f; font-size:16px;">0đ</b></p>
+            <h3 style="color: #b71c1c; margin-top:0;">💳 Thanh Toán & Mã Giảm Giá</h3>
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin:4px 0;"><span>Tạm tính:</span><b id="bankSubTotal">0đ</b></div>
+            
+            <div style="display:flex; gap:6px; margin:8px 0;">
+                <input type="text" id="inputVoucherCode" placeholder="Nhập mã giảm giá..." style="margin:0; text-transform:uppercase;">
+                <button onclick="applyVoucher()" style="background:#ff9800; color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">Áp Dụng</button>
+            </div>
+            <div id="voucherMsg" style="font-size:11px; color:#2e7d32; text-align:left; margin-bottom:4px; font-weight:bold;"></div>
+
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin:4px 0;"><span>Giảm giá:</span><b id="bankDiscountAmount" style="color:#d32f2f;">-0đ</b></div>
+            <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:bold; margin:8px 0; border-top:1px dashed #ccc; padding-top:6px;">
+                <span>Tổng Thanh Toán:</span><span id="bankTotalPay" style="color:#d32f2f;">0đ</span>
+            </div>
+            
             <div id="bankQrContainer" style="margin: 10px 0; display:flex; justify-content:center;"></div>
-            <button onclick="confirmCheckout()" style="background:#4caf50; color:white; border:none; padding:10px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:5px;">✅ Xác Nhận Đã Nhận Tiền & In Hóa Đơn</button>
+            <button onclick="confirmCheckout()" style="background:#4caf50; color:white; border:none; padding:10px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:5px;">✅ Xác Nhận Thanh Toán & In Hóa Đơn</button>
             <button onclick="document.getElementById('bankModal').style.display='none'" style="background:#555; color:white; border:none; padding:6px; width:100%; border-radius:4px; margin-top:5px; cursor:pointer;">Hủy</button>
         </div>
     </div>
@@ -219,10 +244,12 @@
         let selectedTable = '', tableRounds = {}, tableStatus = {};
         let bankConfig = JSON.parse(localStorage.getItem('bankConfig') || '{"bank":"VCB","acc":"","name":""}');
         let printerConfig = JSON.parse(localStorage.getItem('printerConfig') || '{"size":"80"}');
+        let voucherList = JSON.parse(localStorage.getItem('voucherList') || '[{"code":"GIAM10", "type":"percent", "value":10}, {"code":"GIAM50K", "type":"fixed", "value":50000}]');
+        let activeDiscount = { code: '', amount: 0 };
         let staffList = [];
         let currentStaff = localStorage.getItem('currentStaff') || '';
         let pendingStaff = '';
-        let currentPinAction = ''; // 'shift', 'settings', 'revenue'
+        let currentPinAction = '';
         const urlParams = new URLSearchParams(window.location.search);
         const tableParam = urlParams.get('table');
 
@@ -308,7 +335,6 @@
 
         async function verifyStaffPin() {
             let pinInput = document.getElementById('inputStaffPin').value;
-            
             if (currentPinAction === 'shift') {
                 let staffObj = staffList.find(s => s.name === pendingStaff);
                 if(staffObj && staffObj.pin === pinInput) {
@@ -322,7 +348,6 @@
                     document.getElementById('inputStaffPin').focus();
                 }
             } else {
-                // Kiểm tra xem mã PIN nhập vào có thuộc tài khoản quản lý nào không
                 let managerObj = staffList.find(s => s.role === 'manager' && s.pin === pinInput);
                 if(managerObj) {
                     document.getElementById('pinModal').style.display = 'none';
@@ -348,18 +373,49 @@
             container.innerHTML = '';
             staffList.forEach((s) => {
                 let badgeRole = s.role === 'manager' ? '<b style="color:#d32f2f;">(Quản Lý)</b>' : '(Nhân Viên)';
-                container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid #eee;">
+                container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px solid #eee;">
                     <span><b>${s.name}</b> ${badgeRole} - PIN: ${s.pin}</span>
                     ${staffList.length > 1 ? `<button onclick="removeStaff('${s.name}')" style="background:#d32f2f; color:#fff; border:none; padding:2px 6px; border-radius:3px; cursor:pointer; font-size:10px;">Xóa</button>` : ''}
                 </div>`;
             });
+            renderVoucherListModal();
+        }
+
+        function renderVoucherListModal() {
+            let container = document.getElementById('voucherListContainer');
+            container.innerHTML = '';
+            voucherList.forEach((v, idx) => {
+                let valStr = v.type === 'percent' ? v.value + '%' : v.value.toLocaleString() + 'đ';
+                container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px solid #eee;">
+                    <span>Mã: <b>${v.code}</b> (${valStr})</span>
+                    <button onclick="removeVoucher(${idx})" style="background:#d32f2f; color:#fff; border:none; padding:2px 6px; border-radius:3px; cursor:pointer; font-size:10px;">Xóa</button>
+                </div>`;
+            });
+        }
+
+        function addVoucher() {
+            let code = document.getElementById('newVoucherCode').value.trim().toUpperCase();
+            let type = document.getElementById('newVoucherType').value;
+            let value = parseFloat(document.getElementById('newVoucherVal').value);
+            if(!code || isNaN(value)) { alert('Vui lòng nhập mã và giá trị giảm hợp lệ!'); return; }
+            voucherList.push({ code, type, value });
+            localStorage.setItem('voucherList', JSON.stringify(voucherList));
+            document.getElementById('newVoucherCode').value = '';
+            document.getElementById('newVoucherVal').value = '';
+            renderVoucherListModal();
+            alert('✅ Đã thêm mã giảm giá thành công!');
+        }
+
+        function removeVoucher(idx) {
+            voucherList.splice(idx, 1);
+            localStorage.setItem('voucherList', JSON.stringify(voucherList));
+            renderVoucherListModal();
         }
 
         async function addStaff() {
             let name = document.getElementById('newStaffName').value.trim();
             let pin = document.getElementById('newStaffPin').value.trim();
             if(!name || !pin) { alert('Vui lòng nhập tên và mã PIN!'); return; }
-            
             const res = await fetch('/api/staff/add', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
                 body: JSON.stringify({ name, pin })
@@ -369,12 +425,12 @@
                 document.getElementById('newStaffPin').value = '';
                 await fetchStaffAndInit();
                 renderStaffListModal();
-                alert('✅ Đã thêm nhân viên mới thành công!');
+                alert('✅ Đã thêm nhân sự thành công!');
             }
         }
 
         async function removeStaff(name) {
-            if(confirm(`Bạn có chắc muốn xóa nhân viên ${name} không?`)) {
+            if(confirm(`Bạn có chắc muốn xóa nhân sự ${name} không?`)) {
                 const res = await fetch('/api/staff/remove', {
                     method: 'POST', headers: {'Content-Type':'application/json'},
                     body: JSON.stringify({ name })
@@ -412,6 +468,7 @@
             });
             updateFoodBadges();
         }
+
         function speakVoice(text) {
             if ('speechSynthesis' in window) {
                 let utterance = new SpeechSynthesisUtterance(text);
@@ -433,23 +490,24 @@
                 }
                 lastCheckedCount = data.length;
 
+                let activeTableNames = data.map(ord => ord.tableName);
                 for(let i=1; i<=16; i++) {
                     let tName = 'Bàn ' + (i < 10 ? '0' + i : i);
-                    if(selectedTable !== tName) {
+                    if(!activeTableNames.includes(tName) && selectedTable !== tName) {
                         tableStatus[tName] = 'empty';
+                        delete tableRounds[tName];
                         updateTableUI(tName, 'Trống', 'table-empty');
                     }
                 }
 
                 data.forEach(ord => {
                     let tName = ord.tableName;
-                    if(!tableRounds[tName]) tableRounds[tName] = [];
                     tableRounds[tName] = ord.items;
                     tableStatus[tName] = 'busy';
                     updateTableUI(tName, 'Có khách', 'table-busy');
                 });
 
-                if(selectedTable && tableStatus[selectedTable] === 'busy') {
+                if(selectedTable) {
                     renderBill();
                 }
             } catch(e) {}
@@ -554,6 +612,7 @@
             renderBill();
             updateFoodBadges();
         }
+
         function addFood(name, price) {
             if(!selectedTable) { alert('⚠️ Vui lòng chọn bàn trên sơ đồ trước!'); return; }
             if(!tableRounds[selectedTable]) tableRounds[selectedTable] = [];
@@ -570,6 +629,7 @@
             renderBill();
             updateFoodBadges();
         }
+
         function updateFoodBadges() {
             for(let cIdx=0; cIdx<menuData.length; cIdx++) {
                 for(let iIdx=0; iIdx<menuData[cIdx].items.length; iIdx++) {
@@ -594,6 +654,7 @@
                 });
             });
         }
+
         function updateTableUI(tName, statusText, className) {
             let btn = document.getElementById('tbtn-' + tName);
             if(!btn) return;
@@ -602,6 +663,7 @@
             let statusSpan = document.getElementById('tstatus-' + tName);
             if(statusSpan) statusSpan.innerText = statusText;
         }
+
         function renderBill() {
             const container = document.getElementById('billItemsContainer');
             if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].length === 0) {
@@ -617,6 +679,7 @@
             container.innerHTML = html;
             document.getElementById('totalPrice').innerText = total.toLocaleString() + 'đ';
         }
+
         function sendToKitchen() {
             if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].length === 0) { alert('Chưa chọn bàn hoặc chưa có món để báo bếp!'); return; }
             printKitchenBill(selectedTable, tableRounds[selectedTable]);
@@ -625,6 +688,7 @@
             alert(`🔔 ĐÃ BÁO BẾP & IN PHIẾU CHO ${selectedTable}!`);
             speakVoice(`${selectedTable} gọi đồ`);
         }
+
         function printKitchenBill(tableName, items) {
             let widthStyle = printerConfig.size === '58' ? 'width: 58mm;' : 'width: 80mm;';
             let html = `<div style="${widthStyle} font-size: 12px; padding: 5px;">`;
@@ -639,6 +703,7 @@
             document.getElementById('printArea').innerHTML = html;
             window.print();
         }
+
         function openMoveTableModal() {
             if(!selectedTable || !tableRounds[selectedTable]) { alert('Bàn hiện tại không có dữ liệu để đổi!'); return; }
             document.getElementById('moveFromTable').innerText = selectedTable;
@@ -652,6 +717,7 @@
             }
             document.getElementById('moveTableModal').style.display = 'flex';
         }
+
         function confirmMoveTable() {
             let targetTable = document.getElementById('targetTableSelect').value;
             if(!targetTable) return;
@@ -668,31 +734,89 @@
             alert(`✅ Đã chuyển thành công từ ${selectedTable} sang ${targetTable}!`);
             selectTable(targetTable);
         }
+
         function openBankQRModal() {
             if(!selectedTable || !tableRounds[selectedTable]) { alert('Không có hóa đơn thanh toán!'); return; }
             let allItems = tableRounds[selectedTable];
             if(allItems.length === 0) { alert('Hóa đơn trống!'); return; }
-            let totalAmount = allItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-            document.getElementById('bankTotalPay').innerText = totalAmount.toLocaleString() + 'đ';
+            
+            let subTotal = allItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+            activeDiscount = { code: '', amount: 0 };
+            
+            document.getElementById('bankSubTotal').innerText = subTotal.toLocaleString() + 'đ';
+            document.getElementById('bankDiscountAmount').innerText = '-0đ';
+            document.getElementById('bankTotalPay').innerText = subTotal.toLocaleString() + 'đ';
+            document.getElementById('inputVoucherCode').value = '';
+            document.getElementById('voucherMsg').innerText = '';
+
+            updateBankModalQR(subTotal);
+            document.getElementById('bankModal').style.display = 'flex';
+        }
+
+        function applyVoucher() {
+            let codeInput = document.getElementById('inputVoucherCode').value.trim().toUpperCase();
+            let allItems = tableRounds[selectedTable];
+            let subTotal = allItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+            
+            let found = voucherList.find(v => v.code === codeInput);
+            if(!found) {
+                document.getElementById('voucherMsg').style.color = '#d32f2f';
+                document.getElementById('voucherMsg').innerText = '❌ Mã giảm giá không tồn tại!';
+                activeDiscount = { code: '', amount: 0 };
+                updateBankModalQR(subTotal);
+                return;
+            }
+
+            let discountVal = 0;
+            if(found.type === 'percent') {
+                discountVal = Math.round((subTotal * found.value) / 100);
+            } else {
+                discountVal = found.value;
+            }
+            if(discountVal > subTotal) discountVal = subTotal;
+
+            activeDiscount = { code: found.code, amount: discountVal };
+            document.getElementById('voucherMsg').style.color = '#2e7d32';
+            document.getElementById('voucherMsg').innerText = `✅ Đã áp dụng mã [${found.code}] giảm ${discountVal.toLocaleString()}đ`;
+            updateBankModalQR(subTotal);
+        }
+
+        function updateBankModalQR(subTotal) {
+            let finalAmount = subTotal - activeDiscount.amount;
+            if(finalAmount < 0) finalAmount = 0;
+            
+            document.getElementById('bankDiscountAmount').innerText = '-' + activeDiscount.amount.toLocaleString() + 'đ';
+            document.getElementById('bankTotalPay').innerText = finalAmount.toLocaleString() + 'đ';
+
             let container = document.getElementById('bankQrContainer');
             container.innerHTML = '';
             if(bankConfig.acc && bankConfig.name) {
-                let vietQrUrl = `https://img.vietqr.io/image/${bankConfig.bank}-${bankConfig.acc}-compact2.png?amount=${totalAmount}&addInfo=Thanh%20toan%20${selectedTable}&accountName=${bankConfig.name}`;
-                container.innerHTML = `<img src="${vietQrUrl}" style="max-width:200px; border-radius:6px; border:1px solid #334155;">`;
+                let vietQrUrl = `https://img.vietqr.io/image/${bankConfig.bank}-${bankConfig.acc}-compact2.png?amount=${finalAmount}&addInfo=Thanh%20toan%20${selectedTable}&accountName=${bankConfig.name}`;
+                container.innerHTML = `<img src="${vietQrUrl}" style="max-width:180px; border-radius:6px; border:1px solid #334155;">`;
             } else {
                 container.innerHTML = `<p style="color:red; font-size:12px;">Chưa cấu hình tài khoản ngân hàng trong Cài Đặt!</p>`;
             }
-            document.getElementById('bankModal').style.display = 'flex';
         }
+
         async function confirmCheckout() {
             let allItems = tableRounds[selectedTable];
-            let totalAmount = allItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+            let subTotal = allItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+            let finalAmount = subTotal - activeDiscount.amount;
+            if(finalAmount < 0) finalAmount = 0;
+
             const res = await fetch('/api/checkout', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ tableName: selectedTable, items: allItems, totalAmount, staff: currentStaff })
+                body: JSON.stringify({ 
+                    tableName: selectedTable, 
+                    items: allItems, 
+                    totalAmount: finalAmount, 
+                    discount: activeDiscount.amount,
+                    voucherCode: activeDiscount.code,
+                    staff: currentStaff 
+                })
             });
             if(res.ok) {
-                printCheckoutBill(selectedTable, allItems, totalAmount);
+                printCheckoutBill(selectedTable, allItems, subTotal, activeDiscount.amount, finalAmount);
                 alert('✅ Thanh toán thành công! Bàn đã được làm trống.');
                 delete tableRounds[selectedTable];
                 tableStatus[selectedTable] = 'empty';
@@ -703,7 +827,8 @@
                 loadTodayRevenue();
             }
         }
-        function printCheckoutBill(tableName, items, totalAmount) {
+
+        function printCheckoutBill(tableName, items, subTotal, discountAmount, finalAmount) {
             let widthStyle = printerConfig.size === '58' ? 'width: 58mm;' : 'width: 80mm;';
             let html = `<div style="${widthStyle} font-size: 12px; padding: 5px;">`;
             html += `<h3 style="text-align:center; margin:0;">QUÁN NƯỚNG TUỔI TRẺ</h3>`;
@@ -717,12 +842,17 @@
                 html += `<div style="display:flex; justify-content:space-between; margin:3px 0;"><span>${i.name} x${i.quantity}</span> <b>${sub.toLocaleString()}đ</b></div>`;
             });
             html += `<hr style="border-top:1px dashed #000; margin:5px 0;">`;
-            html += `<div style="display:flex; justify-content:space-between; font-size:14px; font-weight:bold;"><span>TỔNG CỘNG:</span> <span>${totalAmount.toLocaleString()}đ</span></div>`;
+            html += `<div style="display:flex; justify-content:space-between; margin:2px 0;"><span>Tạm tính:</span> <span>${subTotal.toLocaleString()}đ</span></div>`;
+            if(discountAmount > 0) {
+                html += `<div style="display:flex; justify-content:space-between; margin:2px 0;"><span>Giảm giá (${activeDiscount.code}):</span> <span>-${discountAmount.toLocaleString()}đ</span></div>`;
+            }
+            html += `<div style="display:flex; justify-content:space-between; font-size:14px; font-weight:bold; margin-top:4px;"><span>TỔNG THANH TOÁN:</span> <span>${finalAmount.toLocaleString()}đ</span></div>`;
             html += `<p style="text-align:center; margin-top:10px; font-size:11px;">Cảm ơn quý khách & Hẹn gặp lại!</p>`;
             html += `</div>`;
             document.getElementById('printArea').innerHTML = html;
             window.print();
         }
+
         function showTableQR() {
             if(!selectedTable) { alert('Vui lòng chọn bàn trước trên sơ đồ!'); return; }
             document.getElementById('qrModalTitle').innerText = 'Mã QR Gọi Món - ' + selectedTable;
@@ -733,6 +863,7 @@
             document.getElementById('qrLinkText').innerText = currentUrl;
             document.getElementById('qrModal').style.display = 'flex';
         }
+
         function openSettingsModal() {
             document.getElementById('bankNameSelect').value = bankConfig.bank;
             document.getElementById('bankAccInput').value = bankConfig.acc;
@@ -741,6 +872,7 @@
             renderStaffListModal();
             document.getElementById('settingsModal').style.display = 'flex';
         }
+
         function saveBankConfig() {
             bankConfig = {
                 bank: document.getElementById('bankNameSelect').value,
@@ -750,6 +882,7 @@
             localStorage.setItem('bankConfig', JSON.stringify(bankConfig));
             alert('✅ Đã lưu cấu hình ngân hàng thành công!');
         }
+
         function savePrinterConfig() {
             printerConfig = {
                 size: document.getElementById('printerSizeSelect').value
@@ -757,6 +890,7 @@
             localStorage.setItem('printerConfig', JSON.stringify(printerConfig));
             alert('✅ Đã lưu cấu hình máy in thành công!');
         }
+
         async function loadTodayRevenue() {
             try {
                 const res = await fetch('/api/orders');
