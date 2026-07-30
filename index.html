@@ -184,12 +184,11 @@
         </div>
     </div>
 
-    <!-- MODAL THANH TOÁN (ĐÃ TÍCH HỢP BẢNG MÓN ĂN + NÚT CỘNG TRỪ + TỔNG TIỀN) -->
+    <!-- MODAL THANH TOÁN (CÓ DANH SÁCH MÓN + NÚT CỘNG TRỪ + QR) -->
     <div id="bankModal" class="modal">
         <div class="modal-box" style="width: 520px;">
             <h3 style="color: #b71c1c; margin-top:0;">💳 Thanh Toán & Kiểm Tra Đồ - <span id="modalCheckoutTableName" style="color:#ff9800;"></span></h3>
             
-            <!-- Danh sách món ăn kèm nút cộng trừ để kiểm đồ và trả đồ thừa -->
             <div style="font-size:12px; font-weight:bold; text-align:left; color:#555; margin-bottom:4px;">📋 Danh sách món khách đã gọi (Có thể bấm + - nếu khách trả đồ thừa):</div>
             <div id="checkoutItemsList" style="max-height: 180px; overflow-y: auto; border: 1px solid #ddd; padding: 6px; border-radius: 4px; margin-bottom: 10px; background: #fff;"></div>
 
@@ -412,6 +411,21 @@
                     <div id="customerMenu"></div>
 
                     <button onclick="submitCustomerOrder('${tName}')" style="width:100%; background:#d32f2f; color:white; border:none; padding:12px; font-weight:bold; border-radius:6px; margin-top:12px; font-size:15px; cursor:pointer;">🚀 GỬI YÊU CẦU GỌI MÓN</button>
+                    
+                    <!-- NÚT TỰ THANH TOÁN QUA MÃ QR CHO KHÁCH -->
+                    <button onclick="openCustomerQRCheckout('${tName}')" style="width:100%; background:#0288d1; color:white; border:none; padding:12px; font-weight:bold; border-radius:6px; margin-top:8px; font-size:15px; cursor:pointer;">💳 TỰ THANH TOÁN QUA MÃ QR</button>
+                </div>
+
+                <!-- MODAL HIỂN THỊ MÃ QR THANH TOÁN CHO KHÁCH -->
+                <div id="customerQrModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000;">
+                    <div style="background:white; padding:20px; border-radius:8px; text-align:center; width:360px; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+                        <h3 style="color: #b71c1c; margin-top:0;">💳 Quét Mã QR Để Thanh Toán</h3>
+                        <p style="font-size:13px; color:#555; margin:4px 0;">Tổng tiền cần thanh toán:</p>
+                        <h2 id="cusModalTotalPay" style="color:#d32f2f; margin:5px 0;">0đ</h2>
+                        <div id="cusBankQrContainer" style="margin: 15px 0; display:flex; justify-content:center;"></div>
+                        <p style="font-size:11px; color:#666;">Sau khi chuyển khoản thành công, nhân viên sẽ xác nhận và hoàn tất đơn cho quý khách.</p>
+                        <button onclick="document.getElementById('customerQrModal').style.display='none'" style="background:#555; color:white; border:none; padding:8px 20px; border-radius:4px; cursor:pointer; font-weight:bold; margin-top:5px;">Đóng ✖</button>
+                    </div>
                 </div>
             `;
             initCustomerView(tName, cusCart);
@@ -528,6 +542,42 @@
                     }
                 } catch (err) {
                     alert('❌ Không kết nối được với máy chủ quán!');
+                }
+            };
+
+            window.openCustomerQRCheckout = async function(tName) {
+                try {
+                    const res = await fetch('/api/orders');
+                    const responseData = await res.json();
+                    const data = responseData.activeOrders || [];
+                    let tableOrder = data.find(o => o.tableName === tName);
+                    
+                    if(!tableOrder || !tableOrder.items || tableOrder.items.length === 0) {
+                        alert('Bàn của quý khách chưa có món nào được xác nhận để thanh toán!');
+                        return;
+                    }
+
+                    let totalAmount = tableOrder.items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+                    if(totalAmount <= 0) {
+                        alert('Tổng tiền bằng 0đ!');
+                        return;
+                    }
+
+                    document.getElementById('cusModalTotalPay').innerText = totalAmount.toLocaleString() + 'đ';
+                    
+                    let container = document.getElementById('cusBankQrContainer');
+                    container.innerHTML = '';
+                    
+                    if(bankConfig.acc && bankConfig.name) {
+                        let vietQrUrl = `https://img.vietqr.io/image/${bankConfig.bank}-${bankConfig.acc}-compact2.png?amount=${totalAmount}&addInfo=Thanh%20toan%20${tName}&accountName=${bankConfig.name}`;
+                        container.innerHTML = `<img src="${vietQrUrl}" style="max-width:200px; border-radius:6px; border:1px solid #334155;">`;
+                    } else {
+                        container.innerHTML = `<p style="color:red; font-size:12px;">Quán chưa cấu hình tài khoản ngân hàng thanh toán online!</p>`;
+                    }
+
+                    document.getElementById('customerQrModal').style.display = 'flex';
+                } catch(e) {
+                    alert('Không thể tải thông tin thanh toán lúc này!');
                 }
             };
         }
@@ -804,7 +854,6 @@
             } catch(e) {}
         }
 
-        // --- HÀM THAY ĐỔI SỐ LƯỢNG TRỰC TIẾP TRONG MODAL THANH TOÁN (KHI KHÁCH TRẢ ĐỒ THỪA) ---
         function changeCheckoutItemQty(name, change) {
             if(!selectedTable || !tableRounds[selectedTable]) return;
             let item = tableRounds[selectedTable].find(i => i.name === name);
@@ -817,13 +866,11 @@
             renderBill();
             updateFoodBadges();
             
-            // Cập nhật lại giao diện modal thanh toán ngay lập tức
             let subTotal = tableRounds[selectedTable].reduce((sum, i) => sum + (i.price * i.quantity), 0);
             document.getElementById('bankSubTotal').innerText = subTotal.toLocaleString() + 'đ';
             updateBankModalQR(subTotal);
             renderCheckoutItemsList();
 
-            // Đồng bộ về server
             fetch('/api/checkout', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
                 body: JSON.stringify({ tableName: selectedTable, items: tableRounds[selectedTable], totalAmount: 0, staff: loggedInStaff.name, tableStatus: tableStatus[selectedTable] })
@@ -1262,7 +1309,6 @@
             selectTable(targetTable);
         }
 
-        // --- MỞ MODAL THANH TOÁN (HIỂN THỊ DANH SÁCH MÓN ĂN KÈM NÚT CỘNG TRỪ ĐỂ KIỂM ĐỒ) ---
         function openBankQRModal() {
             if(!selectedTable || !tableRounds[selectedTable]) { alert('Không có hóa đơn thanh toán!'); return; }
             let allItems = tableRounds[selectedTable];
@@ -1286,7 +1332,6 @@
             document.getElementById('bankModal').style.display = 'flex';
         }
 
-        // Render danh sách món trong bảng thanh toán kèm nút +-
         function renderCheckoutItemsList() {
             let container = document.getElementById('checkoutItemsList');
             container.innerHTML = '';
