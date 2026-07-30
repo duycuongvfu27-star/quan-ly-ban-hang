@@ -299,6 +299,7 @@
             initApp();
         }
 
+        // --- GIAO DIỆN KHÁCH HÀNG (HIỂN THỊ RÕ TỪNG MÓN VÀ TỔNG TIỀN) ---
         function loadCustomerOrderScreen(tNum) {
             let tName = 'Bàn ' + (tNum < 10 && !tNum.startsWith('0') ? '0' + tNum : tNum);
             let cusCart = [];
@@ -309,19 +310,17 @@
                     <div style="background:#ffebee; color:#d32f2f; border:1px dashed #d32f2f; padding:8px; text-align:center; font-weight:bold; border-radius:6px; margin-bottom:12px;">📍 Quý khách đang ngồi: ${tName}</div>
                     
                     <div style="background:#e8f5e9; border:1px solid #c8e6c9; padding:10px; border-radius:8px; margin-bottom:12px;">
-                        <div style="font-weight:bold; font-size:13px; color:#2e7d32; margin-bottom:4px;">✅ Các món bàn đã gọi trước đó:</div>
-                        <div id="customerOrderedHistory" style="max-height:120px; overflow-y:auto; font-size:12px; color:#333;">Đang đồng bộ dữ liệu bàn...</div>
+                        <div style="font-weight:bold; font-size:13px; color:#2e7d32; margin-bottom:4px;">✅ Lịch sử món đã gọi (Đã xác nhận):</div>
+                        <div id="customerConfirmedHistory" style="max-height:100px; overflow-y:auto; font-size:12px; color:#333; margin-bottom:6px;">Đang tải...</div>
+                        <div style="font-weight:bold; font-size:13px; color:#e65100; margin-bottom:4px;">🔔 Món đang chọn thêm (Chưa gửi):</div>
+                        <div id="customerCart" style="max-height:100px; overflow-y:auto; font-size:12px; color:#333;">Chưa chọn món nào</div>
+                        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px; margin-top:8px; border-top:1px dashed #2e7d32; padding-top:6px;">
+                            <span>Tổng tiền hiện tại:</span><span id="cusTotal" style="color:#d32f2f;">0đ</span>
+                        </div>
                     </div>
 
                     <div id="customerMenu"></div>
 
-                    <div style="background:#f1f1f1; padding:10px; border-radius:8px; margin-top:15px;">
-                        <div style="font-weight:bold; font-size:14px; margin-bottom:6px;">🛒 Giỏ hàng chọn thêm</div>
-                        <div id="customerCart" style="max-height:140px; overflow-y:auto; font-size:13px;">Chưa chọn món nào</div>
-                        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:15px; margin-top:8px; border-top:1px dashed #ccc; padding-top:6px;">
-                            <span>Tổng tiền bàn hiện tại:</span><span id="cusTotal" style="color:#d32f2f;">0đ</span>
-                        </div>
-                    </div>
                     <button onclick="submitCustomerOrder('${tName}')" style="width:100%; background:#d32f2f; color:white; border:none; padding:12px; font-weight:bold; border-radius:6px; margin-top:12px; font-size:15px; cursor:pointer;">🚀 GỬI YÊU CẦU GỌI MÓN</button>
                 </div>
             `;
@@ -361,21 +360,21 @@
                     const data = responseData.activeOrders || [];
                     let tableOrder = data.find(o => o.tableName === tName);
                     
-                    let historyHtml = '';
-                    let totalServerAmount = 0;
+                    let confirmedHtml = '';
+                    let confirmedAmount = 0;
                     if(tableOrder && tableOrder.items && tableOrder.items.length > 0) {
                         tableOrder.items.forEach(i => {
                             let sub = i.price * i.quantity;
-                            totalServerAmount += sub;
-                            historyHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:3px;"><span>• ${i.name} x${i.quantity}</span><b>${sub.toLocaleString()}đ</b></div>`;
+                            confirmedAmount += sub;
+                            confirmedHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>• ${i.name} x${i.quantity}</span><b>${sub.toLocaleString()}đ</b></div>`;
                         });
                     } else {
-                        historyHtml = 'Chưa có món nào được xác nhận.';
+                        confirmedHtml = 'Chưa có món nào được xác nhận.';
                     }
 
                     let cartAmount = cusCart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-                    document.getElementById('customerOrderedHistory').innerHTML = historyHtml;
-                    document.getElementById('cusTotal').innerText = (totalServerAmount + cartAmount).toLocaleString() + 'đ';
+                    document.getElementById('customerConfirmedHistory').innerHTML = confirmedHtml;
+                    document.getElementById('cusTotal').innerText = (confirmedAmount + cartAmount).toLocaleString() + 'đ';
                 } catch(e) {}
             }
 
@@ -417,7 +416,7 @@
                 let html = '';
                 cart.forEach(i => {
                     let sub = i.price * i.quantity;
-                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>+ ${i.name} x${i.quantity}</span><b>${sub.toLocaleString()}đ</b></div>`;
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>+ ${i.name} x${i.quantity}</span><b>${sub.toLocaleString()}đ</b></div>`;
                 });
                 document.getElementById('customerCart').innerHTML = html;
             }
@@ -728,6 +727,7 @@
             if(statusSpan) statusSpan.innerText = statusText;
         }
 
+        // --- PHIẾU GỌI MÓN (PHÂN TÁCH RÕ: ĐÃ BÁO BẾP & MỚI GỌI THÊM) ---
         function renderBill() {
             const container = document.getElementById('billItemsContainer');
             if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].length === 0) {
@@ -736,12 +736,38 @@
                 updateFoodBadges();
                 return;
             }
-            let html = '', total = 0;
-            tableRounds[selectedTable].forEach(i => {
-                let sub = i.price * i.quantity; total += sub;
-                html += `<div class="bill-row"><span>${i.name} x${i.quantity}</span><b>${sub.toLocaleString()}đ</b></div>`;
+
+            let historyRounds = tableRoundsHistory[selectedTable] || [];
+            let confirmedItemsMap = {};
+            historyRounds.forEach(r => {
+                r.items.forEach(i => {
+                    confirmedItemsMap[i.name] = (confirmedItemsMap[i.name] || 0) + i.quantity;
+                });
             });
-            container.innerHTML = html;
+
+            let confirmedHtml = '';
+            let newHtml = '';
+            let total = 0;
+
+            tableRounds[selectedTable].forEach(i => {
+                let sub = i.price * i.quantity;
+                total += sub;
+                let confirmedQty = confirmedItemsMap[i.name] || 0;
+
+                if(confirmedQty > 0) {
+                    confirmedHtml += `<div class="bill-row"><span>📌 ${i.name} x${confirmedQty}</span><b>${(i.price * confirmedQty).toLocaleString()}đ</b></div>`;
+                }
+                let diffQty = i.quantity - confirmedQty;
+                if(diffQty > 0) {
+                    newHtml += `<div class="bill-row" style="color:#d32f2f; background:#fff3e0;"><span>🔔 ${i.name} x${diffQty} (Mới gọi)</span><b>${(i.price * diffQty).toLocaleString()}đ</b></div>`;
+                }
+            });
+
+            let finalHtml = '';
+            if(confirmedHtml) finalHtml += `<div style="font-size:11px; font-weight:bold; color:#666; margin-bottom:2px;">ĐÃ BÁO BẾP:</div>` + confirmedHtml;
+            if(newHtml) finalHtml += `<div style="font-size:11px; font-weight:bold; color:#e65100; margin:6px 0 2px 0;">MỚI GỌI THÊM (CHƯA BÁO):</div>` + newHtml;
+
+            container.innerHTML = finalHtml;
             document.getElementById('totalPrice').innerText = total.toLocaleString() + 'đ';
             updateFoodBadges();
         }
@@ -763,6 +789,7 @@
 
             tableStatus[selectedTable] = 'busy';
             updateTableUI(selectedTable, 'Có khách', 'table-busy');
+            renderBill();
             
             try {
                 await fetch('/api/checkout', {
