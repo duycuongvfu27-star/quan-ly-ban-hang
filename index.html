@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QUÁN NƯỚNG TUỔI TRẺ - Hệ Thống POS</title>
+    <title>QUÁN NƯỚNG TUỔI TRẺ - Màn Hình Bếp</title>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f4f6f9; color: #333; margin: 0; padding: 10px; }
@@ -64,6 +64,7 @@
             <div style="font-size: 12px; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px;">
                 👤 NV: <b id="currentStaffNameDisplay"></b> <button onclick="logoutSystem()" style="background:#d32f2f; border:none; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px; margin-left:6px; cursor:pointer;">Đăng xuất</button>
             </div>
+            <button onclick="openKitchenScreen()" style="background:#ff9800; color:#fff; font-weight:bold;">🍳 Màn Hình Bếp</button>
             <button id="btnRevenue" onclick="requestManagerAction('revenue')" style="display:none;">📊 Doanh Thu</button>
             <button id="btnSettings" onclick="requestManagerAction('settings')" style="display:none;">⚙️ Cài Đặt</button>
         </div>
@@ -96,7 +97,20 @@
         </div>
     </div>
 
-    <!-- MODAL -->
+    <!-- MÀN HÌNH BẾP TO (KDS) -->
+    <div id="kitchenModal" class="modal">
+        <div class="modal-box" style="width: 900px; max-width: 98vw; text-align: left; background: #fafafa; padding: 25px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #b71c1c; padding-bottom:12px; margin-bottom:15px;">
+                <h2 style="color: #b71c1c; margin:0; font-size:22px;">🍳 MÀN HÌNH BẾP (SẮP XẾP ƯU TIÊN THỜI GIAN)</h2>
+                <button onclick="document.getElementById('kitchenModal').style.display='none'" style="background:#555; color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; font-size:16px; cursor:pointer;">Đóng ✖</button>
+            </div>
+            <div id="kitchenQueueContainer" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; max-height: 70vh; overflow-y: auto;">
+                <!-- Danh sách đơn bếp load tự động -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL KHÁC -->
     <div id="printArea"></div>
     <div id="moveTableModal" class="modal">
         <div class="modal-box">
@@ -259,15 +273,11 @@
         const urlParams = new URLSearchParams(window.location.search);
         const tableParam = urlParams.get('table');
 
-        // ==========================================
-        // CẤU HỌC TỌA ĐỘ GPS THỰC TẾ CỦA QUÁN
-        // ==========================================
-        const RESTAURANT_LAT = 20.370000; // Thay bằng Vĩ độ quán của bạn
-        const RESTAURANT_LNG = 106.000000; // Thay bằng Kinh độ quán của bạn
-        const ALLOWED_RADIUS_METERS = 100; // Bán kính cho phép khách order (Mét)
+        const RESTAURANT_LAT = 20.370000; 
+        const RESTAURANT_LNG = 106.000000; 
+        const ALLOWED_RADIUS_METERS = 100; 
 
         if (tableParam) {
-            // Kiểm tra định vị khi khách quét QR
             verifyCustomerLocation(tableParam);
         } else {
             initApp();
@@ -316,9 +326,8 @@
             );
         }
 
-        // Hàm tính khoảng cách giữa 2 điểm GPS (đơn vị mét)
         function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
-            let R = 6371000; // Bán kính trái đất tính bằng mét
+            let R = 6371000; 
             let dLat = deg2rad(lat2 - lat1);
             let dLon = deg2rad(lon2 - lon1);
             let a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -332,13 +341,12 @@
             return deg * (Math.PI/180);
         }
 
-        function loadCustomerOrderScreen(tNum) {
-            let tName = 'Bàn ' + (tNum < 10 && !tNum.startsWith('0') ? '0' + tNum : tNum);
+        function loadCustomerOrderScreen(tName) {
             document.body.innerHTML = `
                 <div style="max-width:480px; margin:0 auto; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
                     <div style="text-align:center; color:#d32f2f; font-weight:bold; font-size:20px;">🔥 QUÁN NƯỚNG TUỔI TRẺ 🔥</div>
                     <div style="text-align:center; color:#555; font-size:13px; margin-bottom:10px;">Hệ thống gọi món trực tuyến tại bàn</div>
-                    <div style="background:#ffebee; color:#d32f2f; border:1px dashed #d32f2f; padding:8px; text-align:center; font-weight:bold; border-radius:6px; margin-bottom:12px;">📍 Quý khách đang ngồi: Bàn ${tNum}</div>
+                    <div style="background:#ffebee; color:#d32f2f; border:1px dashed #d32f2f; padding:8px; text-align:center; font-weight:bold; border-radius:6px; margin-bottom:12px;">📍 Quý khách đang ngồi: Bàn ${tName}</div>
                     <div id="customerMenu"></div>
                     <div style="background:#f1f1f1; padding:10px; border-radius:8px; margin-top:15px;">
                         <div style="font-weight:bold; font-size:14px; margin-bottom:6px;">📋 Phiếu Gọi Món Của Bạn</div>
@@ -505,7 +513,7 @@
                 
                 if (data.length > lastCheckedCount && lastCheckedCount !== 0) {
                     let latestOrder = data[0]; 
-                    speakVoice(`${latestOrder.tableName} vừa gọi món`);
+                    speakVoice(`${latestOrder.tableName} vừa gọi đồ`);
                 }
                 lastCheckedCount = data.length;
 
@@ -544,6 +552,11 @@
 
                 if(selectedTable) {
                     renderBill();
+                }
+
+                // Nếu đang mở Màn hình Bếp, tự động cập nhật liên tục theo thời gian thực
+                if(document.getElementById('kitchenModal').style.display === 'flex') {
+                    openKitchenScreen();
                 }
             } catch(e) {}
         }
@@ -747,7 +760,6 @@
             } catch(e) {}
 
             alert(`🔔 ĐÃ BÁO BẾP & CHUYỂN SANG TRẠNG THÁI CÓ KHÁCH CHO ${selectedTable}!`);
-            speakVoice(`${selectedTable} gọi đồ`);
         }
 
         function printKitchenBill(tableName, items) {
@@ -763,6 +775,47 @@
             html += `</div>`;
             document.getElementById('printArea').innerHTML = html;
             window.print();
+        }
+
+        // --- HÀM XỬ LÝ MÀN HÌNH BẾP LỚN ---
+        function openKitchenScreen() {
+            let container = document.getElementById('kitchenQueueContainer');
+            container.innerHTML = '';
+            
+            let activeTables = Object.keys(tableRounds).filter(t => tableRounds[t] && tableRounds[t].length > 0);
+
+            if(activeTables.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#888; padding:50px; grid-column: span 2; font-size:16px;">☕ Hiện tại bếp đang trống, không có bàn nào gọi món!</p>';
+            } else {
+                activeTables.forEach((tName, idx) => {
+                    let totalItemsCount = 0;
+                    let itemsHtml = '';
+                    tableRounds[tName].forEach(i => {
+                        totalItemsCount += i.quantity;
+                        itemsHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #ddd; font-size:16px;">
+                            <span style="font-weight:bold; color:#222;">${i.name}</span>
+                            <span style="background:#ffebee; color:#d32f2f; font-weight:bold; padding:2px 10px; border-radius:6px; font-size:16px;">x${i.quantity}</span>
+                        </div>`;
+                    });
+
+                    // Bàn nào gọi trước hiển thị lên trên cùng, đánh dấu Ưu tiên #1 nổi bật
+                    container.innerHTML += `
+                        <div style="background:#fff; border: 3px solid ${idx === 0 ? '#d32f2f' : '#ff9800'}; padding: 18px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:2px solid #eee; padding-bottom:8px;">
+                                <span style="font-size:20px; font-weight:bold; color:#b71c1c;">🪑 ${tName}</span>
+                                <span style="background:${idx === 0 ? '#d32f2f' : '#ff9800'}; color:#fff; font-size:13px; font-weight:bold; padding:4px 10px; border-radius:6px;">
+                                    ${idx === 0 ? '🔥 ƯU TIÊN #1 (LÀM TRƯỚC)' : '⏳ XẾP HÀNG #' + (idx + 1)}
+                                </span>
+                            </div>
+                            <div style="font-size:13px; color:#555; margin-bottom:8px;">Tổng số lượng: <b>${totalItemsCount} món</b></div>
+                            <div style="background:#fdfdfd; padding:10px; border-radius:6px; border:1px solid #eee;">
+                                ${itemsHtml}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('kitchenModal').style.display = 'flex';
         }
 
         function openMoveTableModal() {
@@ -980,7 +1033,7 @@
         async function addStaff() {
             let name = document.getElementById('newStaffName').value.trim();
             let pin = document.getElementById('newStaffPin').value.trim();
-            let role = document.getElementById('newStaffRole'].value;
+            let role = document.getElementById('newStaffRole').value;
             if(!name || !pin) { alert('Vui lòng nhập tên và mã PIN!'); return; }
             const res = await fetch('/api/staff/add', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
