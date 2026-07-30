@@ -7,22 +7,34 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 let activeOrders = [];
-let paidHistory = [
-    { id: 1, time: '18:10', tableName: 'Bàn 02', itemsText: 'Ngô chiên (x1), Combo 2 (x1), Combo 3 (x1)', totalAmount: 1335000, date: '2026-07-29' },
-    { id: 2, time: '18:10', tableName: 'Bàn 04', itemsText: 'Dạ dày nướng xa tê (x3), Tôm tươi (x1), Combo 4 (x1)', totalAmount: 2264000, date: '2026-07-29' }
-];
+let paidHistory = [];
 
-// API nhận thanh toán hoàn tất từ POS
+// Hàm lấy thời gian chuẩn Việt Nam (HH:mm và YYYY-MM-DD)
+function getVietnamTime() {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    // Múi giờ Việt Nam UTC+7
+    const vnTime = new Date(utc + (3600000 * 7));
+    
+    let timeStr = vnTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+    let dateStr = vnTime.toISOString().split('T')[0];
+    return { timeStr, dateStr };
+}
+
+// API nhận order hoặc thanh toán từ POS / Khách hàng
 app.post('/api/checkout', (req, res) => {
-    const { tableName, items, totalAmount } = req.body;
+    const { tableName, items, totalAmount, staff } = req.body;
     let itemsText = items.map(i => `${i.name} (x${i.quantity})`).join(', ');
+    let { timeStr, dateStr } = getVietnamTime();
+
     const newPaidOrder = {
         id: Date.now(),
-        time: new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}),
+        time: timeStr,
         tableName,
         itemsText,
         totalAmount,
-        date: new Date().toISOString().split('T')[0]
+        staff: staff || 'Nhân viên',
+        date: dateStr
     };
     
     paidHistory.unshift(newPaidOrder);
@@ -30,12 +42,12 @@ app.post('/api/checkout', (req, res) => {
     res.status(200).json({ success: true, order: newPaidOrder });
 });
 
-// API lấy danh sách đơn đang hoạt động
+// API trả về danh sách đơn đang hoạt động
 app.get('/api/orders', (req, res) => {
     res.json(activeOrders);
 });
 
-// GIAO DIỆN QUẢN LÝ DOANH THU THEO NGÀY (GIỐNG ẢNH MẪU)
+// GIAO DIỆN QUẢN LÝ DOANH THU THEO NGÀY
 app.get('/api/orders/view', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -93,11 +105,12 @@ app.get('/api/orders/view', (req, res) => {
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 80px;">Giờ</th>
-                            <th style="width: 90px;">Bàn</th>
+                            <th style="width: 70px;">Giờ</th>
+                            <th style="width: 80px;">Bàn</th>
                             <th>Chi Tiết Món Mua</th>
-                            <th style="width: 140px; text-align: right;">Tổng Tiền</th>
-                            <th style="width: 80px; text-align: center;">Thao Tác</th>
+                            <th style="width: 110px;">Thu Ngân</th>
+                            <th style="width: 130px; text-align: right;">Tổng Tiền</th>
+                            <th style="width: 70px; text-align: center;">Thao Tác</th>
                         </tr>
                     </thead>
                     <tbody id="orderTableBody"></tbody>
@@ -107,7 +120,9 @@ app.get('/api/orders/view', (req, res) => {
             <script>
                 let data = ${JSON.stringify(paidHistory)};
                 
-                document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
+                const nowUtc = new Date();
+                const nowVn = new Date(nowUtc.getTime() + (nowUtc.getTimezoneOffset() * 60000) + (3600000 * 7));
+                document.getElementById('filterDate').value = nowVn.toISOString().split('T')[0];
 
                 function filterData() {
                     let selectedDate = document.getElementById('filterDate').value;
@@ -118,7 +133,7 @@ app.get('/api/orders/view', (req, res) => {
                     let totalRev = 0;
 
                     if(filtered.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#888; padding:30px;">Không có dữ liệu doanh thu trong ngày này</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888; padding:30px;">Không có dữ liệu doanh thu trong ngày này</td></tr>';
                     }
 
                     filtered.forEach(ord => {
@@ -128,6 +143,7 @@ app.get('/api/orders/view', (req, res) => {
                                 <td>\${ord.time}</td>
                                 <td><b>\${ord.tableName}</b></td>
                                 <td>\${ord.itemsText}</td>
+                                <td><span style="background:#e0f2f1; color:#00695c; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:11px;">\${ord.staff}</span></td>
                                 <td style="text-align: right; font-weight: bold; color: #d32f2f;">\${ord.totalAmount.toLocaleString()} đ</td>
                                 <td style="text-align: center;"><button class="btn-del" onclick="deleteOrder(\${ord.id})">Xóa</button></td>
                             </tr>
