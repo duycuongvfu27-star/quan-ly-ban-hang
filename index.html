@@ -316,7 +316,7 @@
 
         function getSplitItems(items) {
             let foodItems = [];
-            let drinkItems = [];
+            let drinkMap = {};
 
             items.forEach(i => {
                 if (i.name.includes("Combo")) {
@@ -327,7 +327,8 @@
                     if (comboNum === "4") drinkQty = 8;
 
                     let totalDrink = drinkQty * i.quantity;
-                    drinkItems.push({ name: "Coca lon (Theo Combo)", price: 0, quantity: totalDrink });
+                    let drinkName = "Coca lon (Theo Combo)";
+                    drinkMap[drinkName] = (drinkMap[drinkName] || 0) + totalDrink;
 
                     let subDetails = getComboDetails(i.name, i.quantity);
                     if (subDetails.length > 0) {
@@ -338,11 +339,16 @@
                         foodItems.push({ name: i.name, price: i.price, quantity: i.quantity });
                     }
                 } else if (isDrink(i.name) || i.name.includes("Coca")) {
-                    drinkItems.push(i);
+                    drinkMap[i.name] = (drinkMap[i.name] || 0) + i.quantity;
                 } else {
                     foodItems.push(i);
                 }
             });
+
+            let drinkItems = [];
+            for (let dName in drinkMap) {
+                drinkItems.push({ name: dName, price: 0, quantity: drinkMap[dName] });
+            }
 
             return { foodItems, drinkItems };
         }
@@ -762,7 +768,6 @@
             } catch(e) {}
         }
 
-        // --- HÀM THAY ĐỔI SỐ LƯỢNG TRỰC TIẾP TẠI CỘT PHIẾU GỌI MÓN (CÓ NÚT CỘNG TRỪ) ---
         async function changeBillItemQty(name, change) {
             if(!selectedTable || !tableRounds[selectedTable]) return;
             let item = tableRounds[selectedTable].find(i => i.name === name);
