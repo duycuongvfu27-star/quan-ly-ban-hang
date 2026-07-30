@@ -324,6 +324,7 @@
                         }
                     });
 
+                    // Khi khách quét QR order, bàn lập tức chuyển sang màu đỏ (Có khách)
                     tableStatus[tName] = 'busy';
                     updateTableUI(tName, 'Có khách', 'table-busy');
                     if(selectedTable === tName) renderBill();
@@ -420,8 +421,11 @@
                 tableRounds[selectedTable].push({ name, price, quantity: 1 });
             }
             
-            tableStatus[selectedTable] = 'busy';
-            updateTableUI(selectedTable, 'Có khách', 'table-busy');
+            // 1. KHI CHỌN MÓN THÌ BÀN CHUYỂN SANG MÀU CAM (ĐANG ORDER)
+            if(tableStatus[selectedTable] === 'empty') {
+                tableStatus[selectedTable] = 'ordering';
+                updateTableUI(selectedTable, 'Đang order', 'table-ordering');
+            }
             renderBill();
             updateFoodBadges();
         }
@@ -478,12 +482,15 @@
             document.getElementById('totalPrice').innerText = total.toLocaleString() + 'đ';
         }
 
+        // 2. KHI BẤM BÁO BẾP THÌ BÀN CHÍNH THỨC CHUYỂN SANG MÀU ĐỎ (CÓ KHÁCH)
         function sendToKitchen() {
             if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].length === 0) { alert('Chưa chọn bàn hoặc chưa có món để báo bếp!'); return; }
             printKitchenBill(selectedTable, tableRounds[selectedTable]);
-            alert(`🔔 ĐÃ BÁO BẾP & IN PHIẾU CHO ${selectedTable}!`);
+            
             tableStatus[selectedTable] = 'busy';
             updateTableUI(selectedTable, 'Có khách', 'table-busy');
+            
+            alert(`🔔 ĐÃ BÁO BẾP & IN PHIẾU CHO ${selectedTable}!`);
             speakVoice(`${selectedTable} gọi đồ`);
         }
 
@@ -520,12 +527,13 @@
             let targetTable = document.getElementById('targetTableSelect').value;
             if(!targetTable) return;
 
-            // Chuyển toàn bộ dữ liệu món sang bàn đích
             tableRounds[targetTable] = tableRounds[selectedTable];
-            tableStatus[targetTable] = 'busy';
-            updateTableUI(targetTable, 'Có khách', 'table-busy');
+            let currentStatus = tableStatus[selectedTable] || 'busy';
+            tableStatus[targetTable] = currentStatus;
+            let statusText = currentStatus === 'busy' ? 'Có khách' : 'Đang order';
+            let className = currentStatus === 'busy' ? 'table-busy' : 'table-ordering';
+            updateTableUI(targetTable, statusText, className);
 
-            // Xóa sạch dữ liệu bàn cũ và cập nhật bàn cũ về màu xanh (Trống)
             delete tableRounds[selectedTable];
             tableStatus[selectedTable] = 'empty';
             updateTableUI(selectedTable, 'Trống', 'table-empty');
@@ -546,7 +554,7 @@
             container.innerHTML = '';
             if(bankConfig.acc && bankConfig.name) {
                 let vietQrUrl = `https://img.vietqr.io/image/${bankConfig.bank}-${bankConfig.acc}-compact2.png?amount=${totalAmount}&addInfo=Thanh%20toan%20${selectedTable}&accountName=${bankConfig.name}`;
-                container.innerHTML = `<img src="${vietQrUrl}" style="max-width:200px; border-radius:6px; border:1px solid #ddd;">`;
+                container.innerHTML = `<img src="${vietQrUrl}" style="max-width:200px; border-radius:6px; border:1px solid #334155;">`;
             } else {
                 container.innerHTML = `<p style="color:red; font-size:12px;">Chưa cấu hình tài khoản ngân hàng trong Cài Đặt!</p>`;
             }
