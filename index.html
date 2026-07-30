@@ -299,24 +299,150 @@
             initApp();
         }
 
-        function loadCustomerOrderScreen(tName) {
+        function loadCustomerOrderScreen(tNum) {
+            let tName = 'Bàn ' + (tNum < 10 && !tNum.startsWith('0') ? '0' + tNum : tNum);
+            let cusCart = [];
             document.body.innerHTML = `
                 <div style="max-width:480px; margin:0 auto; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
                     <div style="text-align:center; color:#d32f2f; font-weight:bold; font-size:20px;">🔥 QUÁN NƯỚNG TUỔI TRẺ 🔥</div>
                     <div style="text-align:center; color:#555; font-size:13px; margin-bottom:10px;">Hệ thống gọi món trực tuyến tại bàn</div>
-                    <div style="background:#ffebee; color:#d32f2f; border:1px dashed #d32f2f; padding:8px; text-align:center; font-weight:bold; border-radius:6px; margin-bottom:12px;">📍 Quý khách đang ngồi: Bàn ${tName}</div>
+                    <div style="background:#ffebee; color:#d32f2f; border:1px dashed #d32f2f; padding:8px; text-align:center; font-weight:bold; border-radius:6px; margin-bottom:12px;">📍 Quý khách đang ngồi: ${tName}</div>
+                    
+                    <!-- Lịch sử món đã gọi của bàn -->
+                    <div style="background:#e8f5e9; border:1px solid #c8e6c9; padding:10px; border-radius:8px; margin-bottom:12px;">
+                        <div style="font-weight:bold; font-size:13px; color:#2e7d32; margin-bottom:4px;">✅ Các món bàn đã gọi trước đó:</div>
+                        <div id="customerOrderedHistory" style="max-height:120px; overflow-y:auto; font-size:12px; color:#333;">Đang đồng bộ dữ liệu bàn...</div>
+                    </div>
+
                     <div id="customerMenu"></div>
+
                     <div style="background:#f1f1f1; padding:10px; border-radius:8px; margin-top:15px;">
-                        <div style="font-weight:bold; font-size:14px; margin-bottom:6px;">📋 Phiếu Gọi Món Của Bạn</div>
-                        <div id="customerCart" style="max-height:160px; overflow-y:auto; font-size:13px;">Chưa chọn món nào</div>
+                        <div style="font-weight:bold; font-size:14px; margin-bottom:6px;">🛒 Giỏ hàng chọn thêm</div>
+                        <div id="customerCart" style="max-height:140px; overflow-y:auto; font-size:13px;">Chưa chọn món nào</div>
                         <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:15px; margin-top:8px; border-top:1px dashed #ccc; padding-top:6px;">
-                            <span>Tổng cộng:</span><span id="cusTotal" style="color:#d32f2f;">0đ</span>
+                            <span>Tổng tiền bàn hiện tại:</span><span id="cusTotal" style="color:#d32f2f;">0đ</span>
                         </div>
                     </div>
-                    <button onclick="submitCustomerOrder()" style="width:100%; background:#d32f2f; color:white; border:none; padding:12px; font-weight:bold; border-radius:6px; margin-top:12px; font-size:15px; cursor:pointer;">🚀 GỬI YÊU CẦU GỌI MÓN</button>
+                    <button onclick="submitCustomerOrder('${tName}')" style="width:100%; background:#d32f2f; color:white; border:none; padding:12px; font-weight:bold; border-radius:6px; margin-top:12px; font-size:15px; cursor:pointer;">🚀 GỬI YÊU CẦU GỌI MÓN</button>
                 </div>
             `;
-            initCustomerView(tName);
+            initCustomerView(tName, cusCart);
+        }
+
+        async function initCustomerView(tName, cusCart) {
+            let menuDiv = document.getElementById('customerMenu');
+
+            menuData.forEach((cat) => {
+                menuDiv.innerHTML += `<div style="font-size:12px; font-weight:bold; color:#ffa726; background:#37474f; padding:4px 8px; border-radius:4px; margin:8px 0 4px 0;">${cat.cat}</div>`;
+                let grid = document.createElement('div');
+                grid.style.cssText = 'display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;';
+                
+                cat.items.forEach((item) => {
+                    let safeName = item.name.replace(/[^a-zA-Z0-9]/g, '');
+                    grid.innerHTML += `
+                        <div style="background:#fff; border:1px solid #ddd; padding:6px; border-radius:6px; text-align:center; position:relative;">
+                            <div id="cus-badge-${safeName}" class="food-badge" style="display:none;">0</div>
+                            <div style="font-size:11px; font-weight:bold; height:28px; overflow:hidden; color:#222;">${item.name}</div>
+                            <div style="color:#d32f2f; font-weight:bold; font-size:12px; margin-bottom:4px;">${(item.price/1000).toFixed(0)}k</div>
+                            <div style="display:flex; justify-content:center; gap:4px;">
+                                <button onclick="cusChangeQty('${item.name}', ${item.price}, -1)" style="background:#ddd; border:none; width:22px; height:22px; font-weight:bold; cursor:pointer; border-radius:3px;">-</button>
+                                <span id="qty-${safeName}" style="font-size:12px; font-weight:bold; line-height:22px;">0</span>
+                                <button onclick="cusChangeQty('${item.name}', ${item.price}, 1)" style="background:#d32f2f; color:#fff; border:none; width:22px; height:22px; font-weight:bold; cursor:pointer; border-radius:3px;">+</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                menuDiv.appendChild(grid);
+            });
+
+            // Lấy dữ liệu thực tế từ server cho khách xem
+            async function fetchCustomerTableData() {
+                try {
+                    const res = await fetch('/api/orders');
+                    const responseData = await res.json();
+                    const data = responseData.activeOrders || [];
+                    let tableOrder = data.find(o => o.tableName === tName);
+                    
+                    let historyHtml = '';
+                    let totalServerAmount = 0;
+                    if(tableOrder && tableOrder.items && tableOrder.items.length > 0) {
+                        tableOrder.items.forEach(i => {
+                            let sub = i.price * i.quantity;
+                            totalServerAmount += sub;
+                            historyHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:3px;"><span>• ${i.name} x${i.quantity}</span><b>${sub.toLocaleString()}đ</b></div>`;
+                        });
+                    } else {
+                        historyHtml = 'Chưa có món nào được xác nhận.';
+                    }
+
+                    let cartAmount = cusCart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+                    document.getElementById('customerOrderedHistory').innerHTML = historyHtml;
+                    document.getElementById('cusTotal').innerText = (totalServerAmount + cartAmount).toLocaleString() + 'đ';
+                } catch(e) {}
+            }
+
+            setInterval(fetchCustomerTableData, 2000);
+            fetchCustomerTableData();
+
+            window.cusChangeQty = function(name, price, change) {
+                let f = cusCart.find(i => i.name === name);
+                if(f) {
+                    f.quantity += change;
+                    if(f.quantity <= 0) {
+                        cusCart = cusCart.filter(i => i.name !== name);
+                    }
+                } else if(change > 0) {
+                    cusCart.push({ name, price, quantity: 1 });
+                }
+
+                let safeName = name.replace(/[^a-zA-Z0-9]/g, '');
+                let span = document.getElementById(`qty-${safeName}`);
+                let badge = document.getElementById(`cus-badge-${safeName}`);
+                let itemObj = cusCart.find(i => i.name === name);
+                
+                let qtyVal = itemObj ? itemObj.quantity : 0;
+                if(span) span.innerText = qtyVal;
+                
+                if(badge) {
+                    if(qtyVal > 0) {
+                        badge.innerText = 'x' + qtyVal;
+                        badge.style.display = 'block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+                renderCusCart(cusCart);
+            };
+
+            function renderCusCart(cart) {
+                if(cart.length === 0) { document.getElementById('customerCart').innerHTML = 'Chưa chọn món nào'; return; }
+                let html = '';
+                cart.forEach(i => {
+                    let sub = i.price * i.quantity;
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>+ ${i.name} x${i.quantity}</span><b>${sub.toLocaleString()}đ</b></div>`;
+                });
+                document.getElementById('customerCart').innerHTML = html;
+            }
+
+            window.submitCustomerOrder = async function(tableName) {
+                if(cusCart.length === 0) { alert('Vui lòng chọn món trước khi gửi!'); return; }
+                let totalAmount = cusCart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+                try {
+                    const response = await fetch(window.location.origin + '/api/checkout', {
+                        method: 'POST', 
+                        headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({ tableName, items: cusCart, totalAmount, staff: 'Khách tự order', tableStatus: 'ordering' })
+                    });
+                    if(response.ok) { 
+                        alert('🎉 Gửi yêu cầu gọi món thành công!'); 
+                        location.reload(); 
+                    } else {
+                        alert('❌ Gửi món thất bại, vui lòng thử lại!');
+                    }
+                } catch (err) {
+                    alert('❌ Không kết nối được với máy chủ quán!');
+                }
+            };
         }
 
         async function initApp() {
@@ -527,95 +653,6 @@
                     openKitchenScreen();
                 }
             } catch(e) {}
-        }
-
-        function initCustomerView(tName) {
-            let cusCart = [];
-            let menuDiv = document.getElementById('customerMenu');
-
-            menuData.forEach((cat, catIdx) => {
-                menuDiv.innerHTML += `<div style="font-size:12px; font-weight:bold; color:#ffa726; background:#37474f; padding:4px 8px; border-radius:4px; margin:8px 0 4px 0;">${cat.cat}</div>`;
-                let grid = document.createElement('div');
-                grid.style.cssText = 'display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;';
-                
-                cat.items.forEach((item, itemIdx) => {
-                    let safeName = item.name.replace(/[^a-zA-Z0-9]/g, '');
-                    grid.innerHTML += `
-                        <div style="background:#fff; border:1px solid #ddd; padding:6px; border-radius:6px; text-align:center; position:relative;">
-                            <div id="cus-badge-${safeName}" class="food-badge" style="display:none;">0</div>
-                            <div style="font-size:11px; font-weight:bold; height:28px; overflow:hidden; color:#222;">${item.name}</div>
-                            <div style="color:#d32f2f; font-weight:bold; font-size:12px; margin-bottom:4px;">${(item.price/1000).toFixed(0)}k</div>
-                            <div style="display:flex; justify-content:center; gap:4px;">
-                                <button onclick="cusChangeQty('${item.name}', ${item.price}, -1)" style="background:#ddd; border:none; width:22px; height:22px; font-weight:bold; cursor:pointer; border-radius:3px;">-</button>
-                                <span id="qty-${safeName}" style="font-size:12px; font-weight:bold; line-height:22px;">0</span>
-                                <button onclick="cusChangeQty('${item.name}', ${item.price}, 1)" style="background:#d32f2f; color:#fff; border:none; width:22px; height:22px; font-weight:bold; cursor:pointer; border-radius:3px;">+</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                menuDiv.appendChild(grid);
-            });
-
-            window.cusChangeQty = function(name, price, change) {
-                let f = cusCart.find(i => i.name === name);
-                if(f) {
-                    f.quantity += change;
-                    if(f.quantity <= 0) {
-                        cusCart = cusCart.filter(i => i.name !== name);
-                    }
-                } else if(change > 0) {
-                    cusCart.push({ name, price, quantity: 1 });
-                }
-
-                let safeName = name.replace(/[^a-zA-Z0-9]/g, '');
-                let span = document.getElementById(`qty-${safeName}`);
-                let badge = document.getElementById(`cus-badge-${safeName}`);
-                let itemObj = cusCart.find(i => i.name === name);
-                
-                let qtyVal = itemObj ? itemObj.quantity : 0;
-                if(span) span.innerText = qtyVal;
-                
-                if(badge) {
-                    if(qtyVal > 0) {
-                        badge.innerText = 'x' + qtyVal;
-                        badge.style.display = 'block';
-                    } else {
-                        badge.style.display = 'none';
-                    }
-                }
-                renderCusCart();
-            };
-
-            function renderCusCart() {
-                if(cusCart.length === 0) { document.getElementById('customerCart').innerHTML = 'Chưa chọn món nào'; document.getElementById('cusTotal').innerText = '0đ'; return; }
-                let html = '', total = 0;
-                cusCart.forEach(i => {
-                    let sub = i.price * i.quantity; total += sub;
-                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>${i.name} x${i.quantity}</span><b>${sub.toLocaleString()}đ</b></div>`;
-                });
-                document.getElementById('customerCart').innerHTML = html;
-                document.getElementById('cusTotal').innerText = total.toLocaleString() + 'đ';
-            }
-
-            window.submitCustomerOrder = async function() {
-                if(cusCart.length === 0) { alert('Vui lòng chọn món trước khi gửi!'); return; }
-                let totalAmount = cusCart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-                try {
-                    const response = await fetch(window.location.origin + '/api/checkout', {
-                        method: 'POST', 
-                        headers: {'Content-Type':'application/json'},
-                        body: JSON.stringify({ tableName: tName, items: cusCart, totalAmount, staff: 'Khách tự order', tableStatus: 'ordering' })
-                    });
-                    if(response.ok) { 
-                        alert('🎉 Gửi yêu cầu gọi món thành công!'); 
-                        location.reload(); 
-                    } else {
-                        alert('❌ Gửi món thất bại, vui lòng thử lại!');
-                    }
-                } catch (err) {
-                    alert('❌ Không kết nối được với máy chủ quán!');
-                }
-            }
         }
 
         function selectTable(tableName) {
