@@ -527,12 +527,38 @@
 
             window.submitCustomerOrder = async function(tableName) {
                 if(cusCart.length === 0) { alert('Vui lòng chọn món trước khi gửi!'); return; }
-                let totalAmount = cusCart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
                 try {
+                    const res = await fetch('/api/orders');
+                    const responseData = await res.json();
+                    const data = responseData.activeOrders || [];
+                    let existingOrder = data.find(o => o.tableName === tableName);
+                    
+                    let mergedItems = [];
+                    if(existingOrder && existingOrder.items) {
+                        mergedItems = JSON.parse(JSON.stringify(existingOrder.items));
+                    }
+
+                    cusCart.forEach(newItem => {
+                        let found = mergedItems.find(i => i.name === newItem.name);
+                        if(found) {
+                            found.quantity += newItem.quantity;
+                        } else {
+                            mergedItems.push(JSON.parse(JSON.stringify(newItem)));
+                        }
+                    });
+
+                    let totalAmount = mergedItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+
                     const response = await fetch(window.location.origin + '/api/checkout', {
                         method: 'POST', 
                         headers: {'Content-Type':'application/json'},
-                        body: JSON.stringify({ tableName, items: cusCart, totalAmount, staff: 'Khách tự order', tableStatus: 'ordering' })
+                        body: JSON.stringify({ 
+                            tableName: tableName, 
+                            items: mergedItems, 
+                            totalAmount: totalAmount, 
+                            staff: 'Khách tự order', 
+                            tableStatus: 'ordering' 
+                        })
                     });
                     if(response.ok) { 
                         alert('🎉 Gửi yêu cầu gọi món thành công!'); 
@@ -726,6 +752,8 @@
         }
 
         let lastCheckedCount = 0;
+        let lastOrderSignatures = {};
+
         async function syncAndCheckOrders() {
             if (urlParams.get('table')) return; 
             try {
@@ -734,9 +762,18 @@
                 const data = responseData.activeOrders || [];
                 const serverTableStatus = responseData.tableStatus || {};
                 
-                if (data.length > lastCheckedCount && lastCheckedCount !== 0) {
-                    let latestOrder = data[0]; 
-                    speakVoice(`${latestOrder.tableName} vừa gọi đồ`);
+                let hasNewNotification = false;
+                data.forEach(ord => {
+                    let tName = ord.tableName;
+                    let currentSignature = JSON.stringify(ord.items);
+                    if (lastOrderSignatures[tName] && lastOrderSignatures[tName] !== currentSignature) {
+                        hasNewNotification = true;
+                    }
+                    lastOrderSignatures[tName] = currentSignature;
+                });
+
+                if ((data.length > lastCheckedCount && lastCheckedCount !== 0) || hasNewNotification) {
+                    speakVoice(`Có bàn vừa gọi thêm món mới`);
                 }
                 lastCheckedCount = data.length;
 
