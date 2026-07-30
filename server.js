@@ -78,7 +78,7 @@ app.post('/api/checkout', (req, res) => {
     let { timeStr, dateStr } = getVietnamTime();
     let itemsText = items.map(i => `${i.name} (x${i.quantity})`).join(', ');
 
-    if (staff === 'Khách tự order') {
+    if (staff === 'Khách tự order' || totalAmount === 0) {
         let existing = db.activeOrders.find(o => o.tableName === tableName);
         if (existing) {
             items.forEach(newItem => {

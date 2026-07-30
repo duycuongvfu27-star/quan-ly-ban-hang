@@ -24,20 +24,12 @@
         .bill-col { flex: 1; background: white; padding: 12px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 500px; display: flex; flex-direction: column; }
         .category-title { font-size: 12px; font-weight: bold; color: #fff; background: #37474f; padding: 5px 8px; border-radius: 4px; margin: 8px 0 4px 0; text-transform: uppercase; }
         .food-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-        
-        /* Thẻ món ăn mặc định */
         .food-card { background: #fff; border: 1px solid #ddd; padding: 6px; border-radius: 6px; text-align: center; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; }
         .food-card:hover { border-color: #b71c1c; background: #fff5f5; }
-        
-        /* Thẻ món ăn khi đã được chọn (Màu hồng nhạt) */
         .food-card.selected { background: #ffebee !important; border: 1px solid #d32f2f !important; }
-
         .food-name { font-size: 11px; font-weight: bold; margin-bottom: 3px; height: 26px; overflow: hidden; color: #222; }
         .food-price { color: #d32f2f; font-weight: bold; font-size: 12px; }
-        
-        /* Badge hiển thị x1, x2 ngay góc thẻ món */
         .food-badge { position: absolute; top: -6px; right: -6px; background: #d32f2f; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; display: none; border: 1px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-
         .bill-items { flex: 1; overflow-y: auto; border: 1px solid #eee; padding: 6px; border-radius: 4px; margin-bottom: 8px; }
         .bill-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; font-size: 12px; }
         .btn-action { width: 100%; border: none; padding: 8px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 12px; margin-bottom: 5px; color: white; }
@@ -57,12 +49,11 @@
     </style>
 </head>
 <body>
-    <!-- MÀN HÌNH ĐĂNG NHẬP MÃ PIN -->
     <div id="loginScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg, #b71c1c, #37474f); display:flex; justify-content:center; align-items:center; z-index:9999;">
         <div style="background:white; padding:30px; border-radius:12px; text-align:center; width:360px; box-shadow:0 8px 25px rgba(0,0,0,0.3);">
             <h2 style="color:#b71c1c; margin-top:0;">🔥 QUÁN NƯỚNG TUỔI TRẺ</h2>
             <p style="font-size:13px; color:#666; margin-bottom:20px;">Nhập mã PIN để vào hệ thống POS</p>
-            <input type="password" id="loginPinInput" placeholder="Mã PIN (Quản lý: 1234, NV: 1111)..." style="width:100%; padding:12px; font-size:18px; text-align:center; letter-spacing:4px; border:1px solid #ccc; border-radius:6px; margin-bottom:15px;" maxlength="6">
+            <input type="password" id="loginPinInput" placeholder="Mã PIN đăng nhập..." style="width:100%; padding:12px; font-size:18px; text-align:center; letter-spacing:4px; border:1px solid #ccc; border-radius:6px; margin-bottom:15px;" maxlength="6">
             <button onclick="handleLogin()" style="background:#b71c1c; color:white; border:none; padding:12px; width:100%; border-radius:6px; font-weight:bold; font-size:15px; cursor:pointer;">🚀 ĐĂNG NHẬP</button>
         </div>
     </div>
@@ -447,12 +438,12 @@
                 lastCheckedCount = data.length;
 
                 let activeTableNames = data.map(ord => ord.tableName);
+                
                 for(let i=1; i<=16; i++) {
                     let tName = 'Bàn ' + (i < 10 ? '0' + i : i);
                     if(!activeTableNames.includes(tName) && selectedTable !== tName) {
-                        if(tableStatus[tName] !== 'ordering') {
+                        if(!tableRounds[tName] || tableRounds[tName].length === 0) {
                             tableStatus[tName] = 'empty';
-                            delete tableRounds[tName];
                             updateTableUI(tName, 'Trống', 'table-empty');
                         }
                     }
@@ -460,11 +451,27 @@
 
                 data.forEach(ord => {
                     let tName = ord.tableName;
-                    if(selectedTable !== tName || !tableRounds[tName] || tableRounds[tName].length === 0) {
+                    
+                    // Nếu khách tự order hoặc có đơn mới từ server, gộp chung vào tableRounds mà không làm mất dữ liệu cũ
+                    if(!tableRounds[tName]) {
                         tableRounds[tName] = ord.items;
+                    } else {
+                        // Gộp số lượng món mới khách order vào bàn
+                        ord.items.forEach(newItem => {
+                            let exist = tableRounds[tName].find(i => i.name === newItem.name);
+                            if(exist) {
+                                exist.quantity = newItem.quantity; // Cập nhật tổng số lượng mới nhất từ server
+                            } else {
+                                tableRounds[tName].push(newItem);
+                            }
+                        });
                     }
-                    tableStatus[tName] = 'busy';
-                    updateTableUI(tName, 'Có khách', 'table-busy');
+
+                    // Khách quét QR order xong -> Hiển thị MÀU CAM (Đang order) trừ khi quán đã bấm báo bếp
+                    if(tableStatus[tName] !== 'busy') {
+                        tableStatus[tName] = 'ordering';
+                        updateTableUI(tName, 'Đang order', 'table-ordering');
+                    }
                 });
 
                 if(selectedTable) {
@@ -591,7 +598,6 @@
         }
 
         function updateFoodBadges() {
-            // Reset tất cả các thẻ về trạng thái bình thường
             menuData.forEach((cat, cIdx) => {
                 cat.items.forEach((item, iIdx) => {
                     let card = document.getElementById(`card-${cIdx}-${iIdx}`);
@@ -613,7 +619,7 @@
                     if(totalMap[item.name]) {
                         let card = document.getElementById(`card-${cIdx}-${iIdx}`);
                         let badge = document.getElementById(`badge-${cIdx}-${iIdx}`);
-                        if(card) card.classList.add('selected'); // Đổi màu hồng nhạt
+                        if(card) card.classList.add('selected');
                         if(badge) {
                             badge.innerText = 'x' + totalMap[item.name];
                             badge.style.display = 'block';
@@ -650,12 +656,31 @@
             updateFoodBadges();
         }
 
-        function sendToKitchen() {
-            if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].length === 0) { alert('Chưa chọn bàn hoặc chưa có món để báo bếp!'); return; }
+        async function sendToKitchen() {
+            if(!selectedTable || !tableRounds[selectedTable] || tableRounds[selectedTable].length === 0) { 
+                alert('Chưa chọn bàn hoặc chưa có món để báo bếp!'); 
+                return; 
+            }
             printKitchenBill(selectedTable, tableRounds[selectedTable]);
+            
+            // Bấm báo bếp -> Chuyển sang MÀU ĐỎ (Có khách) vĩnh viễn cho đến khi thanh toán
             tableStatus[selectedTable] = 'busy';
             updateTableUI(selectedTable, 'Có khách', 'table-busy');
-            alert(`🔔 ĐÃ BÁO BẾP & IN PHIẾU CHO ${selectedTable}!`);
+            
+            try {
+                await fetch('/api/checkout', {
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ 
+                        tableName: selectedTable, 
+                        items: tableRounds[selectedTable], 
+                        totalAmount: 0, 
+                        staff: loggedInStaff.name 
+                    })
+                });
+            } catch(e) {}
+
+            alert(`🔔 ĐÃ BÁO BẾP & CHUYỂN SANG TRẠNG THÁI CÓ KHÁCH CHO ${selectedTable}!`);
             speakVoice(`${selectedTable} gọi đồ`);
         }
 
