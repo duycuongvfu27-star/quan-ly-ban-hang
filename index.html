@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QUÁN NƯỚNG TUỔI TRẺ - Quản Lý Bán Hàng POS</title>
+    <title>QUÁN NƯỚNG TUỔI TRẺ - Hệ Thống POS</title>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f4f6f9; color: #333; margin: 0; padding: 10px; }
@@ -11,10 +11,6 @@
         header h1 { margin: 0; font-size: 18px; }
         .header-right { display: flex; align-items: center; gap: 8px; }
         .header-right button { background: #ffa000; border: none; padding: 6px 12px; font-weight: bold; color: #fff; border-radius: 4px; cursor: pointer; }
-        .revenue-box { background: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; gap: 20px; align-items: center; }
-        .rev-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-        .rev-item h3 { margin: 0; font-size: 12px; color: #555; font-weight: normal; }
-        .rev-item p { margin: 0; font-size: 15px; font-weight: bold; color: #2e7d32; }
         .section { background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .section h2 { margin: 0 0 10px 0; font-size: 14px; color: #b71c1c; border-bottom: 2px solid #ffccbc; padding-bottom: 5px; }
         .table-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
@@ -52,25 +48,32 @@
     </style>
 </head>
 <body>
+    <!-- MÀN HÌNH ĐĂNG NHẬP MÃ PIN (Chỉ hiện thị với nhân viên/quản lý, khách quét QR không bị ảnh hưởng) -->
+    <div id="loginScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg, #b71c1c, #37474f); display:flex; justify-content:center; align-items:center; z-index:9999;">
+        <div style="background:white; padding:30px; border-radius:12px; text-align:center; width:360px; box-shadow:0 8px 25px rgba(0,0,0,0.3);">
+            <h2 style="color:#b71c1c; margin-top:0;">🔥 QUÁN NƯỚNG TUỔI TRẺ</h2>
+            <p style="font-size:13px; color:#666; margin-bottom:20px;">Nhập mã PIN để vào hệ thống POS</p>
+            <input type="password" id="loginPinInput" placeholder="Mã PIN (Quản lý: 1234, NV: 1111)..." style="width:100%; padding:12px; font-size:18px; text-align:center; letter-spacing:4px; border:1px solid #ccc; border-radius:6px; margin-bottom:15px;" maxlength="6">
+            <button onclick="handleLogin()" style="background:#b71c1c; color:white; border:none; padding:12px; width:100%; border-radius:6px; font-weight:bold; font-size:15px; cursor:pointer;">🚀 ĐĂNG NHẬP</button>
+        </div>
+    </div>
+
     <header>
         <h1>🔥 QUÁN NƯỚNG TUỔI TRẺ - HỆ THỐNG POS 🔥</h1>
         <div class="header-right">
             <div style="font-size: 12px; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px;">
-                👤 NV Trực: <select id="currentStaffSelect" onchange="promptStaffPin()" style="background:transparent; color:#fff; border:none; font-weight:bold; cursor:pointer; outline:none;"></select>
+                👤 NV: <b id="currentStaffNameDisplay"></b> <button onclick="logoutSystem()" style="background:#d32f2f; border:none; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px; margin-left:6px; cursor:pointer;">Đăng xuất</button>
             </div>
-            <button onclick="requestManagerAction('revenue')">📊 Doanh Thu</button>
-            <button onclick="requestManagerAction('settings')">⚙️ Cài Đặt</button>
+            <button id="btnRevenue" onclick="requestManagerAction('revenue')" style="display:none;">📊 Doanh Thu</button>
+            <button id="btnSettings" onclick="requestManagerAction('settings')" style="display:none;">⚙️ Cài Đặt</button>
         </div>
     </header>
-    <div class="revenue-box">
-        <div class="rev-item"><h3>Tổng doanh thu hôm nay:</h3><p id="todayRev">0 VNĐ</p></div>
-        <div style="width: 1px; height: 20px; background: #ddd;"></div>
-        <div class="rev-item"><h3>Số đơn đã thanh toán:</h3><p id="totalOrdersCount" style="color: #0288d1;">0 đơn</p></div>
-    </div>
+
     <div class="section">
         <h2>🪑 Sơ Đồ Bàn Trực Quan (Xanh: Trống | Cam: Đang order | Đỏ: Có khách)</h2>
         <div class="table-grid" id="tableGrid"></div>
     </div>
+
     <div class="main-container">
         <div class="section menu-col" style="margin-bottom:0;">
             <h2>🥩 Danh Mục Thực Đơn Món Nướng</h2>
@@ -92,6 +95,8 @@
             <button class="btn-action qr-btn" onclick="showTableQR()">📱 Xem Mã QR Cho Khách Order</button>
         </div>
     </div>
+
+    <!-- MODAL -->
     <div id="printArea"></div>
     <div id="moveTableModal" class="modal">
         <div class="modal-box">
@@ -105,13 +110,14 @@
     <div id="settingsModal" class="modal">
         <div class="modal-box" style="text-align: left;">
             <h3 style="color: #b71c1c; margin-top:0; text-align:center;">⚙️ Cài Đặt Hệ Thống Quán</h3>
-            <label style="font-weight: bold; font-size: 12px;">1. Quản Lý Nhân Sự & Mã PIN:</label>
+            <label style="font-weight: bold; font-size: 12px;">1. Quản Lý Nhân Sự & Đổi Mã PIN:</label>
             <div style="display:flex; gap:6px; margin:6px 0;">
-                <input type="text" id="newStaffName" placeholder="Tên nhân viên..." style="margin:0; flex:1;">
-                <input type="password" id="newStaffPin" placeholder="Mã PIN..." style="margin:0; width:90px;" maxlength="6">
-                <button onclick="addStaff()" style="background:#4caf50; color:white; border:none; padding:8px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">Thêm</button>
+                <input type="text" id="newStaffName" placeholder="Tên nhân sự..." style="margin:0; flex:1;">
+                <input type="password" id="newStaffPin" placeholder="Mã PIN..." style="margin:0; width:70px;" maxlength="6">
+                <select id="newStaffRole" style="margin:0; width:95px;"><option value="staff">Nhân Viên</option><option value="manager">Quản Lý</option></select>
+                <button onclick="addStaff()" style="background:#4caf50; color:white; border:none; padding:8px 10px; border-radius:4px; font-weight:bold; cursor:pointer;">Thêm</button>
             </div>
-            <div id="staffListContainer" style="max-height:100px; overflow-y:auto; border:1px solid #ddd; padding:4px; border-radius:4px; margin-bottom:10px; font-size:12px;"></div>
+            <div id="staffListContainer" style="max-height:120px; overflow-y:auto; border:1px solid #ddd; padding:4px; border-radius:4px; margin-bottom:10px; font-size:12px;"></div>
             
             <label style="font-weight: bold; font-size: 12px;">2. Quản Lý Mã Giảm Giá (Voucher):</label>
             <div style="display:flex; gap:6px; margin:6px 0;">
@@ -149,8 +155,8 @@
     </div>
     <div id="pinModal" class="modal">
         <div class="modal-box" style="width: 320px;">
-            <h3 style="color: #b71c1c; margin-top:0;">🔒 Xác Thực Nhân Sự</h3>
-            <p id="pinModalLabel" style="font-size: 13px; color:#555;">Nhập mã PIN:</p>
+            <h3 style="color: #b71c1c; margin-top:0;">🔒 Xác Thực Quản Lý</h3>
+            <p id="pinModalLabel" style="font-size: 13px; color:#555;">Nhập mã PIN Quản Lý:</p>
             <input type="password" id="inputStaffPin" placeholder="Mã PIN..." style="text-align:center; font-size:18px; letter-spacing:4px;" maxlength="6">
             <button onclick="verifyStaffPin()" style="background:#4caf50; color:white; border:none; padding:10px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:8px;">Xác Nhận</button>
             <button onclick="cancelPinModal()" style="background:#555; color:white; border:none; padding:6px; width:100%; border-radius:4px; cursor:pointer; margin-top:6px;">Hủy</button>
@@ -185,6 +191,7 @@
             <button onclick="document.getElementById('bankModal').style.display='none'" style="background:#555; color:white; border:none; padding:6px; width:100%; border-radius:4px; margin-top:5px; cursor:pointer;">Hủy</button>
         </div>
     </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         const menuData = [
@@ -247,13 +254,13 @@
         let voucherList = JSON.parse(localStorage.getItem('voucherList') || '[{"code":"GIAM10", "type":"percent", "value":10}, {"code":"GIAM50K", "type":"fixed", "value":50000}]');
         let activeDiscount = { code: '', amount: 0 };
         let staffList = [];
-        let currentStaff = localStorage.getItem('currentStaff') || '';
-        let pendingStaff = '';
+        let loggedInStaff = JSON.parse(localStorage.getItem('loggedInStaff') || 'null');
         let currentPinAction = '';
         const urlParams = new URLSearchParams(window.location.search);
         const tableParam = urlParams.get('table');
 
         if (tableParam) {
+            // Khách hàng quét QR order -> Không bao giờ hiển thị màn hình đăng nhập PIN
             document.body.innerHTML = `
                 <div style="max-width:480px; margin:0 auto; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
                     <div style="text-align:center; color:#d32f2f; font-weight:bold; font-size:20px;">🔥 QUÁN NƯỚNG TUỔI TRẺ 🔥</div>
@@ -272,7 +279,30 @@
             `;
             initCustomerView(tableParam);
         } else {
+            initApp();
+        }
+
+        async function initApp() {
+            try {
+                const res = await fetch('/api/staff');
+                staffList = await res.json();
+            } catch(e) {}
+
+            if(loggedInStaff) {
+                let valid = staffList.find(s => s.name === loggedInStaff.name);
+                if(valid) {
+                    loggedInStaff = valid;
+                    document.getElementById('loginScreen').style.display = 'none';
+                    applyRoleUI();
+                } else {
+                    logoutSystem();
+                }
+            } else {
+                document.getElementById('loginScreen').style.display = 'flex';
+            }
+
             const tableGrid = document.getElementById('tableGrid');
+            tableGrid.innerHTML = '';
             for(let i=1; i<=16; i++) {
                 let tName = 'Bàn ' + (i < 10 ? '0' + i : i);
                 tableStatus[tName] = 'empty';
@@ -283,41 +313,46 @@
                 btn.onclick = () => selectTable(tName);
                 tableGrid.appendChild(btn);
             }
-            fetchStaffAndInit();
             renderMenuPOS();
-            loadTodayRevenue();
             setInterval(syncAndCheckOrders, 2000);
         }
 
-        async function fetchStaffAndInit() {
+        async function handleLogin() {
+            let pin = document.getElementById('loginPinInput').value.trim();
             try {
                 const res = await fetch('/api/staff');
                 staffList = await res.json();
-                if(!currentStaff || !staffList.some(s => s.name === currentStaff)) {
-                    currentStaff = staffList[0] ? staffList[0].name : 'Quản Lý 1';
-                    localStorage.setItem('currentStaff', currentStaff);
-                }
-                renderStaffDropdown();
             } catch(e) {}
+
+            let found = staffList.find(s => s.pin === pin);
+            if(found) {
+                loggedInStaff = found;
+                localStorage.setItem('loggedInStaff', JSON.stringify(found));
+                document.getElementById('loginScreen').style.display = 'none';
+                applyRoleUI();
+            } else {
+                alert('❌ Mã PIN không chính xác!');
+                document.getElementById('loginPinInput').value = '';
+                document.getElementById('loginPinInput').focus();
+            }
         }
 
-        function renderStaffDropdown() {
-            let select = document.getElementById('currentStaffSelect');
-            select.innerHTML = '';
-            staffList.forEach(s => {
-                let roleText = s.role === 'manager' ? ' [Quản Lý]' : ' [Nhân Viên]';
-                select.innerHTML += `<option value="${s.name}" ${s.name === currentStaff ? 'selected' : ''}>${s.name}${roleText}</option>`;
-            });
+        function logoutSystem() {
+            localStorage.removeItem('loggedInStaff');
+            loggedInStaff = null;
+            document.getElementById('loginPinInput').value = '';
+            document.getElementById('loginScreen').style.display = 'flex';
         }
 
-        function promptStaffPin() {
-            pendingStaff = document.getElementById('currentStaffSelect').value;
-            if(pendingStaff === currentStaff) return;
-            currentPinAction = 'shift';
-            document.getElementById('pinModalLabel').innerText = `Nhập mã PIN của [${pendingStaff}] để đổi ca:`;
-            document.getElementById('inputStaffPin').value = '';
-            document.getElementById('pinModal').style.display = 'flex';
-            document.getElementById('inputStaffPin').focus();
+        function applyRoleUI() {
+            document.getElementById('currentStaffNameDisplay').innerText = `${loggedInStaff.name}`;
+            if(loggedInStaff.role === 'manager') {
+                document.getElementById('btnRevenue').style.display = 'inline-block';
+                document.getElementById('btnSettings').style.display = 'inline-block';
+            } else {
+                document.getElementById('btnRevenue').style.display = 'none';
+                document.getElementById('btnSettings').style.display = 'none';
+            }
         }
 
         function requestManagerAction(actionType) {
@@ -330,115 +365,26 @@
 
         function cancelPinModal() {
             document.getElementById('pinModal').style.display = 'none';
-            renderStaffDropdown();
         }
 
         async function verifyStaffPin() {
             let pinInput = document.getElementById('inputStaffPin').value;
-            if (currentPinAction === 'shift') {
-                let staffObj = staffList.find(s => s.name === pendingStaff);
-                if(staffObj && staffObj.pin === pinInput) {
-                    currentStaff = pendingStaff;
-                    localStorage.setItem('currentStaff', currentStaff);
-                    document.getElementById('pinModal').style.display = 'none';
-                    alert(`✅ Đã đổi ca thành công sang: ${currentStaff}`);
-                } else {
-                    alert('❌ Mã PIN không chính xác!');
-                    document.getElementById('inputStaffPin').value = '';
-                    document.getElementById('inputStaffPin').focus();
-                }
-            } else {
-                let managerObj = staffList.find(s => s.role === 'manager' && s.pin === pinInput);
-                if(managerObj) {
-                    document.getElementById('pinModal').style.display = 'none';
-                    if (currentPinAction === 'settings') {
-                        openSettingsModal();
-                    } else if (currentPinAction === 'revenue') {
-                        window.location.href = '/api/orders/view';
-                    }
-                } else {
-                    alert('❌ Từ chối truy cập! Chỉ tài khoản Quản Lý mới có quyền này.');
-                    document.getElementById('pinModal').style.display = 'none';
-                }
-            }
-        }
-
-        async function renderStaffListModal() {
             try {
                 const res = await fetch('/api/staff');
                 staffList = await res.json();
             } catch(e) {}
 
-            let container = document.getElementById('staffListContainer');
-            container.innerHTML = '';
-            staffList.forEach((s) => {
-                let badgeRole = s.role === 'manager' ? '<b style="color:#d32f2f;">(Quản Lý)</b>' : '(Nhân Viên)';
-                container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px solid #eee;">
-                    <span><b>${s.name}</b> ${badgeRole} - PIN: ${s.pin}</span>
-                    ${staffList.length > 1 ? `<button onclick="removeStaff('${s.name}')" style="background:#d32f2f; color:#fff; border:none; padding:2px 6px; border-radius:3px; cursor:pointer; font-size:10px;">Xóa</button>` : ''}
-                </div>`;
-            });
-            renderVoucherListModal();
-        }
-
-        function renderVoucherListModal() {
-            let container = document.getElementById('voucherListContainer');
-            container.innerHTML = '';
-            voucherList.forEach((v, idx) => {
-                let valStr = v.type === 'percent' ? v.value + '%' : v.value.toLocaleString() + 'đ';
-                container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px solid #eee;">
-                    <span>Mã: <b>${v.code}</b> (${valStr})</span>
-                    <button onclick="removeVoucher(${idx})" style="background:#d32f2f; color:#fff; border:none; padding:2px 6px; border-radius:3px; cursor:pointer; font-size:10px;">Xóa</button>
-                </div>`;
-            });
-        }
-
-        function addVoucher() {
-            let code = document.getElementById('newVoucherCode').value.trim().toUpperCase();
-            let type = document.getElementById('newVoucherType').value;
-            let value = parseFloat(document.getElementById('newVoucherVal').value);
-            if(!code || isNaN(value)) { alert('Vui lòng nhập mã và giá trị giảm hợp lệ!'); return; }
-            voucherList.push({ code, type, value });
-            localStorage.setItem('voucherList', JSON.stringify(voucherList));
-            document.getElementById('newVoucherCode').value = '';
-            document.getElementById('newVoucherVal').value = '';
-            renderVoucherListModal();
-            alert('✅ Đã thêm mã giảm giá thành công!');
-        }
-
-        function removeVoucher(idx) {
-            voucherList.splice(idx, 1);
-            localStorage.setItem('voucherList', JSON.stringify(voucherList));
-            renderVoucherListModal();
-        }
-
-        async function addStaff() {
-            let name = document.getElementById('newStaffName').value.trim();
-            let pin = document.getElementById('newStaffPin').value.trim();
-            if(!name || !pin) { alert('Vui lòng nhập tên và mã PIN!'); return; }
-            const res = await fetch('/api/staff/add', {
-                method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ name, pin })
-            });
-            if(res.ok) {
-                document.getElementById('newStaffName').value = '';
-                document.getElementById('newStaffPin').value = '';
-                await fetchStaffAndInit();
-                renderStaffListModal();
-                alert('✅ Đã thêm nhân sự thành công!');
-            }
-        }
-
-        async function removeStaff(name) {
-            if(confirm(`Bạn có chắc muốn xóa nhân sự ${name} không?`)) {
-                const res = await fetch('/api/staff/remove', {
-                    method: 'POST', headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({ name })
-                });
-                if(res.ok) {
-                    await fetchStaffAndInit();
-                    renderStaffListModal();
+            let managerObj = staffList.find(s => s.role === 'manager' && s.pin === pinInput);
+            if(managerObj) {
+                document.getElementById('pinModal').style.display = 'none';
+                if (currentPinAction === 'settings') {
+                    openSettingsModal();
+                } else if (currentPinAction === 'revenue') {
+                    window.location.href = '/api/orders/view';
                 }
+            } else {
+                alert('❌ Từ chối truy cập! Chỉ tài khoản Quản Lý mới có quyền này.');
+                document.getElementById('pinModal').style.display = 'none';
             }
         }
 
@@ -693,7 +639,7 @@
             let widthStyle = printerConfig.size === '58' ? 'width: 58mm;' : 'width: 80mm;';
             let html = `<div style="${widthStyle} font-size: 12px; padding: 5px;">`;
             html += `<h3 style="text-align:center; margin:0;">PHIẾU BÁO BẾP</h3>`;
-            html += `<p style="text-align:center; margin:2px 0;"><b>${tableName}</b> (NV: ${currentStaff})</p>`;
+            html += `<p style="text-align:center; margin:2px 0;"><b>${tableName}</b> (NV: ${loggedInStaff.name})</p>`;
             html += `<p style="text-align:center; margin:2px 0; font-size:10px;">${new Date().toLocaleTimeString('vi-VN')} - ${new Date().toLocaleDateString('vi-VN')}</p>`;
             html += `<hr style="border-top:1px dashed #000; margin:5px 0;">`;
             items.forEach(i => {
@@ -812,7 +758,7 @@
                     totalAmount: finalAmount, 
                     discount: activeDiscount.amount,
                     voucherCode: activeDiscount.code,
-                    staff: currentStaff 
+                    staff: loggedInStaff.name 
                 })
             });
             if(res.ok) {
@@ -824,7 +770,6 @@
                 renderBill();
                 updateFoodBadges();
                 document.getElementById('bankModal').style.display = 'none';
-                loadTodayRevenue();
             }
         }
 
@@ -834,7 +779,7 @@
             html += `<h3 style="text-align:center; margin:0;">QUÁN NƯỚNG TUỔI TRẺ</h3>`;
             html += `<p style="text-align:center; margin:2px 0; font-size:10px;">Hotline: 0842.163.333</p>`;
             html += `<h4 style="text-align:center; margin:5px 0;">HÓA ĐƠN THANH TOÁN</h4>`;
-            html += `<p style="margin:2px 0;">Bàn: <b>${tableName}</b> | Thu Ngân: ${currentStaff}</p>`;
+            html += `<p style="margin:2px 0;">Bàn: <b>${tableName}</b> | Thu Ngân: ${loggedInStaff.name}</p>`;
             html += `<p style="margin:2px 0; font-size:10px;">Giờ: ${new Date().toLocaleTimeString('vi-VN')} - ${new Date().toLocaleDateString('vi-VN')}</p>`;
             html += `<hr style="border-top:1px dashed #000; margin:5px 0;">`;
             items.forEach(i => {
@@ -873,6 +818,83 @@
             document.getElementById('settingsModal').style.display = 'flex';
         }
 
+        function renderStaffListModal() {
+            let container = document.getElementById('staffListContainer');
+            container.innerHTML = '';
+            staffList.forEach((s) => {
+                let badgeRole = s.role === 'manager' ? '<b style="color:#d32f2f;">(Quản Lý)</b>' : '(Nhân Viên)';
+                container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px solid #eee;">
+                    <span><b>${s.name}</b> ${badgeRole} - PIN: <b>${s.pin}</b></span>
+                    ${staffList.length > 1 ? `<button onclick="removeStaff('${s.name}')" style="background:#d32f2f; color:#fff; border:none; padding:2px 6px; border-radius:3px; cursor:pointer; font-size:10px;">Xóa</button>` : ''}
+                </div>`;
+            });
+            renderVoucherListModal();
+        }
+
+        function renderVoucherListModal() {
+            let container = document.getElementById('voucherListContainer');
+            container.innerHTML = '';
+            voucherList.forEach((v, idx) => {
+                let valStr = v.type === 'percent' ? v.value + '%' : v.value.toLocaleString() + 'đ';
+                container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px solid #eee;">
+                    <span>Mã: <b>${v.code}</b> (${valStr})</span>
+                    <button onclick="removeVoucher(${idx})" style="background:#d32f2f; color:#fff; border:none; padding:2px 6px; border-radius:3px; cursor:pointer; font-size:10px;">Xóa</button>
+                </div>`;
+            });
+        }
+
+        function addVoucher() {
+            let code = document.getElementById('newVoucherCode').value.trim().toUpperCase();
+            let type = document.getElementById('newVoucherType').value;
+            let value = parseFloat(document.getElementById('newVoucherVal').value);
+            if(!code || isNaN(value)) { alert('Vui lòng nhập mã và giá trị giảm hợp lệ!'); return; }
+            voucherList.push({ code, type, value });
+            localStorage.setItem('voucherList', JSON.stringify(voucherList));
+            document.getElementById('newVoucherCode').value = '';
+            document.getElementById('newVoucherVal').value = '';
+            renderVoucherListModal();
+            alert('✅ Đã thêm mã giảm giá thành công!');
+        }
+
+        function removeVoucher(idx) {
+            voucherList.splice(idx, 1);
+            localStorage.setItem('voucherList', JSON.stringify(voucherList));
+            renderVoucherListModal();
+        }
+
+        async function addStaff() {
+            let name = document.getElementById('newStaffName').value.trim();
+            let pin = document.getElementById('newStaffPin').value.trim();
+            let role = document.getElementById('newStaffRole').value;
+            if(!name || !pin) { alert('Vui lòng nhập tên và mã PIN!'); return; }
+            const res = await fetch('/api/staff/add', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ name, pin, role })
+            });
+            if(res.ok) {
+                document.getElementById('newStaffName').value = '';
+                document.getElementById('newStaffPin').value = '';
+                const staffRes = await fetch('/api/staff');
+                staffList = await staffRes.json();
+                renderStaffListModal();
+                alert('✅ Đã cập nhật nhân sự / thay đổi mã PIN thành công!');
+            }
+        }
+
+        async function removeStaff(name) {
+            if(confirm(`Bạn có chắc muốn xóa nhân sự ${name} không?`)) {
+                const res = await fetch('/api/staff/remove', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ name })
+                });
+                if(res.ok) {
+                    const staffRes = await fetch('/api/staff');
+                    staffList = await staffRes.json();
+                    renderStaffListModal();
+                }
+            }
+        }
+
         function saveBankConfig() {
             bankConfig = {
                 bank: document.getElementById('bankNameSelect').value,
@@ -889,16 +911,6 @@
             };
             localStorage.setItem('printerConfig', JSON.stringify(printerConfig));
             alert('✅ Đã lưu cấu hình máy in thành công!');
-        }
-
-        async function loadTodayRevenue() {
-            try {
-                const res = await fetch('/api/orders');
-                const data = await res.json();
-                let total = 0; data.forEach(ord => { total += ord.totalAmount; });
-                document.getElementById('todayRev').innerText = total.toLocaleString() + ' VNĐ';
-                document.getElementById('totalOrdersCount').innerText = data.length + ' đơn';
-            } catch(e) {}
         }
     </script>
 </body>

@@ -1,20 +1,36 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(__dirname));
 
-let globalActiveOrders = [];
-let globalPaidHistory = [];
+const DATA_FILE = path.join(__dirname, 'orders.json');
+
+if (!fs.existsSync(DATA_FILE)) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify({ activeOrders: [], paidHistory: [] }, null, 2));
+}
+
+function readData() {
+    try {
+        const data = fs.readFileSync(DATA_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (e) {
+        return { activeOrders: [], paidHistory: [] };
+    }
+}
+
+function saveData(data) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+}
 
 let globalStaffList = [
     { name: "Quản Lý 1", pin: "1234", role: "manager" },
     { name: "Quản Lý 2", pin: "8888", role: "manager" },
     { name: "Nhân Viên 1", pin: "1111", role: "staff" },
-    { name: "Nhân Viên 2", pin: "2222", role: "staff" },
-    { name: "Nhân Viên 3", pin: "3333", role: "staff" }
+    { name: "Nhân Viên 2", pin: "2222", role: "staff" }
 ];
 
 function getVietnamTime() {
@@ -35,11 +51,14 @@ app.get('/api/staff', (req, res) => {
 });
 
 app.post('/api/staff/add', (req, res) => {
-    const { name, pin } = req.body;
+    const { name, pin, role } = req.body;
     if (name && pin) {
-        if (!globalStaffList.some(s => s.name === name)) {
-            let role = name.toLowerCase().includes('quản lý') ? 'manager' : 'staff';
-            globalStaffList.push({ name, pin, role });
+        let existing = globalStaffList.find(s => s.name === name);
+        if (existing) {
+            existing.pin = pin;
+            if (role) existing.role = role;
+        } else {
+            globalStaffList.push({ name, pin, role: role || 'staff' });
         }
     }
     res.json({ success: true, staff: globalStaffList });
@@ -55,11 +74,12 @@ app.post('/api/staff/remove', (req, res) => {
 
 app.post('/api/checkout', (req, res) => {
     const { tableName, items, totalAmount, discount, voucherCode, staff } = req.body;
+    let db = readData();
     let { timeStr, dateStr } = getVietnamTime();
     let itemsText = items.map(i => `${i.name} (x${i.quantity})`).join(', ');
 
     if (staff === 'Khách tự order') {
-        let existing = globalActiveOrders.find(o => o.tableName === tableName);
+        let existing = db.activeOrders.find(o => o.tableName === tableName);
         if (existing) {
             items.forEach(newItem => {
                 let foundItem = existing.items.find(i => i.name === newItem.name);
@@ -71,7 +91,7 @@ app.post('/api/checkout', (req, res) => {
             });
             existing.totalAmount += totalAmount;
         } else {
-            globalActiveOrders.unshift({
+            db.activeOrders.unshift({
                 id: Date.now(),
                 time: timeStr,
                 tableName,
@@ -90,18 +110,22 @@ app.post('/api/checkout', (req, res) => {
             staff: staff || 'Nhân viên',
             date: dateStr
         };
-        globalPaidHistory.unshift(newPaidOrder);
-        globalActiveOrders = globalActiveOrders.filter(o => o.tableName !== tableName);
+        db.paidHistory.unshift(newPaidOrder);
+        db.activeOrders = db.activeOrders.filter(o => o.tableName !== tableName);
     }
 
-    res.status(200).json({ success: true, activeOrders: globalActiveOrders });
+    saveData(db);
+    res.status(200).json({ success: true, activeOrders: db.activeOrders });
 });
 
 app.get('/api/orders', (req, res) => {
-    res.json(globalActiveOrders);
+    let db = readData();
+    res.json(db.activeOrders);
 });
 
 app.get('/api/orders/view', (req, res) => {
+    let db = readData();
+    let paidHistory = db.paidHistory;
     res.send(`
         <!DOCTYPE html>
         <html lang="vi">
@@ -162,7 +186,7 @@ app.get('/api/orders/view', (req, res) => {
                 </table>
             </div>
             <script>
-                let data = ${JSON.stringify(globalPaidHistory)};
+                let data = ${JSON.stringify(paidHistory)};
                 const nowUtc = new Date();
                 const nowVn = new Date(nowUtc.getTime() + (nowUtc.getTimezoneOffset() * 60000) + (3600000 * 7));
                 document.getElementById('filterDate').value = nowVn.toISOString().split('T')[0];
