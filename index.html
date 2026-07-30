@@ -259,12 +259,86 @@
         const urlParams = new URLSearchParams(window.location.search);
         const tableParam = urlParams.get('table');
 
+        // ==========================================
+        // CẤU HỌC TỌA ĐỘ GPS THỰC TẾ CỦA QUÁN
+        // ==========================================
+        const RESTAURANT_LAT = 20.370000; // Thay bằng Vĩ độ quán của bạn
+        const RESTAURANT_LNG = 106.000000; // Thay bằng Kinh độ quán của bạn
+        const ALLOWED_RADIUS_METERS = 100; // Bán kính cho phép khách order (Mét)
+
         if (tableParam) {
+            // Kiểm tra định vị khi khách quét QR
+            verifyCustomerLocation(tableParam);
+        } else {
+            initApp();
+        }
+
+        function verifyCustomerLocation(tNum) {
+            document.body.innerHTML = `
+                <div style="max-width:480px; margin:50px auto; background:#fff; padding:20px; border-radius:12px; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <h3 style="color:#d32f2f;">📍 Đang xác thực vị trí của bạn...</h3>
+                    <p style="font-size:13px; color:#555;">Vui lòng bấm <b>Cho phép (Allow)</b> khi trình duyệt hỏi quyền truy cập vị trí để gọi món tại bàn.</p>
+                </div>
+            `;
+
+            if (!navigator.geolocation) {
+                alert('Trình duyệt của bạn không hỗ trợ định vị GPS!');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    let userLat = position.coords.latitude;
+                    let userLng = position.coords.longitude;
+                    let distance = getDistanceFromLatLonInMeters(userLat, userLng, RESTAURANT_LAT, RESTAURANT_LNG);
+
+                    if (distance > ALLOWED_RADIUS_METERS) {
+                        document.body.innerHTML = `
+                            <div style="max-width:480px; margin:50px auto; background:#fff; padding:25px; border-radius:12px; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                                <h2 style="color:#d32f2f;">❌ BẠN ĐANG Ở XA QUÁN!</h2>
+                                <p style="font-size:14px; color:#555;">Hệ thống xác định bạn đang cách quán khoảng <b>${Math.round(distance)} mét</b>. Bạn phải ngồi tại bàn trong quán mới có thể tự order qua mã QR.</p>
+                            </div>
+                        `;
+                    } else {
+                        loadCustomerOrderScreen(tNum);
+                    }
+                },
+                (error) => {
+                    document.body.innerHTML = `
+                        <div style="max-width:480px; margin:50px auto; background:#fff; padding:25px; border-radius:12px; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                            <h2 style="color:#d32f2f;">⚠️ CẦN BẬT ĐỊNH VỊ GPS</h2>
+                            <p style="font-size:14px; color:#555;">Vui lòng bật định vị GPS trên điện thoại và tải lại trang để xác thực vị trí ngồi tại quán.</p>
+                            <button onclick="location.reload()" style="background:#b71c1c; color:#fff; border:none; padding:10px 20px; font-weight:bold; border-radius:6px; margin-top:10px; cursor:pointer;">Thử lại</button>
+                        </div>
+                    `;
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+
+        // Hàm tính khoảng cách giữa 2 điểm GPS (đơn vị mét)
+        function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+            let R = 6371000; // Bán kính trái đất tính bằng mét
+            let dLat = deg2rad(lat2 - lat1);
+            let dLon = deg2rad(lon2 - lon1);
+            let a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+            let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function deg2rad(deg) {
+            return deg * (Math.PI/180);
+        }
+
+        function loadCustomerOrderScreen(tNum) {
+            let tName = 'Bàn ' + (tNum < 10 && !tNum.startsWith('0') ? '0' + tNum : tNum);
             document.body.innerHTML = `
                 <div style="max-width:480px; margin:0 auto; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
                     <div style="text-align:center; color:#d32f2f; font-weight:bold; font-size:20px;">🔥 QUÁN NƯỚNG TUỔI TRẺ 🔥</div>
                     <div style="text-align:center; color:#555; font-size:13px; margin-bottom:10px;">Hệ thống gọi món trực tuyến tại bàn</div>
-                    <div style="background:#ffebee; color:#d32f2f; border:1px dashed #d32f2f; padding:8px; text-align:center; font-weight:bold; border-radius:6px; margin-bottom:12px;">📍 Quý khách đang ngồi: Bàn ${tableParam < 10 && !tableParam.startsWith('0') ? '0'+tableParam : tableParam}</div>
+                    <div style="background:#ffebee; color:#d32f2f; border:1px dashed #d32f2f; padding:8px; text-align:center; font-weight:bold; border-radius:6px; margin-bottom:12px;">📍 Quý khách đang ngồi: Bàn ${tNum}</div>
                     <div id="customerMenu"></div>
                     <div style="background:#f1f1f1; padding:10px; border-radius:8px; margin-top:15px;">
                         <div style="font-weight:bold; font-size:14px; margin-bottom:6px;">📋 Phiếu Gọi Món Của Bạn</div>
@@ -276,9 +350,7 @@
                     <button onclick="submitCustomerOrder()" style="width:100%; background:#d32f2f; color:white; border:none; padding:12px; font-weight:bold; border-radius:6px; margin-top:12px; font-size:15px; cursor:pointer;">🚀 GỬI YÊU CẦU GỌI MÓN</button>
                 </div>
             `;
-            initCustomerView(tableParam);
-        } else {
-            initApp();
+            initCustomerView(tName);
         }
 
         async function initApp() {
@@ -451,23 +523,19 @@
 
                 data.forEach(ord => {
                     let tName = ord.tableName;
-                    
-                    // Nếu khách tự order hoặc có đơn mới từ server, gộp chung vào tableRounds mà không làm mất dữ liệu cũ
                     if(!tableRounds[tName]) {
                         tableRounds[tName] = ord.items;
                     } else {
-                        // Gộp số lượng món mới khách order vào bàn
                         ord.items.forEach(newItem => {
                             let exist = tableRounds[tName].find(i => i.name === newItem.name);
                             if(exist) {
-                                exist.quantity = newItem.quantity; // Cập nhật tổng số lượng mới nhất từ server
+                                exist.quantity = newItem.quantity;
                             } else {
                                 tableRounds[tName].push(newItem);
                             }
                         });
                     }
 
-                    // Khách quét QR order xong -> Hiển thị MÀU CAM (Đang order) trừ khi quán đã bấm báo bếp
                     if(tableStatus[tName] !== 'busy') {
                         tableStatus[tName] = 'ordering';
                         updateTableUI(tName, 'Đang order', 'table-ordering');
@@ -480,8 +548,7 @@
             } catch(e) {}
         }
 
-        function initCustomerView(tNum) {
-            let tName = 'Bàn ' + (tNum < 10 && !tNum.startsWith('0') ? '0' + tNum : tNum);
+        function initCustomerView(tName) {
             let cusCart = [];
             let menuDiv = document.getElementById('customerMenu');
 
@@ -663,7 +730,6 @@
             }
             printKitchenBill(selectedTable, tableRounds[selectedTable]);
             
-            // Bấm báo bếp -> Chuyển sang MÀU ĐỎ (Có khách) vĩnh viễn cho đến khi thanh toán
             tableStatus[selectedTable] = 'busy';
             updateTableUI(selectedTable, 'Có khách', 'table-busy');
             
@@ -914,7 +980,7 @@
         async function addStaff() {
             let name = document.getElementById('newStaffName').value.trim();
             let pin = document.getElementById('newStaffPin').value.trim();
-            let role = document.getElementById('newStaffRole').value;
+            let role = document.getElementById('newStaffRole'].value;
             if(!name || !pin) { alert('Vui lòng nhập tên và mã PIN!'); return; }
             const res = await fetch('/api/staff/add', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
