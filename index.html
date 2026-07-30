@@ -98,7 +98,7 @@
         </div>
     </div>
 
-    <!-- MÀN HÌNH BẾP TO (CHỌN RIÊNG BIỆT BẾP HOẶC ĐỒ UỐNG) -->
+    <!-- MÀN HÌNH BẾP HOẶC QUẦY BAR -->
     <div id="kitchenModal" class="modal">
         <div class="modal-box" style="width: 750px; max-width: 98vw; text-align: left; background: #f8f9fa; padding: 25px;">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #b71c1c; padding-bottom:10px; margin-bottom:15px;">
@@ -1013,7 +1013,7 @@
             if(mode === 'food') {
                 titleEl.innerText = "🍳 MÀN HÌNH BẾP (ĐỒ ĂN NƯỚNG & CHI TIẾT COMBO)";
             } else {
-                titleEl.innerText = "🍹 MÀN HÌNH QUẦY BAR (ĐỒ UỐNG)";
+                titleEl.innerText = "🍹 MÀN HÌNH QUẦY BAR (ĐỒ UỐNG TỔNG HỢP)";
             }
 
             let activeTables = Object.keys(tableRounds).filter(t => tableRounds[t] && tableRounds[t].length > 0);
@@ -1024,50 +1024,76 @@
                 let hasData = false;
 
                 activeTables.forEach((tName, idx) => {
-                    let filteredRounds = [];
-                    if(tableRoundsHistory[tName]) {
-                        tableRoundsHistory[tName].forEach((r, rIdx) => {
-                            let split = getSplitItems(r.items);
-                            let targetItems = (mode === 'food') ? split.foodItems : split.drinkItems;
-                            if(targetItems.length > 0) {
-                                filteredRounds.push({ roundName: r.roundName, items: targetItems, originalIndex: rIdx });
-                            }
-                        });
-                    }
+                    if (mode === 'food') {
+                        let filteredRounds = [];
+                        if(tableRoundsHistory[tName]) {
+                            tableRoundsHistory[tName].forEach((r, rIdx) => {
+                                let split = getSplitItems(r.items);
+                                if(split.foodItems.length > 0) {
+                                    filteredRounds.push({ roundName: r.roundName, items: split.foodItems, originalIndex: rIdx });
+                                }
+                            });
+                        }
 
-                    if(filteredRounds.length > 0) {
-                        hasData = true;
-                        let roundsHtml = '';
-                        filteredRounds.forEach(r => {
-                            let rItemsHtml = '';
-                            r.items.forEach(i => {
-                                let isSubItem = i.name.startsWith("   └");
-                                let styleItem = isSubItem ? "font-size:14px; color:#555; padding-left:15px;" : "font-weight:bold; color:#222; font-size:16px;";
-                                rItemsHtml += `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed #ddd; ${styleItem}">
-                                    <span>${i.name}</span>
-                                    <span style="color:${mode === 'food' ? '#d32f2f' : '#0288d1'}; font-weight:bold; font-size:16px;">x${i.quantity}</span>
+                        if(filteredRounds.length > 0) {
+                            hasData = true;
+                            let roundsHtml = '';
+                            filteredRounds.forEach(r => {
+                                let rItemsHtml = '';
+                                r.items.forEach(i => {
+                                    let isSubItem = i.name.startsWith("   └");
+                                    let styleItem = isSubItem ? "font-size:14px; color:#555; padding-left:15px;" : "font-weight:bold; color:#222; font-size:16px;";
+                                    rItemsHtml += `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed #ddd; ${styleItem}">
+                                        <span>${i.name}</span>
+                                        <span style="color:#d32f2f; font-weight:bold; font-size:16px;">x${i.quantity}</span>
+                                    </div>`;
+                                });
+                                roundsHtml += `
+                                    <div style="margin-bottom:10px; border:1px solid #ffccbc; padding:10px; border-radius:6px; background:#fff;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:6px; margin-bottom:6px;">
+                                            <b style="color:#e65100; font-size:15px;">📌 ${r.roundName}:</b>
+                                            <button onclick="markRoundAsDone('${tName}', ${r.originalIndex}, 'food')" style="background:#4caf50; color:white; border:none; padding:6px 14px; border-radius:4px; font-size:13px; cursor:pointer; font-weight:bold;">✅ Đã Làm Xong</button>
+                                        </div>
+                                        ${rItemsHtml}
+                                    </div>`;
+                            });
+
+                            container.innerHTML += `
+                                <div style="background:#fff8e1; border-left: 6px solid #ff9800; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                                    <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:10px; font-size:18px; color:#b71c1c;">
+                                        <span>🪑 ${tName} ${idx === 0 ? '<span style="background:#d32f2f; color:#fff; font-size:11px; padding:2px 8px; border-radius:4px;">ƯU TIÊN #1</span>' : ''}</span>
+                                    </div>
+                                    <div>${roundsHtml}</div>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        let allTableItems = tableRounds[tName] || [];
+                        let splitAll = getSplitItems(allTableItems);
+                        let drinkList = splitAll.drinkItems;
+
+                        if(drinkList.length > 0) {
+                            hasData = true;
+                            let drinkHtml = '';
+                            drinkList.forEach(d => {
+                                drinkHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #ddd; font-size:16px;">
+                                    <span style="font-weight:bold; color:#222;">${d.name}</span>
+                                    <span style="color:#0288d1; font-weight:bold; font-size:18px;">x${d.quantity}</span>
                                 </div>`;
                             });
-                            roundsHtml += `
-                                <div style="margin-bottom:10px; border:1px solid ${mode === 'food' ? '#ffccbc' : '#b3e5fc'}; padding:10px; border-radius:6px; background:#fff;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:6px; margin-bottom:6px;">
-                                        <b style="color:${mode === 'food' ? '#e65100' : '#01579b'}; font-size:15px;">📌 ${r.roundName}:</b>
-                                        <button onclick="markRoundAsDone('${tName}', ${r.originalIndex}, '${mode}')" style="background:#4caf50; color:white; border:none; padding:6px 14px; border-radius:4px; font-size:13px; cursor:pointer; font-weight:bold;">✅ Đã Làm Xong</button>
-                                    </div>
-                                    ${rItemsHtml}
-                                </div>`;
-                        });
 
-                        container.innerHTML += `
-                            <div style="background:${mode === 'food' ? '#fff8e1' : '#e1f5fe'}; border-left: 6px solid ${mode === 'food' ? '#ff9800' : '#0288d1'}; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                                <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:10px; font-size:18px; color:${mode === 'food' ? '#b71c1c' : '#01579b'};">
-                                    <span>🪑 ${tName} ${idx === 0 ? '<span style="background:#d32f2f; color:#fff; font-size:11px; padding:2px 8px; border-radius:4px;">ƯU TIÊN #1</span>' : ''}</span>
+                            container.innerHTML += `
+                                <div style="background:#e1f5fe; border-left: 6px solid #0288d1; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom:15px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:18px; color:#01579b;">
+                                        <b style="font-size:18px;">🪑 ${tName}</b>
+                                        <button onclick="markDrinkAsDone('${tName}')" style="background:#4caf50; color:white; border:none; padding:6px 14px; border-radius:4px; font-size:13px; cursor:pointer; font-weight:bold;">✅ Hoàn Tất Đồ Uống</button>
+                                    </div>
+                                    <div style="background:#fff; padding:10px; border-radius:6px; border:1px solid #b3e5fc;">
+                                        ${drinkHtml}
+                                    </div>
                                 </div>
-                                <div>
-                                    ${roundsHtml}
-                                </div>
-                            </div>
-                        `;
+                            `;
+                        }
                     }
                 });
 
@@ -1077,6 +1103,38 @@
             }
 
             document.getElementById('kitchenModal').style.display = 'flex';
+        }
+
+        async function markDrinkAsDone(tName) {
+            if(confirm(`Xác nhận quầy bar đã làm xong toàn bộ đồ uống cho ${tName}?`)) {
+                if(!tableRounds[tName]) return;
+                let newTableItems = [];
+                tableRounds[tName].forEach(i => {
+                    if (i.name.includes("Combo")) {
+                        newTableItems.push(i);
+                    } else if (!isDrink(i.name) && !i.name.includes("Coca")) {
+                        newTableItems.push(i);
+                    }
+                });
+
+                tableRounds[tName] = newTableItems;
+
+                try {
+                    await fetch('/api/checkout', {
+                        method: 'POST', 
+                        headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({ 
+                            tableName: tName, 
+                            items: newTableItems.length > 0 ? newTableItems : [{ name: "Đã xong đồ uống", price: 0, quantity: 1 }], 
+                            totalAmount: 0, 
+                            staff: loggedInStaff ? loggedInStaff.name : 'Nhân viên',
+                            tableStatus: 'busy'
+                        })
+                    });
+                } catch(e) {}
+
+                openKitchenScreen('drink');
+            }
         }
 
         async function openMoveTableModal() {
